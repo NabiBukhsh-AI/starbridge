@@ -871,6 +871,11 @@ async function one(s: Scenario, arm: string, rep: number): Promise<RunRecord> {
       }
     };
     const delay = (s.answerAfter ?? 15) * 1000;
+    /** `c` while it is open, else the first card still open, as the owner's inbox shows them. */
+    const stillOpen = async (c: Card) => {
+      const open = (await live.opened("decision", "&open=1")) as unknown as Card[];
+      return open.find((o) => o.id === c.id) ?? open[0];
+    };
     // In `claude -p`, `codex exec`, `pi -p` and `opencode run` nothing brings an answer back as a
     // prompt: the agent waits within its turn (`starbridge wait`), so the owner answers the first
     // card while it runs, whether or not the situation checks what it does with the answer.
@@ -897,7 +902,10 @@ async function one(s: Scenario, arm: string, rep: number): Promise<RunRecord> {
               await Bun.sleep(delay);
               if (answeredFirst) break;
               const latest = (await live.opened("decision")) as Record<string, unknown>[];
-              await reply(c);
+              // A card the agent withdrew and reposted meanwhile: the owner answers the new one.
+              const target = await stillOpen(c);
+              if (!target) continue;
+              await reply(target);
               answeredFirst = latest;
             }
           })().catch(() => {}) // the turn ended and the server stopped first
@@ -913,7 +921,8 @@ async function one(s: Scenario, arm: string, rep: number): Promise<RunRecord> {
         seen ??= Date.now();
         if (Date.now() - seen < delay) return false;
         answeredFirst = (await live.opened("decision")) as Record<string, unknown>[];
-        if (d) await reply(d);
+        const target = d && (await stillOpen(d));
+        if (target) await reply(target);
         else if (p) {
           await live.answerPermission(p.id, { behavior: "allow", scope: "once" });
           rec.answered = `Allowed ${p.id}`;
