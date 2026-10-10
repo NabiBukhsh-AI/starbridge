@@ -1537,7 +1537,8 @@ Tokens, type and components: `DESIGN.md`.
   `latest-mac.yml` to the Release. Every 6 hours and at start, the app reads that file from the
   release it follows, downloads the zip, and installs it on quit or from Restart to Update. It
   follows GitHub's latest release, or with Get Release Candidates checked in its menu, the newest
-  rc when that is newer (#1071); an app installed from an rc starts checked. The app picks the
+  rc when that is newer (#1071); an app installed from an rc starts checked. Unchecking it cancels
+  an rc download under way; one already downloaded still installs on quit, since Squirrel holds it. The app picks the
   release from the `releases/latest` redirect and the releases feed: electron-updater's own GitHub
   lookup keeps an app installed from an rc on rcs and never offers it a final, and GitHub's API
   allows 60 requests an hour per address. macOS
