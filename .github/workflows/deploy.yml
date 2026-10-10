@@ -25,9 +25,36 @@ jobs:
       name: starbridge.run
       url: https://starbridge.run
     steps:
+      # Nothing to deploy when no file the box builds from changed since the revision it runs:
+      # what the Dockerfiles copy (server/Dockerfile, web/Dockerfile, deploy/demo/Dockerfile) and
+      # deploy/, which it applies. The run passes either way, so whoever waits for a merge to be
+      # live waits for this run, not for the live revision. Any doubt deploys.
+      - id: changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REV: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          deploy=true
+          got=$(curl -fsS --retry 5 --retry-delay 3 --retry-all-errors -D - -o /dev/null \
+            https://starbridge.run/healthz | tr -d '\r' |
+            awk -F': ' 'tolower($1) == "x-starbridge-revision" { print $2 }') || got=
+          case $got in *[!0-9a-f]*) got= ;; esac
+          if [ ${#got} -eq 40 ]; then
+            # Not gh: some self-hosted runners lack it (dell2-2). The compare lists at most 300
+            # files; a longer list deploys.
+            files=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+              "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/compare/$got...$REV" |
+              jq -r 'if (.files | length) < 300 then .files[].filename else error("too many") end') &&
+              if ! printf '%s\n' "$files" | grep -qE '^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|\.dockerignore|packages/|server/|web/|cli/|plugin/|mod/|demo/|docs/|deploy/)'; then
+                deploy=false
+                echo "Nothing the box builds from changed since $got: not deploying."
+              fi
+          fi
+          echo "deploy=$deploy" >> "$GITHUB_OUTPUT"
       # The key's forced command on the box runs starbridge-deploy with this commit id and nothing
       # else (deploy/setup-actions-deploy.sh).
       - name: Deploy
+        if: steps.changed.outputs.deploy == 'true'
         env:
           DEPLOY_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
@@ -42,6 +69,7 @@ jobs:
       # the box refused this older one. Anything else is a deploy that never went live. REV is the
       # commit CI passed on, which can be older than main's head, the commit the run list shows.
       - name: Check the live revision
+        if: steps.changed.outputs.deploy == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           REV: ${{ github.event.workflow_run.head_sha }}
@@ -62,6 +90,7 @@ jobs:
           esac
       # The deploy also rebuilt the Play reviewers' demo server from this commit (#1016).
       - name: Check the demo server
+        if: steps.changed.outputs.deploy == 'true'
         run: |
           curl -fsS --retry 10 --retry-delay 3 --retry-all-errors https://demo.starbridge.run/v1/demo |
             jq -e '.demo == true' >/dev/null || { echo "demo.starbridge.run is not a demo server"; exit 1; }
