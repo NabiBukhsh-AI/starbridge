@@ -43,6 +43,7 @@ test("each question becomes a waiting card; once all are answered, opencode gets
     source: { session: SESSION, project: "cache" },
   });
   expect(name?.options).toEqual([]);
+  expect(Date.parse(name?.createdAt as string) - Date.parse(db?.createdAt as string)).toBe(1);
   await until(async () => (await server.opened("waiting")).length === 2);
 
   await server.answer(db?.id as string, { choice: "Redis" });
