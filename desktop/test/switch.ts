@@ -35,8 +35,6 @@ const { values: opts } = parseArgs({
     cdp: { type: "string" },
     /** The proxy's port, fixed so a tunnel can reach it (the page's origin is localhost:PORT). */
     port: { type: "string" },
-    /** With --cdp: the command that shows the app's window again, such as `ssh mac open X.app`. */
-    "show-command": { type: "string" },
     /** Rebuilds and restarts the web page after the rounds, as a deploy does, then switches again. */
     deploy: { type: "boolean", default: false },
   },
@@ -303,7 +301,7 @@ try {
 
   let page: Page;
   let close: () => Promise<void>;
-  /** Closes the window to the menu bar and opens it again; none in a browser. */
+  /** Closes the window to the menu bar and opens it again: the app on this machine only. */
   let hide: (() => Promise<unknown>) | null = null;
   let show: (() => Promise<unknown>) | null = null;
   if (opts.cdp) {
@@ -320,13 +318,6 @@ try {
     await cdp.send("Network.setCookie", { name: "sb_session", value: session, url: ORIGIN });
     await page.goto(ORIGIN);
     close = () => browser.close();
-    // The page's own close is the window's close button, which hides it.
-    hide = () => page.evaluate(() => window.close());
-    // Opening the app again shows its window, as from the Dock.
-    if (opts["show-command"]) {
-      const [cmd, ...args] = opts["show-command"].split(" ");
-      show = async () => spawnSync(cmd as string, args);
-    }
   } else if (opts.client === "chrome") {
     const browser = await chromium.launch();
     const ctx = await browser.newContext({ viewport: { width: 1200, height: 800 } });
