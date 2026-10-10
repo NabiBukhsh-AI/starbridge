@@ -71,12 +71,11 @@ agents' own notifications for what Starbridge already sends.
 
 | | Claude Code | Codex | Pi | opencode | Cursor | Antigravity |
 |---|---|---|---|---|---|---|
-| Questions | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Answers into the live session | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| "Waiting for you" | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Runs | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Its ask tool, raced on your devices | ✓ | ✓ | With add-on | ✓ | No | ✓ |
+| Answer comes back without polling | ✓ | ✓ | ✓ | ✓ | CLI only | ✓ |
 | Permission prompts | Opt-in | Opt-in | Opt-in | Opt-in | No | Opt-in |
-| The harness's own ask tool | ✓ | ✓ | ✓ | ✓ | No | ✓ |
+| Runs | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| "Waiting for you" | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 An answer arrives as the session's next prompt. In Claude Code, the Starbridge mod submits it. A
 [Claude Code mod](https://code.claude.com/docs/en/plugins/mods/overview) is code that runs inside
