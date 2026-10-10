@@ -6,7 +6,7 @@
  */
 import type { MachineRelease } from "@starbridge/protocol";
 import { session } from "../context";
-import { checkLatest, updateCheckOn } from "../latest";
+import { checkLatest, updateCheckOn, within } from "../latest";
 import { VERSION } from "../version";
 import { type Feature, type Hub, pause } from "./server";
 
@@ -18,23 +18,29 @@ export class Release implements Feature {
 
   constructor(private readonly hub: Hub) {}
 
-  /** Never throws: an unreadable config file or a failed call waits for the next tick. */
-  async tick(): Promise<void> {
+  /**
+   * Never throws: an unreadable config file or a failed call waits for the next tick. `signal`
+   * ends both calls at once, so the agent's exit never waits on them.
+   */
+  async tick(signal?: AbortSignal): Promise<void> {
     const ctx = this.hub.ctx;
     try {
-      const latest = updateCheckOn(ctx) ? ((await checkLatest(ctx))?.version ?? null) : null;
+      const latest = updateCheckOn(ctx)
+        ? ((await checkLatest(ctx, ctx.now(), signal))?.version ?? null)
+        : null;
+      if (signal?.aborted) return;
       if (!ctx.store.machine()) return;
       const body: MachineRelease = { version: VERSION, latest };
       const key = JSON.stringify(body);
       if (key === this.sent) return;
-      await session(ctx).api.release(body, AbortSignal.timeout(10_000));
+      await session(ctx).api.release(body, within(signal));
       this.sent = key;
     } catch {}
   }
 
   async run(signal: AbortSignal): Promise<void> {
     while (!signal.aborted) {
-      await this.tick();
+      await this.tick(signal);
       await pause(TICK_MS, signal);
     }
   }

@@ -3,6 +3,7 @@ import type { Status } from "../agent/api";
 import { AgentClient } from "../agent/client";
 import { REMOVED } from "../api";
 import type { LatestRelease } from "../config";
+import type { Ctx } from "../context";
 import { deliverable } from "../decisions";
 import { newerRelease, updateCheckOn, updateCommand } from "../latest";
 import { installKind } from "../release";
@@ -28,8 +29,7 @@ async function agentStatus(sys: Sys): Promise<Status | string> {
 }
 
 /** The latest release as the agent last read it (#1050), and what to run when it is newer. */
-function latestLine(sys: Sys): string {
-  const { ctx } = sys;
+export function latestLine(ctx: Ctx): string {
   if (!updateCheckOn(ctx)) return "Latest: not checked (`starbridge config update-check on`)";
   let latest: LatestRelease | undefined;
   try {
@@ -49,7 +49,7 @@ export async function status(sys: Sys): Promise<number> {
   const out = ctx.out;
   out(`starbridge ${VERSION} (${sys.self.join(" ")})`);
   for (const line of await otherCopies(sys)) out(line);
-  out(latestLine(sys));
+  out(latestLine(ctx));
 
   const machine = ctx.store.machine();
   out(

@@ -5,6 +5,7 @@ import { LiveServer } from "@starbridge/server/test-support";
 import { Release } from "../src/agent/release";
 import { run } from "../src/cli";
 import { CHECK_EVERY_MS, checkLatest } from "../src/latest";
+import { latestLine } from "../src/setup/status";
 import { VERSION } from "../src/version";
 import { paired, type TestCtx, testCtx } from "./helpers";
 
@@ -133,18 +134,39 @@ test("the agent tells the server its release and the latest, so devices see it b
   }
 });
 
-test("status shows the installed and latest releases (#1050)", async () => {
-  const ctx = testCtx({ STARBRIDGE_NO_AGENT: "1" });
-  await run(["status"], ctx);
-  expect(ctx.lines).toContain("Latest: not checked yet (the agent reads it once a day)");
+test("status shows the latest release, and what to run when it is newer (#1050)", async () => {
+  const ctx = testCtx();
+  expect(latestLine(ctx)).toBe("Latest: not checked yet (the agent reads it once a day)");
   ctx.env.STARBRIDGE_LATEST_URL = gh.url;
   await checkLatest(ctx);
-  ctx.lines.length = 0;
-  await run(["status"], ctx);
-  expect(ctx.lines[0]).toStartWith(`starbridge ${VERSION} `);
-  expect(ctx.lines[1]).toMatch(
+  expect(latestLine(ctx)).toMatch(
     /^Latest: 99\.0\.0, checked .+: run npm i -g starbridge@latest, then starbridge setup --refresh$/,
   );
+  ctx.env.STARBRIDGE_NO_UPDATE_CHECK = "1";
+  expect(latestLine(ctx)).toBe("Latest: not checked (`starbridge config update-check on`)");
+});
+
+test("a stopping agent never waits on GitHub (#1050)", async () => {
+  const stalled = Bun.serve({ port: 0, fetch: () => new Promise<Response>(() => {}) });
+  try {
+    const ctx = testCtx({ STARBRIDGE_LATEST_URL: `http://localhost:${stalled.port}/latest` });
+    const hub = {
+      ctx,
+      notify: () => {},
+      changed: async () => {},
+      log: () => {},
+      seen: () => false,
+    };
+    const stop = new AbortController();
+    const loop = new Release(hub).run(stop.signal);
+    await Bun.sleep(50);
+    const t0 = Date.now();
+    stop.abort();
+    await loop;
+    expect(Date.now() - t0).toBeLessThan(1_000);
+  } finally {
+    stalled.stop(true);
+  }
 });
 
 test("an unreadable latest.json or agent.json neither stops the agent's check nor --version (#1050)", async () => {

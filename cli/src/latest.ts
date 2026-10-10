@@ -23,9 +23,14 @@ export function updateCheckOn(ctx: Ctx): boolean {
 
 /**
  * Reads the latest release unless it was read in the last day, and saves it. Any failure leaves
- * `latest.json` as it was, so the next call tries again; it never throws.
+ * `latest.json` as it was, so the next call tries again; it never throws. `signal` ends the
+ * request at once, so a stopping agent never waits on GitHub.
  */
-export async function checkLatest(ctx: Ctx, now = ctx.now()): Promise<LatestRelease | undefined> {
+export async function checkLatest(
+  ctx: Ctx,
+  now = ctx.now(),
+  signal?: AbortSignal,
+): Promise<LatestRelease | undefined> {
   let saved: LatestRelease | undefined;
   try {
     saved = ctx.store.latest();
@@ -36,7 +41,7 @@ export async function checkLatest(ctx: Ctx, now = ctx.now()): Promise<LatestRele
         "user-agent": `starbridge/${VERSION}`,
         ...(saved?.etag ? { "if-none-match": saved.etag } : {}),
       },
-      signal: AbortSignal.timeout(10_000),
+      signal: within(signal),
     });
     let next: LatestRelease | undefined;
     if (res.status === 304 && saved) next = { ...saved, checkedAt: now.toISOString() };
@@ -53,6 +58,12 @@ export async function checkLatest(ctx: Ctx, now = ctx.now()): Promise<LatestRele
   } catch {
     return saved;
   }
+}
+
+/** A 10 s timeout, cut short by `signal`. */
+export function within(signal?: AbortSignal): AbortSignal {
+  const timeout = AbortSignal.timeout(10_000);
+  return signal ? AbortSignal.any([signal, timeout]) : timeout;
 }
 
 /** The latest release when it is newer than this binary, from the agent's last read. */
