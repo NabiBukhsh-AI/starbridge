@@ -260,7 +260,10 @@ provider plugins add providers, not panels.
   counts below its release) with 426 `client-too-old`, and serves a request without the header,
   so curl and scripts keep working. The CLI then says to run `starbridge update` and exits 1; the
   web shows one "Starbridge was updated" screen with Reload; Android shows an error that names
-  Google Play. Usage counts each member's first release of the day once
+  Google Play. The server and page deploy from main ahead of any tag, so main serves every release
+  from the minimum up and changes the protocol only by adding to it; a minimum rises only to a
+  final that has been the latest release for 14 days, once the update nudge has reached machines
+  and Play testers have moved past its rcs (#1070). Usage counts each member's first release of the day once
   (`active.clients.<name>.<major>.<minor>`), so made-up versions add one row a day.
 
 ## Sign-in
@@ -779,7 +782,11 @@ line, the safe side: at worst a prompt repeats an answer the agent already read.
   that block them. Everything else the agent decides. It asks in the terminal only when
   `starbridge` fails (#121). In Claude Code a quick question may use `AskUserQuestion`, since
   its picker reaches the devices too (#848); a decision read cold, or needing links or images,
-  stays a card (#911).
+  stays a card (#911). The skill holds its question to the card's rules (#1084): it becomes the
+  title, and with no context field agents put their findings in it, so the hook cut it at 300
+  characters and repeated it in the context. Findings go in the agent's message before the call
+  and in the options' descriptions. Splitting the question in the hook, or refusing a long one,
+  waits until the rule alone proves not enough (#1085).
 - A question answers cold: its options answer it, and its context runs two to five lines, the fact
   that forces the choice, then one line per option saying what it changes. Links and images only
   when they help; one question per card. The first option is
@@ -1295,6 +1302,13 @@ first window, so a provider with a window running out leads.
   script sets Zod's `jitless`. Styles allow `'unsafe-inline'` (React style attributes), images
   `data:` and `blob:`, `frame-ancestors 'none'`. Every page renders per request, except the
   landing page below. Caddy adds HSTS, `nosniff` and `Referrer-Policy: same-origin`.
+- **Tab switches wait on nothing** (#1072). Inbox, Quotas and Settings render on the client from
+  the app's own data, so their links prefetch the whole page and keep it for an hour
+  (`staleTimes.static`): a switch paints in one frame instead of a round trip to the server
+  (80–150 ms at starbridge.run's 55 ms). A page of an older build reloads in full on its next
+  navigation that reaches the server, and starbridge.run deploys many times a day; so a hidden page
+  asks `/build` every 5 minutes and reloads onto a new build, unless a reply is typed or it is
+  off the three tabs, where a reload would lose work.
 - **Landing page HTML** (#694). A request for `/` without the session cookie gets the whole
   landing page from the server, with its own title, description and link preview
   (`public/og.png`), so link previews and crawlers see it and a first visit is never blank. The
@@ -1481,7 +1495,9 @@ a browser; the app adds a menu bar light and notifications, so a web release nee
   52 px strip across the top, macOS's toolbar height, drags the window. Pages without the rail
   (sign-in, docs) leave that strip empty in the page's background; under 600 px it takes the top
   bar's colour. The window keeps the name "Starbridge" for Mission Control and
-  the Window menu, whatever the page's title.
+  the Window menu, whatever the page's title. Under the page, the window shows the page's last
+  background, else the system theme's (#1072): a fixed dark one flashed black in light mode
+  whenever the page reloaded.
 - **Presence** (#945). The window in use holds pushes as a web page does (#848). Hidden, it said
   absent while the owner worked in another app, so the phone buzzed at a desk. Electron's
   `powerMonitor` reads what the CLI's machine presence reads: lock, sleep and wake, and the
@@ -1544,12 +1560,27 @@ Tokens, type and components: `DESIGN.md`.
   test; that traffic stays on the phone and items are end-to-end encrypted. Every release starts
   as an rc the maintainer installs; the final tag must be its newest rc plus the version stamp
   (`version.ts --final`), keeping the rc's CodexBar pin, so it ships what was tried.
+- **rcs for testers, finals for everyone** (#1070). Testers already run each rc, so a final
+  changes nothing for them; it is the release for everyone else. An rc reaches the GitHub
+  prerelease, npm's `next`, Play's Alpha track and Mac apps set to follow release candidates; a
+  final also reaches GitHub's latest release, which Obtainium, `install.sh`, `install.ps1`,
+  `starbridge update`, the update nudge and other Mac apps read, npm's `latest`, Homebrew, and
+  Play production once open. The hosted page and server are on neither path: they deploy from
+  main, so every tag waits until starbridge.run runs its commit (its final, its rc's), which also
+  rebuilt the demo server. A final is promoted, not cut: `promote.yml` stamps the newest rc's
+  commit on a commit of its own, tags it and runs the release on that tag, so main never stops
+  merging between an rc and its final, then pushes a branch that points main's marketplace at the
+  final. The owner approves each promotion, after the rc has run on the maintainer's phone and no issue
+  labelled `regression` is open, which the workflow also checks. Waiting N days instead was
+  rejected: with five testers, no report is weak evidence, and v0.1.3 shipped broken without one.
 - **Play's Alpha track from CI** (#1024). Testers fell behind while each App Bundle went to Play
   Console by hand. Once the release is published, the `play` job uploads the tag's AAB to Alpha
   through the Play Developer API (`cli/scripts/play.ts`), status `completed`, with the GitHub
   release's Android section as notes in the listing's default language, cut to Play's 500 characters.
   rcs go too: Alpha is the testers' track, and the final's higher versionCode replaces its rc
-  there. Committing the edit sends it for review, and with managed publishing off, testers get it
+  there. Once Play opens production (12 testers for 14 days) and the `PLAY_PRODUCTION` variable is
+  true, finals go to production at 100% instead (#1070): Alpha testers get the higher versionCode
+  from there, and a staged rollout means nothing at this many users, while Play can still halt one. Committing the edit sends it for review, and with managed publishing off, testers get it
   once Play approves; the cost is that any other change Play approves also goes live at once. A
   draft would add a console step for nothing. No key exists: the organization policy forbids
   service account keys, so Google's workload identity federation trades the job's GitHub OIDC

@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { PACKAGE, playNotes, upload } from "../scripts/play";
+import { PACKAGE, playNotes, TRACKS, type Track, upload } from "../scripts/play";
 
 const URL_ = "https://github.com/T0mSIlver/starbridge/releases/tag/v1.2.3";
 
@@ -49,12 +49,13 @@ function fakePlay(commit: (seen: Seen[]) => Response | undefined = () => undefin
       return new Response(s.method === "DELETE" ? "" : "{}");
     },
   });
-  const run = (validate: boolean) =>
+  const run = (validate: boolean, track: Track = "alpha") =>
     upload({
       token: "tok",
       aab: new Uint8Array([1, 2]),
       version: "1.2.3",
       notes: "• x",
+      track,
       validate,
       api: `http://localhost:${server.port}`,
     });
@@ -64,27 +65,30 @@ function fakePlay(commit: (seen: Seen[]) => Response | undefined = () => undefin
 let stop: (() => void) | undefined;
 afterEach(() => stop?.());
 
-test("validate puts the bundle on alpha with notes in the listing's language, then discards the edit", async () => {
-  const play = fakePlay();
-  stop = () => play.server.stop(true);
-  expect(await play.run(true)).toBe(3020399);
-  const track = play.seen.find((s) => s.path.endsWith("/tracks/alpha"));
-  expect(JSON.parse(track?.body ?? "")).toEqual({
-    track: "alpha",
-    releases: [
-      {
-        name: "1.2.3",
-        versionCodes: ["3020399"],
-        status: "completed",
-        releaseNotes: [{ language: "fr-FR", text: "• x" }],
-      },
-    ],
-  });
-  expect(play.seen.map((s) => s.method + s.path.replace(/.*edits\/e1/, ""))).toEqual(
-    expect.arrayContaining(["POST:validate", "DELETE"]),
-  );
-  expect(play.seen.some((s) => s.path.includes(":commit"))).toBe(false);
-});
+test.each([...TRACKS])(
+  "validate puts the bundle on %s with notes in the listing's language, then discards the edit",
+  async (name) => {
+    const play = fakePlay();
+    stop = () => play.server.stop(true);
+    expect(await play.run(true, name)).toBe(3020399);
+    const track = play.seen.find((s) => s.path.endsWith(`/tracks/${name}`));
+    expect(JSON.parse(track?.body ?? "")).toEqual({
+      track: name,
+      releases: [
+        {
+          name: "1.2.3",
+          versionCodes: ["3020399"],
+          status: "completed",
+          releaseNotes: [{ language: "fr-FR", text: "• x" }],
+        },
+      ],
+    });
+    expect(play.seen.map((s) => s.method + s.path.replace(/.*edits\/e1/, ""))).toEqual(
+      expect.arrayContaining(["POST:validate", "DELETE"]),
+    );
+    expect(play.seen.some((s) => s.path.includes(":commit"))).toBe(false);
+  },
+);
 
 test("a commit Play will not send for review is committed for the owner to send", async () => {
   const play = fakePlay((seen) =>

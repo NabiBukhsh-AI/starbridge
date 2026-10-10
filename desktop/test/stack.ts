@@ -1,6 +1,7 @@
 // The desktop app on the whole product, on one machine: the real server, the built web page, the
 // real CLI, and web/e2e/services.ts standing in for GitHub. It signs in through the browser (this
-// run follows the browser's redirects) and sets up the app as a device, pairs a machine, and answers `starbridge ask --wait` from the app's notifications: by a
+// run follows the browser's redirects) and sets up the app as a device, pairs a machine, times the
+// switch between tabs, and answers `starbridge ask --wait` from the app's notifications: by a
 // button and by a typed reply; a question answered in the window closes its notification, and the
 // menu bar's climber follows Needs you. Notifications and the tray are watched in the main process.
 //
@@ -73,6 +74,34 @@ async function until<T>(f: () => Promise<T>, what: string, ms = 30_000): Promise
 
 function step(text: string) {
   console.log(`\n== ${text}`);
+}
+
+/** A warm switch between tabs, from the click to the frame that paints the new page. */
+const SWITCH_MS = 100;
+
+/**
+ * Clicks a tab of the rail, in the page, and resolves with the time to the frame painting the
+ * page's heading and more.
+ */
+function switchTab([tab, heading]: readonly [string, string]): Promise<number> {
+  return new Promise((done, fail) => {
+    const link = [...document.querySelectorAll('nav[aria-label="Main"] a')].find((a) =>
+      (a.textContent ?? "").trim().startsWith(tab),
+    ) as HTMLElement | undefined;
+    if (!link) return fail(new Error(`no ${tab} tab`));
+    const shows = () =>
+      [...document.querySelectorAll("h1")].some((h) => h.textContent === heading) &&
+      (document.querySelector("main")?.textContent ?? "").trim().length > heading.length;
+    const t0 = performance.now();
+    const tick = () => {
+      if (performance.now() - t0 > 10_000) return fail(new Error(`${tab} never showed`));
+      // The frame that paints it is the next one.
+      if (shows()) requestAnimationFrame(() => done(performance.now() - t0));
+      else requestAnimationFrame(tick);
+    };
+    link.click();
+    requestAnimationFrame(tick);
+  });
 }
 
 /** What the main process records in place of the OS. */
@@ -227,6 +256,38 @@ try {
     await pair.waitFor(/✓ Paired as devbox/);
     assert.equal(await pair.exited, 0, "pair failed");
     await page.getByRole("link", { name: /^Inbox/ }).click();
+
+    step("switching tabs waits on nothing: no request for the page, painted within 100 ms");
+    // The tabs prefetch their pages once they show (web: Shell.tsx); Quotas shows with quotas.
+    const prefetched = page.waitForResponse((r) => /\/quotas\?_rsc=/.test(r.url()));
+    const quota = cli(
+      "quota",
+      ["quota", "push", "--once", "--codexbar", join(ROOT, "cli/test/fixtures/fake-codexbar.sh")],
+      machine,
+    );
+    assert.equal(await quota.exited, 0, "quota push failed");
+    const rail = page.getByRole("navigation", { name: "Main" }).first();
+    await rail.getByRole("link", { name: "Quotas" }).waitFor();
+    await prefetched;
+    for (const round of ["cold", "warm"]) {
+      for (const [tab, heading] of [
+        ["Quotas", "Quotas"],
+        ["Settings", "Settings"],
+        ["Inbox", "Inbox"],
+      ] as const) {
+        const fetched: string[] = [];
+        const onRequest = (r: { url(): string }) => {
+          if (!r.url().includes("/v1/")) fetched.push(r.url());
+        };
+        page.on("request", onRequest);
+        const ms = await page.evaluate(switchTab, [tab, heading] as const);
+        page.off("request", onRequest);
+        console.log(`${round} ${tab}: ${Math.round(ms)} ms ${fetched.join(" ")}`);
+        if (round === "cold") continue;
+        assert.deepEqual(fetched, [], `switching to ${tab} fetched the page`);
+        assert.ok(ms < SWITCH_MS, `switching to ${tab} took ${Math.round(ms)} ms`);
+      }
+    }
 
     step("a question notifies with its options; a button answers it");
     const ask = (question: string, ...extra: string[]) =>
