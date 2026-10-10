@@ -850,6 +850,36 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
   };
   const sealed = [
     {
+      name: "decision after a byte order mark",
+      // TextDecoder drops a leading byte order mark, so the envelope still parses (#1082).
+      item: {
+        ...decisionItem,
+        boxes: [phone.member].map((m) => ({
+          to: m.id,
+          box: toB64(
+            sodium.crypto_box_seal(
+              utf8(`\uFEFF${JSON.stringify(signedDecision)}`),
+              sodium.from_base64(m.boxPk, sodium.base64_variants.URLSAFE_NO_PADDING),
+            ),
+          ),
+        })),
+      },
+      recipient: "phone",
+      expect: { body: decisionBody, signer: "devbox" },
+    },
+    {
+      name: "a box that is not base64url",
+      item: { ...decisionItem, boxes: [{ to: "phone", box: "AAAAA" }] },
+      recipient: "phone",
+      expect: { error: "cannot-open" },
+    },
+    {
+      name: "an item that is quiet: false",
+      item: { ...decisionItem, quiet: false },
+      recipient: "phone",
+      expect: { error: "bad-schema" },
+    },
+    {
       name: "decision for phone",
       item: decisionItem,
       recipient: "phone",
@@ -1481,6 +1511,9 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
     ["unclosed fence", "Error:\n```\nTypeError: x is undefined"],
     ["empty fence", "```\n```\nText"],
     ["outside the subset", "*em* _u_ ~~gone~~ > quote | a | b |"],
+    // JavaScript's \s and `.` draw these lines: U+FEFF is space and U+001F is not, and `.`
+    // matches U+0085 (#1082).
+    ["spaces as JavaScript reads them", "\uFEFF- one\ntwo\u001F\n- three\u0085four"],
   ].map(([name, text]) => ({
     name,
     text,
@@ -1713,6 +1746,17 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
         valid: false,
       },
       { name: "no recipients", body: { ...decisionBody, to: [] }, valid: false },
+      // zod counts a string's length in code points, not UTF-16 units: an emoji is one (#1082).
+      {
+        name: "a question of 300 emoji",
+        body: { ...decisionBody, question: "😀".repeat(300) },
+        valid: true,
+      },
+      {
+        name: "a question of 301 emoji",
+        body: { ...decisionBody, question: "😀".repeat(301) },
+        valid: false,
+      },
       { name: "session title and links", body: withSource(sessionExtras), valid: true },
       {
         name: "session title too long",
@@ -1844,6 +1888,7 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
         body: { ...answerBody, choice: undefined, done: false },
         valid: false,
       },
+      ...withHead(answerBody),
     ],
     permission: [
       { name: "valid", body: permissionBody, valid: true },
@@ -1905,6 +1950,15 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
         body: { ...permissionBody, createdAt: "2026-10-04T25:00:00Z" },
         valid: false,
       },
+      {
+        name: "times at offset +19:00",
+        body: {
+          ...permissionBody,
+          createdAt: "2026-10-05T05:00:00+19:00",
+          expiresAt: "2026-10-05T05:05:00+19:00",
+        },
+        valid: true,
+      },
     ],
     "permission-answer": [
       { name: "allow for the session", body: permissionAnswerBody, valid: true },
@@ -1929,6 +1983,7 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
         valid: false,
       },
       { name: "unknown scope", body: { ...permissionAnswerBody, scope: "user" }, valid: false },
+      ...withHead(permissionAnswerBody),
     ],
     settled: [
       { name: "by a device", body: settledBody, valid: true },
@@ -2103,6 +2158,31 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
         body: { ...snoozeBody, until: "2026-10-04T20:00:00+0200" },
         valid: false,
       },
+      {
+        name: "an until on February 30",
+        body: { ...snoozeBody, until: "2026-02-30T18:00:00Z" },
+        valid: false,
+      },
+      {
+        name: "an until in month 13",
+        body: { ...snoozeBody, until: "2026-13-01T18:00:00Z" },
+        valid: false,
+      },
+      {
+        name: "an until on a leap day",
+        body: { ...snoozeBody, until: "2028-02-29T18:00:00Z" },
+        valid: true,
+      },
+      {
+        name: "an until at offset +19:00",
+        body: { ...snoozeBody, until: "2026-10-05T13:00:00+19:00" },
+        valid: true,
+      },
+      {
+        name: "an until at offset +24:00",
+        body: { ...snoozeBody, until: "2026-10-05T18:00:00+24:00" },
+        valid: false,
+      },
       { name: "no decision", body: { ...snoozeBody, decisionId: undefined }, valid: false },
       { name: "no recipients", body: { ...snoozeBody, to: [] }, valid: false },
       { name: "a directory head that is null", body: { ...snoozeBody, dir: null }, valid: false },
@@ -2169,6 +2249,39 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
         valid: true,
       },
       { name: "no recipients", body: { ...quotaBody, to: [] }, valid: false },
+      {
+        name: "a window label over 100 characters",
+        body: {
+          ...quotaBody,
+          providers: [{ provider: "zai", windows: [{ ...win, label: "l".repeat(101), pace }] }],
+        },
+        valid: false,
+      },
+      {
+        name: "a provider read at no time",
+        body: {
+          ...quotaBody,
+          providers: [{ provider: "zai", windows: [], error: "down", updatedAt: "yesterday" }],
+        },
+        valid: false,
+      },
+      {
+        name: "an alert with notify false",
+        body: {
+          ...quotaBody,
+          alerts: [
+            {
+              kind: "low",
+              provider: "zai",
+              window: "primary",
+              resetsAt: T(12, 30),
+              threshold: 10,
+              notify: false,
+            },
+          ],
+        },
+        valid: false,
+      },
     ],
   };
 

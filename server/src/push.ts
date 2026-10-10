@@ -58,18 +58,40 @@ export function isPrivateHost(hostname: string): boolean {
   )
     return true;
   if (isIP(h) === 4) return privateV4(h);
-  if (isIP(h) === 6) {
-    const mapped = h.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-    if (mapped?.[1]) return privateV4(mapped[1]);
-    return (
-      h === "::" ||
-      h === "::1" ||
-      /^f[cd]/.test(h) ||
-      /^fe[89ab]/.test(h) ||
-      h.startsWith("::ffff:")
-    );
-  }
+  if (isIP(h) === 6) return privateV6(h);
   return false;
+}
+
+/**
+ * Judges an IPv6 address by the IPv4 address it embeds, where a translator could route it to
+ * one: IPv4-compatible (`::a.b.c.d`, and so `::` and `::1`), IPv4-mapped, NAT64 and 6to4.
+ */
+function privateV6(ip: string): boolean {
+  const [a = 0, b = 0, c = 0, d = 0, e = 0, f = 0, g = 0, h = 0] = v6Words(ip);
+  const v4 = (hi: number, lo: number) => `${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`;
+  const zeroToE = a === 0 && b === 0 && c === 0 && d === 0 && e === 0;
+  if (zeroToE && (f === 0 || f === 0xffff)) return privateV4(v4(g, h));
+  if (a === 0x64 && b === 0xff9b && c === 0 && d === 0 && e === 0 && f === 0)
+    return privateV4(v4(g, h));
+  // Local-use NAT64 (64:ff9b:1::/48) places the IPv4 address by prefix length, so refuse it whole.
+  if (a === 0x64 && b === 0xff9b && c === 1) return true;
+  if (a === 0x2002) return privateV4(v4(b, c));
+  return (a & 0xfe00) === 0xfc00 || (a & 0xffc0) === 0xfe80;
+}
+
+/** The eight 16-bit words of a valid IPv6 address, which may end in a dotted IPv4 address. */
+function v6Words(ip: string): number[] {
+  let s = ip;
+  const dotted = s.match(/^(.*:)(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (dotted) {
+    const [a, b, c, d] = dotted.slice(2).map(Number) as [number, number, number, number];
+    s = `${dotted[1]}${((a << 8) | b).toString(16)}:${((c << 8) | d).toString(16)}`;
+  }
+  const [head = "", tail] = s.split("::");
+  const part = (x: string) => (x ? x.split(":").map((g) => parseInt(g, 16)) : []);
+  const hi = part(head);
+  const lo = tail === undefined ? [] : part(tail);
+  return [...hi, ...Array(8 - hi.length - lo.length).fill(0), ...lo];
 }
 
 function privateV4(ip: string): boolean {

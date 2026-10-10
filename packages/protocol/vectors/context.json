@@ -363,6 +363,37 @@
         }
       ],
       "plain": "*em* _u_ ~~gone~~ > quote | a | b |"
+    },
+    {
+      "name": "spaces as JavaScript reads them",
+      "text": "﻿- one\ntwo\u001f\n- threefour",
+      "blocks": [
+        {
+          "kind": "bullet",
+          "spans": [
+            {
+              "text": "one"
+            }
+          ]
+        },
+        {
+          "kind": "line",
+          "spans": [
+            {
+              "text": "two\u001f"
+            }
+          ]
+        },
+        {
+          "kind": "bullet",
+          "spans": [
+            {
+              "text": "threefour"
+            }
+          ]
+        }
+      ],
+      "plain": "• one\ntwo\u001f\n• threefour"
     }
   ]
 }
