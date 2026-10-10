@@ -22,5 +22,12 @@ tmp=$(mktemp /etc/starbridge/server.env.XXXXXX)
   printf '%s\n' "VAPID_PUBLIC_KEY='$(tr -d '\n' < $s/vapid-public-key)'"
   printf '%s\n' "VAPID_PRIVATE_KEY='$(tr -d '\n' < $s/vapid-private-key)'"
   printf '%s\n' "VAPID_SUBJECT='https://starbridge.run'"
+  # The iPhone app's APNs auth key (#1076), once the owner has made it.
+  if [ -f $s/apns-key.p8 ]; then
+    printf '%s\n' "APNS_TEAM_ID='3N63N7U9R3'"
+    printf '%s\n' "APNS_TOPIC='dev.starbridge.ios'"
+    printf '%s\n' "APNS_KEY_ID='$(tr -d '\n' < $s/apns-key-id)'"
+    printf '%s\n' "APNS_PRIVATE_KEY='$(awk '{printf "%s\\n", $0}' $s/apns-key.p8)'"
+  fi
 } > "$tmp"
 mv "$tmp" /etc/starbridge/server.env

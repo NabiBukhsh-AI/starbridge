@@ -46,7 +46,18 @@ export interface Config {
     apiUrl: string;
   };
   vapid?: { publicKey: string; privateKey: string; subject: string };
-  /** Forward FCM and Web Push to this relay when the server has no credentials of its own. */
+  /** The team's APNs auth key, for the iPhone app. */
+  apns?: {
+    keyId: string;
+    teamId: string;
+    /** The .p8 file's PKCS#8 PEM. */
+    privateKey: string;
+    /** The app's bundle id. */
+    topic: string;
+    url: string;
+    sandboxUrl: string;
+  };
+  /** Forward FCM, APNs and Web Push to this relay when the server has no credentials of its own. */
   relayUrl?: string;
   /** Serve `POST /v1/relay` for other servers. */
   relayMode: boolean;
@@ -127,6 +138,17 @@ export function configFromEnv(env: Env = process.env): Config {
             publicKey: env.VAPID_PUBLIC_KEY,
             privateKey: env.VAPID_PRIVATE_KEY,
             subject: env.VAPID_SUBJECT ?? publicUrl,
+          }
+        : undefined,
+    apns:
+      env.APNS_KEY_ID && env.APNS_TEAM_ID && env.APNS_PRIVATE_KEY
+        ? {
+            keyId: env.APNS_KEY_ID,
+            teamId: env.APNS_TEAM_ID,
+            privateKey: env.APNS_PRIVATE_KEY.replace(/\\n/g, "\n"),
+            topic: env.APNS_TOPIC ?? "dev.starbridge.ios",
+            url: env.APNS_URL ?? "https://api.push.apple.com",
+            sandboxUrl: env.APNS_SANDBOX_URL ?? "https://api.sandbox.push.apple.com",
           }
         : undefined,
     relayUrl: env.RELAY_URL?.replace(/\/$/, "") || undefined,

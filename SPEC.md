@@ -52,7 +52,12 @@ it (#801). The line under the hero's buttons, with end-to-end encryption, shows 
 
 The web app ships first wherever it can: installed to the home screen on iOS (Web Push works for
 home-screen web apps since iOS 16.4) and as an installed app on desktop browsers. Android is a
-native app. No native iOS app until there is demand and a device to test on.
+native app. A native iPhone app is under way (owner, 2026-10-10): a tester with an iPhone now
+exists, and the home-screen web app cannot put options or a typed reply on a notification, nor
+show widgets. It is SwiftUI with the protocol ported to Swift and checked against the same
+vectors as Android; Kotlin Multiplatform and Compose Multiplatform lost on experimental crypto
+bindings, risk to the Android app, and Material controls on an iPhone. The comparison is in the
+planning repo's research/ios-app.md. Until it ships, iPhones use the home-screen web app.
 
 The desktop app is Electron, loading the configured server's web page (owner, 2026-10-08). The
 page stays the device: it signs in, pairs and keeps its keys as in a browser, so every web release
@@ -377,14 +382,32 @@ provider plugins add providers, not panels.
 
 ## Push
 
-- FCM goes through the relay, since its credentials belong to the app's Firebase project. Web Push
+- FCM and APNs go through the relay, since their credentials belong to the app's Firebase project
+  and Apple team. Web Push
   goes through the relay only when a server has no VAPID keys; UnifiedPush always goes direct. The
   relay is open, rate-limited per IP and in all (600 a minute in Caddy; 16 Web Pushes in flight
   in the server, 4 per address), so nobody can aim it at a host or burn the VAPID key (#577). It
   pushes only ciphertext or ids. A push carries the
   device's ciphertext when it fits FCM's 4 KB, else the item id.
 - Quota snapshots and runs skip Web Push: browsers drop subscriptions whose pushes show no
-  notification (Firefox after 16). The web page polls them instead.
+  notification (Firefox after 16). The web page polls them instead. They skip APNs too, where a
+  silent push may never arrive; the iPhone app fetches them.
+- **APNs for the iPhone app** (#1076). iOS throttles data-only pushes and drops them for an app
+  the owner swiped away, so what asks for the owner (a question, a waiting flip, a snooze's
+  return, a permission prompt, a join request) goes as an alert with `mutable-content`: the app's
+  notification service extension opens the box and replaces the placeholder ("A question needs
+  you"), and if it fails the placeholder shows, which says nothing private. A question keeps one
+  notification: its waiting flips and its snooze's return carry its id as the collapse id, and
+  replace it. What only closes or hides a notification (`answered`, a settled notice, a snooze as
+  posted) goes as a background push, which iOS may hold or drop, so the app syncs when it opens;
+  an alert that says "Answered" would close it reliably but leave a notification behind. Alerts go
+  at priority 10, background pushes at 5 (APNs refuses 10 for them), and both expire after a day,
+  as FCM's do. The server signs with the team's auth key (.p8), whose token never expires, and
+  keeps one HTTP/2 connection to Apple open. A subscription names its environment, sandbox for a
+  build from Xcode. The server drops it on 410, or when both environments refuse the token: a
+  debug build's token sent to production is `BadDeviceToken` there, and dropping it for that
+  would silence a phone that works, the lesson of #1011. The iPhone app registers its token at
+  each start, as Android does.
 - Caps (#27, #36, #37): 10 subscriptions a device, 30 an account; 4 pushes in flight and 200
   waiting per account, 10 s each. A push connects to the exact address that passed the
   private-range check, and is sent only if its subscription and device are still active (#260).
