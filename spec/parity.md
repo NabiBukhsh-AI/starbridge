@@ -38,4 +38,4 @@ opens an issue for each client the row says should follow.
 | Keyboard shortcuts (J K 1-4 A D /) | yes (from 1100 px) | no (only Enter to send, Esc in Find) | yes (as web) | not yet |
 | Sound | yes (off by default, only while a page is open) | yes (system notification channel sound) | yes (macOS default sound; Basso on "Answer not sent"; web Sound row hidden) | not yet |
 
-Only on desktop: menu bar light, Dock / menu bar choice, Open at Login, ⌃⌥S, `starbridge://` links, Needs you macOS widget, notifications while no browser runs, "Answer not sent" notification, Mac lock/idle presence.
+Only on desktop: the menu bar light, the Dock or menu bar choice, Open at Login, ⌃⌥S, and notifications while no browser runs.
