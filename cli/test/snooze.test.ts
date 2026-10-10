@@ -3,7 +3,8 @@ import { snoozeLine } from "../src/decisions";
 
 const zone = process.env.TZ;
 afterEach(() => {
-  process.env.TZ = zone;
+  if (zone === undefined) delete process.env.TZ;
+  else process.env.TZ = zone;
   setSystemTime();
 });
 
