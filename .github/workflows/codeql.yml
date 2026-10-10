@@ -1,8 +1,8 @@
 name: CodeQL
 
-# CodeQL's default setup, as its own workflow so Swift can build by hand: autobuild finds no
-# Xcode project in desktop/widgets, which builds with swiftc (desktop/README.md, "The widget").
-# The other languages keep default setup's languages, build mode and weekly scan.
+# CodeQL as its own workflow rather than default setup, so the compiled languages build by hand:
+# autobuild finds no Xcode project in desktop/widgets, which builds with swiftc (desktop/README.md,
+# "The widget"), and Kotlin has no build mode none. Default setup's languages and weekly scan.
 
 on:
   push:
@@ -32,7 +32,7 @@ jobs:
       matrix:
         include:
           - { language: actions, build-mode: none, runner: ubuntu-latest }
-          - { language: java-kotlin, build-mode: none, runner: ubuntu-latest }
+          - { language: java-kotlin, build-mode: manual, runner: ubuntu-latest }
           - { language: javascript-typescript, build-mode: none, runner: ubuntu-latest }
           - { language: swift, build-mode: manual, runner: macos-15 }
     steps:
@@ -41,6 +41,21 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+      # GitHub's runner, never the self-hosted Android one: any pull request runs this.
+      - if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: 21
+      - if: matrix.language == 'java-kotlin'
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      # CodeQL reads Kotlin from the compiler as it runs, so it must run in Gradle's process, and
+      # every source must compile: no daemon, no build cache.
+      - if: matrix.language == 'java-kotlin'
+        working-directory: android
+        env:
+          STARBRIDGE_KEYSTORE: ""
+        run: ./gradlew --no-daemon --no-build-cache --console=plain -Pkotlin.compiler.execution.strategy=in-process assembleDebug
       # The widget and its helper, as electron-builder's afterPack hook builds them.
       - if: matrix.language == 'swift'
         run: desktop/widgets/build.sh dev.starbridge.desktop 0.0.0 0.0.0 3N63N7U9R3.dev.starbridge
