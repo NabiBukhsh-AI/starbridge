@@ -348,11 +348,12 @@ test("a hold of 0 waits while the owner is present and pushes as soon as they le
   expect(pushed()).toEqual([[[phone.id], "decision", d.id]]);
 });
 
-test("a hold set to 0 before #1060 still reads as off", async () => {
+test("a hold set before #1060 reads as a choice still offered: 0 as off, 2 min as 1 min", async () => {
+  const read = async () => (await s.call("GET", "/v1/settings", { token: web.token })).json;
   s.deps.db.query("UPDATE accounts SET push_hold = 0 WHERE id = ?").run(acct.id);
-  expect((await s.call("GET", "/v1/settings", { token: web.token })).json).toEqual({
-    pushHold: -1,
-  });
+  expect(await read()).toEqual({ pushHold: -1 });
+  s.deps.db.query("UPDATE accounts SET push_hold = 120 WHERE id = ?").run(acct.id);
+  expect(await read()).toEqual({ pushHold: 60 });
 });
 
 test("presence takes one bit from members only, and settings only from devices", async () => {

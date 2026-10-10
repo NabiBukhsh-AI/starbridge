@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import {
   PRESENCE_VALID_MS,
+  PUSH_HOLD_CHOICES,
   PUSH_HOLD_DEFAULT,
   PUSH_HOLD_MAX,
   PUSH_HOLD_OFF,
@@ -79,7 +80,8 @@ export const HELD_KINDS: readonly SealedItem["kind"][] = ["decision", "permissio
 
 /**
  * The account's hold time in seconds, or `PUSH_HOLD_OFF`; unset is the default. A hold set before
- * #1060 reads from `push_hold`, where 0 was off.
+ * #1060 reads from `push_hold`, where 0 was off and 2 minutes, no longer offered, reads as the
+ * longest choice left.
  */
 export function pushHold(db: Database, account: string): number {
   const row = db
@@ -87,7 +89,8 @@ export function pushHold(db: Database, account: string): number {
     .get(account) as { hold_seconds: number | null; push_hold: number | null } | null;
   if (row?.hold_seconds != null) return row.hold_seconds;
   if (row?.push_hold === 0) return PUSH_HOLD_OFF;
-  return row?.push_hold ?? PUSH_HOLD_DEFAULT;
+  if (row?.push_hold == null) return PUSH_HOLD_DEFAULT;
+  return Math.min(row.push_hold, Math.max(...PUSH_HOLD_CHOICES));
 }
 
 /**
