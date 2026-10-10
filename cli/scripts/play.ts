@@ -14,21 +14,23 @@ export const TRACK = "alpha";
 const NOTES_MAX = 500;
 
 /**
- * The release notes Play shows testers, from the GitHub release's generated notes: one line per
- * pull request title, without the author and link, cut to Play's limit with a link to the rest.
+ * The release notes Play shows testers: the Android section of the GitHub release's notes
+ * (release-notes.ts), cut to Play's limit with a link to the rest.
  */
 export function playNotes(markdown: string, releaseUrl: string): string {
-  const lines = markdown
-    .split("\n")
+  const lines = markdown.split("\n");
+  const start = lines.findIndex((l) => l.trim() === "### Android");
+  const end = lines.findIndex((l, i) => i > start && /^#{1,6} |^<details>/.test(l));
+  const notes = (start < 0 ? [] : lines.slice(start + 1, end < 0 ? undefined : end))
     .filter((l) => /^[*-] /.test(l))
-    .map((l) => `• ${l.slice(2).replace(/ by @\S+ in https:\/\/\S+$/, "")}`);
+    .map((l) => `• ${l.slice(2).replace(/ \(#\d+\)$/, "")}`);
   const more = `More: ${releaseUrl}`;
-  if (lines.length === 0) return more;
-  const all = lines.join("\n");
+  if (notes.length === 0) return more;
+  const all = notes.join("\n");
   if (all.length <= NOTES_MAX) return all;
   const kept: string[] = [];
   let length = more.length;
-  for (const line of lines) {
+  for (const line of notes) {
     if (length + line.length + 1 > NOTES_MAX) break;
     kept.push(line);
     length += line.length + 1;

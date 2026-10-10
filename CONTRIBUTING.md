@@ -62,6 +62,13 @@ workload identity federation with no key, once the `PLAY_WIF_PROVIDER` and `PLAY
 repository variables are set; without them, upload the bundle in Play Console. Run by hand on main with a version above the last one Play has, the
 workflow only asks Play to validate the upload.
 
+The release notes come from `cli/scripts/release-notes.ts`: a section per product, from the
+"Release notes" section of each pull request's body (one `Product: line` per product, or `None`),
+then every pull request, folded. A final covers everything since the previous final; an rc covers
+what is new since the tag before it. A pull request without the section shows only in the folded
+list; edit its body before tagging to fix that. Play gets the Android section alone, cut to its
+500 characters.
+
 The maintainer's dogfood APKs are debug builds signed with the Android release key, so that
 starbridge.run's App Links, which list only that key, open them. To build one, add this line to
 `android/local.properties`, which git ignores:
