@@ -16,7 +16,9 @@ let package = Package(
       name: "NeedsYou",
       swiftSettings: [.unsafeFlags(["-application-extension"])],
       linkerSettings: [
-        .unsafeFlags(["-application-extension", "-Xlinker", "-e", "-Xlinker", "_NSExtensionMain"])
+        .unsafeFlags([
+          "-Xlinker", "-application_extension", "-Xlinker", "-e", "-Xlinker", "_NSExtensionMain",
+        ])
       ]
     ),
     .executableTarget(name: "Reload"),
