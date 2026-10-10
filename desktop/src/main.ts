@@ -161,6 +161,9 @@ async function ready(): Promise<void> {
   });
   screen = new Screen(powerMonitor, tellScreen);
   setInterval(() => screen?.check(), SCREEN_CHECK_MS);
+  ipcMain.on("shown?", (e) => {
+    e.returnValue = e.sender === win?.webContents ? win.isVisible() && !win.isMinimized() : null;
+  });
   ipcMain.on("screen?", (e) => {
     e.returnValue = e.sender === win?.webContents ? screen?.read() : null;
   });

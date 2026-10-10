@@ -31,7 +31,7 @@ if (location.origin === arg("origin")) {
     ipcRenderer.send("answered", { id: a.id, error });
   });
   ipcRenderer.on("open", (_e, id: string) => onOpen?.(id));
-  let shown = true;
+  let shown = ipcRenderer.sendSync("shown?") !== false;
   let onShown: (() => void) | null = null;
   ipcRenderer.on("shown", (_e, s: unknown) => {
     shown = s === true;

@@ -22,12 +22,13 @@ const hidden = () => (desktop?.shown ? !desktop.shown() : document.visibilitySta
  */
 export function useFreshBuild(busy: () => boolean): void {
   useEffect(() => {
-    let loaded = build();
+    // The build that served this page (app/layout.tsx).
+    const own = document.querySelector<HTMLMetaElement>('meta[name="starbridge-build"]')?.content;
+    if (!own) return;
     let timer: ReturnType<typeof setInterval> | undefined;
     const check = async () => {
-      const [then, now] = [await loaded, await build()];
-      if (!then) loaded = Promise.resolve(now);
-      else if (now && now !== then && hidden() && !busy()) location.reload();
+      const now = await build();
+      if (now && now !== own && hidden() && !busy()) location.reload();
     };
     const onChange = () => {
       clearInterval(timer);
@@ -35,6 +36,8 @@ export function useFreshBuild(busy: () => boolean): void {
       check();
       timer = setInterval(check, CHECK_MS);
     };
+    // Also when it loads hidden: an app opened at login, or after this very reload.
+    onChange();
     document.addEventListener("visibilitychange", onChange);
     desktop?.onShown?.(onChange);
     return () => {
