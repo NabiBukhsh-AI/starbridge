@@ -1,6 +1,6 @@
 # starbridge CLI
 
-`starbridge` connects a machine that runs agents to your phone and browsers. Agents use it to ask
+`starbridge` connects a machine that runs your harnesses to your phone and browsers. Agents use it to ask
 you questions and report runs, and it uploads what each AI plan has left, read from CodexBar. It
 signs everything with this machine's key and encrypts it for your devices, so the server sees
 ciphertext only. CodexBar is optional: setup asks before installing it, `--no-quota` skips it,
@@ -44,8 +44,8 @@ starbridge setup
 
 ### What setup does
 
-Setup asks only before installing CodexBar, which providers to send, whether the agent runs
-after you log out, whether to add the CLI to your PATH, and whether to send a test
+Setup asks only before installing CodexBar, which providers to send, whether the background
+service runs after you log out, whether to add the CLI to your PATH, and whether to send a test
 question; steps 1 and 3 say when it asks more. A rerun repairs only what is missing:
 
 1. It pairs the machine with your account (see [Pair](#pair)), with the first server named by
@@ -54,12 +54,13 @@ question; steps 1 and 3 say when it asks more. A rerun repairs only what is miss
    already paired with another server, and Enter keeps that one.
 2. It installs Starbridge in each harness it finds and prints one line per harness: the Claude Code
    plugin at user scope, the skill and sandbox rule in Codex's folders, the Starbridge Pi
-   package, the skill and plugin in opencode's config folder, and the skill in
-   `~/.cursor/skills/starbridge`. A failed install prints its
+   package, the skill and plugin in opencode's config folder, the skill and hooks in Cursor's
+   folder, and the Starbridge plugin in Antigravity's
+   ([What setup installs](../docs/tell-your-agents.md#what-setup-installs)). A failed install prints its
    reason and the command that retries it, and setup goes on. A later setup updates the Codex,
-   opencode and Cursor files when the CLI carries newer ones. The Claude Code plugin needs Claude Code
-   2.1.287 or later; setup says when it is older. Claude Code, Codex, Pi and `cursor-agent` may then run
-   `starbridge ask`, `waiting`, `working`, `wait` and `settle` without a permission prompt;
+   opencode, Cursor and Antigravity files when the CLI carries newer ones. The Claude Code plugin needs Claude Code
+   2.1.287 or later; setup says when it is older. In Claude Code, Codex, Pi, `cursor-agent` and
+   `agy`, `starbridge ask`, `waiting`, `working`, `wait` and `settle` then run without a permission prompt;
    `starbridge run` still asks, since the command it wraps can be anything. For Pi, setup adds
    these rules only when pi-permission-system is installed.
 3. When another machine of your account sent quotas in the last day, it says which and asks
@@ -81,19 +82,20 @@ remove the setup.
 
 `--yes`, or running with no terminal, takes every default and sends no test question.
 `--no-quota` skips step 3, CodexBar included; `--no-service` skips step 4; `--no-agents` skips
-step 2. `starbridge status` prints the same checks, and names an agent installed since setup,
+step 2. `starbridge status` prints the same checks, and names a harness installed since setup,
 which `starbridge setup --refresh` then sets up.
 
-`starbridge uninstall --agent <name>` (`claude`, `codex`, `pi`, `opencode` or `cursor`) removes Starbridge
-from one agent. Setup and `--refresh` then leave that agent alone, until `starbridge setup
+`starbridge uninstall --agent <name>` (`claude-code`, `codex`, `pi`, `opencode`, `cursor` or
+`antigravity`) removes Starbridge from one harness. Setup and `--refresh` then leave that harness alone, until `starbridge setup
 --agent <name>` installs it there again.
 
 ### Update and uninstall
 
 `starbridge update` installs the latest release over a script install, then runs `starbridge
 setup --refresh` with it and updates the Claude Code plugins. `--refresh` rewrites the files
-setup put into other tools (the agent's service, the Codex skill and rule, opencode's skill and
-plugin, the Cursor files) for the new version and restarts the agent. Homebrew and npm installs update through
+setup put into other tools (the background service's unit, the Codex skill and rule, opencode's
+skill and plugin, the Cursor files, the Antigravity plugin) for the new version and restarts the
+background service. Homebrew and npm installs update through
 their own manager; then run `starbridge setup --refresh`. Each of those files starts with a
 `Written by starbridge <version>` line: setup replaces and uninstall removes only files that have
 it, so remove the line from one to keep it as yours.
@@ -104,7 +106,7 @@ app is left to them (`brew upgrade codexbar`). When a CodexBar release breaks, i
 a quota error on your devices; `starbridge update --codexbar 0.71.1` installs that release
 instead, until a later `starbridge update` moves it to the latest again.
 
-`starbridge uninstall` removes the agent service, Starbridge from every agent and the binary,
+`starbridge uninstall` removes the background service, Starbridge from every harness and the binary,
 and asks your devices to revoke the machine. It deletes the keys only when you say so, or with `--purge`.
 
 ### Check a download
@@ -129,7 +131,7 @@ sha256sum -c --ignore-missing SHA256SUMS
 
 ## Use
 
-Setup covers pairing and the agent. Agents run the other commands themselves; the Starbridge
+Setup covers pairing and the background service. Agents run the other commands themselves; the Starbridge
 skill tells them when. `starbridge --help` lists every flag.
 
 ### Pair
@@ -166,11 +168,13 @@ starbridge ask --question "Merge #12 now?" \
 
 `ask` prints the question's id and how the answer will come back:
 
-- In Claude Code, the answer arrives as the session's next prompt.
-- In an interactive Codex session (Codex CLI 0.160 or later), the background service queues it
-  into the session.
-- Anywhere else, the agent waits for it with `starbridge wait <id> --timeout 5m`, which exits
-  with code 2 when the time runs out.
+- In an interactive session of a harness setup installed in, your answer comes back as the
+  session's next prompt.
+- In a headless run, the Cursor IDE or any other harness, the agent waits with
+  `starbridge wait <id> --timeout 5m`, which exits with code 2 when the time runs out.
+
+[What each harness supports](../docs/tell-your-agents.md#what-each-harness-supports) says which
+runs are headless.
 
 To check the path to your devices yourself, ask and wait in one command:
 
@@ -251,28 +255,29 @@ or X11 with `xprintidle`; a machine with no screen sends nothing.
 
 ### Permission prompts
 
-Permission prompts from Claude Code, opencode and Pi stay at the keyboard until you turn them on
-with:
+Permission prompts stay at the keyboard until you run:
 
 ```bash
 starbridge config permissions on
 ```
 
-Then each prompt also goes to your devices, where you allow or deny it. The prompt stays open at
-the keyboard, and the first answer wins. Only prompts Claude Code still shows reach your devices:
+Your devices can then allow a call once or deny it. In Claude Code, opencode and Antigravity, each
+prompt shows at the keyboard and on your devices at once, and the first answer wins. Codex and Pi
+send it to one place at a time, and Cursor's stay at the keyboard;
+[What each harness supports](../docs/tell-your-agents.md#what-each-harness-supports) has each.
+
+Only prompts Claude Code still shows reach your devices:
 in auto mode, its default, it settles most calls itself. When the keyboard answers first, the
 device's card closes once the tool has run, since Claude Code reports the call only then.
 
-opencode's prompts work the same way, from its TUI and `opencode serve`. `opencode run` rejects
-every prompt at once, so none reaches your devices.
+`opencode run` rejects every prompt itself, so none reaches your devices.
 
 Pi's prompts come from pi-permission-system (`pi install npm:@gotgenes/pi-permission-system`).
 With the Starbridge Pi package installed, the same command offers to add `starbridge` to its
 `authorizerChain`, which it needs as well. It also offers allow rules, so that Pi reads the
 Starbridge skill without a prompt; the link runs the commands above without one when they stand
-alone, never chained to another command. Your devices then allow a call once
-or deny it, and "Answer here" in Pi brings back pi-permission-system's own prompt. Asks from its
-`path` and `external_directory` rules stay at the keyboard, since it lets no link allow those.
+alone, never chained to another command. "Answer here" in Pi brings the prompt back to the
+keyboard. Prompts from its `path` and `external_directory` rules stay at the keyboard.
 
 If you use the Claude app, turn off its "Code updates" notifications, which fire at the end of
 every turn. Keep "Code permission requests" on, unless you turned on Starbridge's permission
@@ -293,12 +298,11 @@ Keys and state live in `~/.config/starbridge` (or `$XDG_CONFIG_HOME/starbridge`,
 settings.
 
 The Claude Code plugin's hooks call `starbridge hook …`. When Claude Code opens its
-`AskUserQuestion` picker, `starbridge hook permission` posts the question to your devices too:
-the first answer, in the picker or on a device, wins, and the other closes as answered
-elsewhere. If the machine is not paired or the server can't be reached, only the picker asks. The
+`AskUserQuestion` question picker, `starbridge hook permission` posts the question to your
+devices. Each question shows at the keyboard and on your devices at once, and the first answer
+wins. If the machine is not paired or the server can't be reached, only the picker asks. The
 opencode plugin runs `starbridge hook question --agent opencode` on each call of opencode's
-`question` tool: it posts each question to your devices and prints the answers for opencode,
-or nothing if the terminal answers first or the server can't be reached.
+question picker, `question`, the same way.
 
 ## What agents parse
 

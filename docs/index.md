@@ -21,7 +21,7 @@ free server at starbridge.run, or [host your own](../server/README.md).
    them from the server, start in the Android app and add no browser
    ([FAQ](faq.md#what-does-the-server-see)).
 
-2. **Install the CLI** on each machine that runs agents:
+2. **Install the CLI** on each machine that runs your harnesses:
 
    ```bash
    curl -fsSL https://starbridge.run/install.sh | sh
@@ -38,7 +38,8 @@ free server at starbridge.run, or [host your own](../server/README.md).
    type the code in Settings → Devices → Add a device on your phone. The code expires in 10
    minutes. Setup then installs Starbridge in each harness it finds and the background service,
    and asks before it installs CodexBar, which reads your AI plans' quotas. CodexBar is optional:
-   `--no-quota` skips it, and questions, runs and permission prompts work without it.
+   setup asks before installing it, `--no-quota` skips it, and questions, runs and permission
+   prompts work without it.
 
 4. **Answer the test question.** Setup ends with "Send a test decision to your devices?". Say
    yes, and your phone, browser or desktop app asks "Does Starbridge reach you from" this
@@ -49,23 +50,23 @@ free server at starbridge.run, or [host your own](../server/README.md).
    starbridge ask --question "Does this reach me?" --option Yes --option No --wait
    ```
 
-5. **Ask from an agent.** Start a new Claude Code, Pi or opencode session, or
+5. **Ask from an agent.** Start a new session in any harness, such as Claude Code, or
    [resume a running one](#sessions-already-running). Type:
 
    ```
    Ask me through Starbridge whether to name the branch "fix" or "patch", then create it.
    ```
 
-   The question reaches your phone with the two names as buttons. Your tap comes back into the
-   session as its next prompt, and the agent goes on. In Codex (CLI 0.160 or later), the answer reaches
-   interactive sessions while the background service runs.
+   The question reaches your phone with the two names as buttons. Your answer comes back as the
+   session's next prompt, and the agent goes on. In a headless run, such as `claude -p`, the agent
+   waits with `starbridge wait`.
 
    ![A question on the Android app, "Which checkout layout should I keep?", with a screenshot of each layout and the buttons Keep A and Keep B](../web/public/landing/android-question-light.webp "A question on the Android app")
 
-6. **Tell your agents when to reach you.** With the plugin, Claude Code asks you for decisions
-   that are yours and reports the commands that block you. Pi and opencode get the same rules from
-   their Starbridge package and plugin, and Codex from its Starbridge plugin once you trust its
-   hook, which Codex asks at its next launch.
+6. **Tell your agents when to reach you.** Setup gives every harness the same rules: the agent
+   asks you through Starbridge for decisions that are yours, and wraps the commands that block you
+   in `starbridge run`. Codex applies them once you trust its Starbridge plugin's hooks, which
+   Codex asks at its next launch.
    [Agent instructions](tell-your-agents.md) covers each harness and how to add your own rules.
 
 ## Sessions already running
@@ -74,7 +75,7 @@ A session that was running when you installed Starbridge doesn't have it: each h
 plugins, skills and instructions when it starts. Quit the harness and resume the session, which
 keeps its conversation:
 
-| Agent | Resume the last session | Pick one |
+| Harness | Resume the last session | Pick one |
 |---|---|---|
 | Claude Code | `claude --continue` | `claude --resume` |
 | Codex | `codex resume --last` | `codex resume` |
@@ -86,16 +87,16 @@ Run the command in the session's own directory, since the last session is per di
 ## What you get
 
 - **Questions.** An agent asks with two to four options, and code, images or links when they
-  help you decide. Your tap reaches its session as the next prompt.
+  help you decide. Your answer comes back as the session's next prompt.
 - **Runs.** A build, a release, an eval or heavy work on your machine shows its progress on your
   devices until it passes or fails.
 - **Quotas.** What's left on each AI plan, read from
   [CodexBar](https://github.com/steipete/CodexBar), with an optional alert before a window runs
   out.
-- **Permission prompts.** Allow or deny, from your phone, the calls Claude Code, Codex, Pi,
-  opencode and Antigravity ask permission for. Off until you turn them on.
+- **Permission prompts.** Your devices can allow a call once or deny it, in Claude Code, Codex,
+  Pi, opencode and Antigravity. Permission prompts stay at the keyboard until you turn them on.
 
-Your agents and their apps notify you too. [One notification per question](notifications.md)
+Your harnesses and their apps notify you too. [One notification per question](notifications.md)
 says how to turn off what Starbridge already covers.
 
 Starbridge works with the Claude Code, Codex, Pi, opencode, Cursor and Antigravity harnesses.
