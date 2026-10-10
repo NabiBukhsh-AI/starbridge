@@ -1424,6 +1424,12 @@ a browser; the app adds a menu bar light and notifications, so a web release nee
   restart. Items notify through the app, never through the browser's notifications; quota
   alerts stay the page's own, which the app shows as it would a browser's. Settings →
   Notifications turns them off and on (#943).
+- **Sound.** Every notification the app shows plays macOS's default sound, as Electron does
+  unless told otherwise: questions, prompts, quota alerts and "Answer not sent" alike, since
+  each asks for a look. macOS plays it on the output under System Settings → Sound → "Play
+  sound effects through", which may not be the headphones playing everything else; the owner
+  heard nothing until it was. The web's chime plays on a Web Push, which the app never gets, so
+  its Settings show no Sound row.
 - **Notification permission** (#935). Electron asks macOS when it first needs notifications, and a
   question shown while macOS still asks reaches only the window. So the app asks once the page
   has a session, after one line saying why, and a notification macOS refused shows again with
