@@ -52,7 +52,17 @@ it (#801). The line under the hero's buttons, with end-to-end encryption, shows 
 
 The web app ships first wherever it can: installed to the home screen on iOS (Web Push works for
 home-screen web apps since iOS 16.4) and as an installed app on desktop browsers. Android is a
-native app. No native iOS app until there is demand and a device to test on.
+native app.
+
+A native iPhone app is on its way (owner, 2026-10-10, now that a tester has a device): SwiftUI on
+a Swift port of `packages/protocol`, the same pattern as Android, because answering from a
+notification with buttons and a typed reply is the product and Safari offers neither. Its first
+piece is `ios/StarbridgeProtocol` (#1083): it ports the protocol by hand on swift-sodium, the
+libsodium both other ports call, and passes every vector file, so the three clients agree byte for
+byte; its tests fail when a vector file goes unread. It builds and tests on Linux as well, where
+agents develop it. Until the app ships, the home-screen web app is the iOS path. The plan and the
+approaches weighed are in the planning repo's
+[research/ios-app.md](https://github.com/T0mSIlver/starbridge-planning/blob/main/research/ios-app.md).
 
 The desktop app is Electron, loading the configured server's web page (owner, 2026-10-08). The
 page stays the device: it signs in, pairs and keeps its keys as in a browser, so every web release
@@ -80,12 +90,13 @@ agent sessions --CLI--> starbridge agent (one per machine) --HTTPS--> server <--
 
 | Path | What |
 |---|---|
-| `packages/protocol` | zod schemas, signing and sealing on libsodium, quota pace and alerts, JSON test vectors the Kotlin client also passes |
+| `packages/protocol` | zod schemas, signing and sealing on libsodium, quota pace and alerts, JSON test vectors the Kotlin and Swift ports also pass |
 | `server` | Hono on Bun with `bun:sqlite`, one Docker image; `RELAY_MODE` also makes it the push relay |
 | `cli` | the `starbridge` command and `starbridge agent` |
 | `plugin`, `mod` | Claude Code's two plugins: `starbridge` (skill and hooks) and `starbridge-mod`, split so that builds refusing mods keep the rest. `mod/pi` and `mod/opencode` hold the Pi extension and opencode plugin |
 | `web` | Next.js; decrypts in the browser |
 | `android` | Kotlin and Compose |
+| `ios` | `StarbridgeProtocol`, the Swift port of `packages/protocol`; the SwiftUI app to come |
 | `deploy` | the hosted instance |
 | `demo` | the program behind the Play reviewers' demo server |
 | `evals` | the skill eval and the load test |

@@ -1,0 +1,53 @@
+name: ios
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ios/**"
+      - "packages/protocol/vectors/**"
+      - ".github/workflows/ios.yml"
+  pull_request:
+    paths:
+      - "ios/**"
+      - "packages/protocol/vectors/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: ios/StarbridgeProtocol
+
+jobs:
+  # The Swift port of packages/protocol against the shared vectors (#1083), on GitHub's hosted
+  # macOS runner, with the libsodium that swift-sodium bundles for Apple platforms.
+  protocol-macos:
+    name: StarbridgeProtocol on macOS
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: swift --version
+      - run: swift test
+      # `swift test` runs on macOS; this builds the same sources for iPhone, against its slice of
+      # the libsodium framework.
+      - run: xcodebuild -quiet -scheme StarbridgeProtocol -destination "generic/platform=iOS" build
+
+  # The same tests on Linux with the system libsodium, where agents develop the package.
+  protocol-linux:
+    name: StarbridgeProtocol on Linux
+    runs-on: ubuntu-24.04
+    container: swift:6.3.3
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - working-directory: .
+        run: apt-get update -qq && apt-get install -qq -y libsodium-dev pkg-config
+      - run: swift test
