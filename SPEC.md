@@ -1424,12 +1424,14 @@ a browser; the app adds a menu bar light and notifications, so a web release nee
   restart. Items notify through the app, never through the browser's notifications; quota
   alerts stay the page's own, which the app shows as it would a browser's. Settings →
   Notifications turns them off and on (#943).
-- **Sound.** Every notification the app shows plays macOS's default sound, as Electron does
-  unless told otherwise: questions, prompts, quota alerts and "Answer not sent" alike, since
-  each asks for a look. macOS plays it at System Settings → Sound → Alert volume, on the output
-  under "Play sound effects through", both apart from what plays everything else; the owner heard
-  nothing with Alert volume at zero (#1055). The web's chime plays on a Web Push, which the app
-  never gets, so its Settings show no Sound row.
+- **Sound** (#1055). Questions and prompts play macOS's default sound, the tone the owner set,
+  as most Mac apps do. "Answer not sent" plays Basso, macOS's error sound: it can come seconds
+  after the tap, once the owner looked away, and an agent still waits. Quota alerts are silent,
+  heads-ups as on Android. Custom sounds were left out: they would override the owner's tone
+  and are design work for little gain. macOS plays a sound at System Settings → Sound → Alert
+  volume, on the output under "Play sound effects through", both apart from what plays
+  everything else; the owner heard nothing with Alert volume at zero. The web's chime plays on a
+  Web Push, which the app never gets, so its Settings show no Sound row.
 - **Notification permission** (#935). Electron asks macOS when it first needs notifications, and a
   question shown while macOS still asks reaches only the window. So the app asks once the page
   has a session, after one line saying why, and a notification macOS refused shows again with

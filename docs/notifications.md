@@ -65,8 +65,9 @@ browser's site settings for starbridge.run. A closed browser gets questions, per
 join requests. Quota alerts show only while a Starbridge page is open, and runs only in the inbox,
 never as a notification. Settings → Notifications → Sound for new questions plays a chime, off by default.
 
-In the Mac app, every notification plays the macOS notification sound, which you set in System
-Settings → Notifications → Starbridge. macOS plays it at System Settings → Sound → Alert volume,
+In the Mac app, questions and permission prompts play the macOS notification sound, a failed
+answer plays the error sound, and quota alerts are silent. Turn sounds off in System Settings →
+Notifications → Starbridge. macOS plays it at System Settings → Sound → Alert volume,
 on the output under Play sound effects through, which may not be your headphones.
 
 In Settings → Quotas, each quota window has a checkbox per alert: runs out before its reset, 50%

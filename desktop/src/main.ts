@@ -518,7 +518,8 @@ function answer(a: Answer): void {
 const notices = new Set<Notification>();
 
 function notSent(id: string, why: string): void {
-  const n = new Notification({ title: "Answer not sent", body: why });
+  // macOS's error sound, apart from the default one a question plays (#1055).
+  const n = new Notification({ title: "Answer not sent", body: why, sound: "Basso" });
   notices.add(n);
   n.on("click", () => {
     notices.delete(n);
