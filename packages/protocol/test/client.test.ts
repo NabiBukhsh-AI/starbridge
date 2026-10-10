@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { parseClientHeader, versionBelow } from "../src";
+import { MachineRelease, parseClientHeader, versionBelow } from "../src";
 
 test.each([
   ["cli/1.0.0", { name: "cli", version: [1, 0, 0], pre: false }],
@@ -29,4 +29,13 @@ test.each([
 
 test("a minimum is a release, not a pre-release", () => {
   expect(() => versionBelow({ version: [1, 0, 0], pre: false }, "1.1.0-rc.1")).toThrow();
+});
+
+test.each([
+  [{ version: "0.2.0-rc.1", latest: "0.1.3" }, true],
+  [{ version: "0.1.0", latest: null }, true],
+  [{ version: "0.1", latest: null }, false],
+  [{ version: "0.1.0", latest: "0.2.0-rc.1" }, false],
+])("PUT /release takes %j: %s", (body, ok) => {
+  expect(MachineRelease.safeParse(body).success).toBe(ok);
 });

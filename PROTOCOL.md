@@ -586,6 +586,17 @@ says once the app has its session, the page offers to turn off this browser's no
 | `PUT /notifications` | device | `{state: "on" \| "off" \| "blocked"}`: this device's own notifications → 204. `blocked` means the browser or Android refuses them |
 | `GET /notifications` | device | `{devices: {[memberId]: state}, clients: {[memberId]: "android" \| "web" \| "desktop"}}`, for the account's active devices that have said. `clients` names the app each last said it from (#1019), known from how it signs in: a bearer token is the Android app, the session cookie a browser, or the desktop app when its `starbridge-client` says so. A client may meet a name it does not know: it shows a plain device |
 
+### Machine releases
+
+Each machine says which CLI release it runs and the latest release its local agent read from
+GitHub (#1050), so every device's Devices list shows the machines that are behind. The server
+compares them; no device reads GitHub. Nothing is pushed.
+
+| Route | Who | What |
+|---|---|---|
+| `PUT /release` | machine | `{version, latest}`: `version` the CLI release it runs, `latest` the latest release it knows, null when it knows none or its owner turned the check off → 204 |
+| `GET /releases` | device | `{machines: {[memberId]: {version, latest, behind}}}`, for the account's active machines that have said; `behind` is `version` below `latest` |
+
 ### Limits
 
 These bound what one account, or one address, can make the server store or do. A rate limit
@@ -620,6 +631,7 @@ server whose disk is full answers writes 503 `storage-full` with `Retry-After`; 
 | `GET /answers` waiting | 32 per machine: 429 `too-many-waits` |
 | `POST /quota/ask` | 6 a minute per account |
 | `PUT /presence` | 10 a minute per device or machine |
+| `PUT /release` | 30 an hour per machine |
 | `PUT /settings` | 30 a minute per account |
 | `POST /push/subscriptions` | 30 a minute per account, on top of the subscription caps |
 | `POST /relay`, on a relay server | 120 a minute per address |

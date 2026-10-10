@@ -243,7 +243,7 @@ export function Landing({ onOwnerToken }: { onOwnerToken: () => void }) {
         </p>
         <InstallBox counted />
         <p className={`t-meta ${s.faint}`}>
-          Works best with Claude Code. Codex, Pi and opencode are supported.
+          Works with Claude Code, Codex, Pi, opencode, Cursor and Antigravity.
         </p>
       </section>
 
