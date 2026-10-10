@@ -1,15 +1,18 @@
 /**
- * Uploads a release's App Bundle to Google Play's Alpha track, the testers' closed track (#1024):
- *   bun run scripts/play.ts <aab> <version> <notes.md> [--validate]
+ * Uploads a release's App Bundle to Google Play: Alpha, the testers' closed track (#1024), or
+ * production, for a final once Play allows it (#1070):
+ *   bun run scripts/play.ts <aab> <version> <notes.md> [--track alpha|production] [--validate]
  * PLAY_ACCESS_TOKEN is an OAuth token for the androidpublisher scope; in CI, google-github-actions/auth
  * trades the job's OIDC token for one, so no key exists. --validate checks the edit
  * with Play and discards it, so nothing is published. Without it the edit is committed, which sends
  * it for review; with managed publishing on, it then waits in Play Console for Publish.
  */
 import { readFileSync } from "node:fs";
+import { parseArgs } from "node:util";
 
 export const PACKAGE = "dev.starbridge.app";
-export const TRACK = "alpha";
+export const TRACKS = ["alpha", "production"] as const;
+export type Track = (typeof TRACKS)[number];
 // Play's limit on one language's release notes.
 const NOTES_MAX = 500;
 
@@ -41,6 +44,7 @@ export async function upload(opts: {
   aab: Uint8Array<ArrayBuffer>;
   version: string;
   notes: string;
+  track: Track;
   validate: boolean;
   api?: string;
 }): Promise<number> {
@@ -75,9 +79,9 @@ export async function upload(opts: {
     const { defaultLanguage } = await call<{ defaultLanguage: string }>("GET", `${at}/details`);
     await call(
       "PUT",
-      `${at}/tracks/${TRACK}`,
+      `${at}/tracks/${opts.track}`,
       JSON.stringify({
-        track: TRACK,
+        track: opts.track,
         releases: [
           {
             name: opts.version,
@@ -91,7 +95,7 @@ export async function upload(opts: {
     if (opts.validate) {
       await call("POST", `${at}:validate`);
       console.log(
-        `Play accepts ${opts.version} (versionCode ${versionCode}) on ${TRACK}; nothing committed.`,
+        `Play accepts ${opts.version} (versionCode ${versionCode}) on ${opts.track}; nothing committed.`,
       );
       await call("DELETE", at);
       return versionCode;
@@ -107,7 +111,7 @@ export async function upload(opts: {
         `::warning::Play would not send ${opts.version} for review; send it from Play Console.`,
       );
     }
-    console.log(`Uploaded ${opts.version} (versionCode ${versionCode}) to ${TRACK}.`);
+    console.log(`Uploaded ${opts.version} (versionCode ${versionCode}) to ${opts.track}.`);
     return versionCode;
   } catch (e) {
     await call("DELETE", at).catch(() => {});
@@ -118,12 +122,17 @@ export async function upload(opts: {
 class PlayError extends Error {}
 
 if (import.meta.main) {
-  const args = process.argv.slice(2);
-  const validate = args.includes("--validate");
-  const [aab, version, notesPath] = args.filter((a) => a !== "--validate");
+  const { values, positionals } = parseArgs({
+    allowPositionals: true,
+    options: { validate: { type: "boolean" }, track: { type: "string", default: "alpha" } },
+  });
+  const [aab, version, notesPath] = positionals;
+  const track = values.track as Track;
   const token = process.env.PLAY_ACCESS_TOKEN;
-  if (!aab || !version || !notesPath || !token) {
-    throw new Error("usage: PLAY_ACCESS_TOKEN=… play.ts <aab> <version> <notes.md> [--validate]");
+  if (!aab || !version || !notesPath || !token || !TRACKS.includes(track)) {
+    throw new Error(
+      "usage: PLAY_ACCESS_TOKEN=… play.ts <aab> <version> <notes.md> [--track alpha|production] [--validate]",
+    );
   }
   const releaseUrl = `https://github.com/T0mSIlver/starbridge/releases/tag/v${version}`;
   await upload({
@@ -131,7 +140,8 @@ if (import.meta.main) {
     aab: readFileSync(aab),
     version,
     notes: playNotes(readFileSync(notesPath, "utf8"), releaseUrl),
-    validate,
+    track,
+    validate: values.validate ?? false,
     api: process.env.PLAY_API_URL,
   });
 }

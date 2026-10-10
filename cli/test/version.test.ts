@@ -41,6 +41,16 @@ test("a release moves the marketplace to its tag; a release candidate leaves it"
   expect(check("7.1.0", dir)).toEqual([".claude-plugin/marketplace.json: v(none), want v7.1.0"]);
 });
 
+test("main follows a promoted final's marketplace and keeps its rc's version", () => {
+  const dir = copy();
+  stamp("7.1.0-rc.2", dir);
+  stamp("7.1.0", dir, "marketplace");
+  expect(check("7.1.0-rc.2", dir)).toEqual([]);
+  expect(
+    readFileSync(join(dir, ".claude-plugin/marketplace.json"), "utf8").match(/"ref": "v7\.1\.0"/g),
+  ).toHaveLength(2);
+});
+
 test("a final release may change only the version stamp since its rc", () => {
   const rc = copy();
   stamp("9.8.7-rc.1", rc);

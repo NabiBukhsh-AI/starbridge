@@ -260,7 +260,10 @@ provider plugins add providers, not panels.
   counts below its release) with 426 `client-too-old`, and serves a request without the header,
   so curl and scripts keep working. The CLI then says to run `starbridge update` and exits 1; the
   web shows one "Starbridge was updated" screen with Reload; Android shows an error that names
-  Google Play. Usage counts each member's first release of the day once
+  Google Play. The server and page deploy from main ahead of any tag, so main serves every release
+  from the minimum up and changes the protocol only by adding to it; a minimum rises only to a
+  final that has been the latest release for 14 days, once the update nudge has reached machines
+  and Play testers have moved past its rcs (#1070). Usage counts each member's first release of the day once
   (`active.clients.<name>.<major>.<minor>`), so made-up versions add one row a day.
 
 ## Sign-in
@@ -1517,12 +1520,27 @@ Tokens, type and components: `DESIGN.md`.
   test; that traffic stays on the phone and items are end-to-end encrypted. Every release starts
   as an rc the maintainer installs; the final tag must be its newest rc plus the version stamp
   (`version.ts --final`), keeping the rc's CodexBar pin, so it ships what was tried.
+- **rcs for testers, finals for everyone** (#1070). Testers already run each rc, so a final
+  changes nothing for them; it is the release for everyone else. An rc reaches the GitHub
+  prerelease, npm's `next`, Play's Alpha track and Mac apps set to follow release candidates; a
+  final also reaches GitHub's latest release, which Obtainium, `install.sh`, `install.ps1`,
+  `starbridge update`, the update nudge and other Mac apps read, npm's `latest`, Homebrew, and
+  Play production once open. The hosted page and server are on neither path: they deploy from
+  main, so every tag waits until starbridge.run runs its commit (its final, its rc's), which also
+  rebuilt the demo server. A final is promoted, not cut: `promote.yml` stamps the newest rc's
+  commit on a commit of its own, tags it and runs the release on that tag, so main never stops
+  merging between an rc and its final, then pushes a branch that points main's marketplace at the
+  final. The owner approves each promotion, after the rc has run on the maintainer's phone and no issue
+  labelled `regression` is open, which the workflow also checks. Waiting N days instead was
+  rejected: with five testers, no report is weak evidence, and v0.1.3 shipped broken without one.
 - **Play's Alpha track from CI** (#1024). Testers fell behind while each App Bundle went to Play
   Console by hand. Once the release is published, the `play` job uploads the tag's AAB to Alpha
   through the Play Developer API (`cli/scripts/play.ts`), status `completed`, with the GitHub
   release's PR titles as notes in the listing's default language, cut to Play's 500 characters.
   rcs go too: Alpha is the testers' track, and the final's higher versionCode replaces its rc
-  there. Committing the edit sends it for review, and with managed publishing off, testers get it
+  there. Once Play opens production (12 testers for 14 days) and the `PLAY_PRODUCTION` variable is
+  true, finals go to production at 100% instead (#1070): Alpha testers get the higher versionCode
+  from there, and a staged rollout means nothing at this many users, while Play can still halt one. Committing the edit sends it for review, and with managed publishing off, testers get it
   once Play approves; the cost is that any other change Play approves also goes live at once. A
   draft would add a console step for nothing. No key exists: the organization policy forbids
   service account keys, so Google's workload identity federation trades the job's GitHub OIDC

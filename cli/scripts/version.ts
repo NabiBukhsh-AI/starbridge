@@ -5,6 +5,8 @@
  *                                                 and pin CodexBar's latest release (codexbar-pin.ts)
  *   bun cli/scripts/version.ts --check [version]  fail unless every place says it (default: the CLI's)
  *   bun cli/scripts/version.ts --final <version>  fail unless HEAD is its newest rc tag plus the stamp
+ *   bun cli/scripts/version.ts --marketplace <version>  point the marketplace at a promoted final, on
+ *                                                 main, whose other files keep the rc's version
  *
  * A release candidate moves every version but leaves the marketplace on the last release, so
  * only users who pin an rc get its plugins.
@@ -73,10 +75,10 @@ export function beyondStamp(
   });
 }
 
-export function stamp(version: string, root = ROOT) {
+export function stamp(version: string, root = ROOT, only?: "marketplace") {
   if (!NUMBER.test(version)) throw new Error(`not a version: ${version}`);
   for (const { file, pattern, tag } of PLACES) {
-    if (tag && isRc(version)) continue;
+    if (tag ? isRc(version) : only === "marketplace") continue;
     const path = join(root, file);
     const text = readFileSync(path, "utf8");
     if (found(text, pattern).includes("")) throw new Error(`${file}: no version to stamp`);
@@ -127,9 +129,17 @@ if (import.meta.main) {
     }
     process.exit(extra.length ? 1 : 0);
   }
+  if (first === "--marketplace") {
+    if (!second || !NUMBER.test(second) || isRc(second)) {
+      console.error(`--marketplace takes a release version, not ${second ?? "nothing"}`);
+      process.exit(64);
+    }
+    stamp(second, ROOT, "marketplace");
+    process.exit(0);
+  }
   if (!first) {
     console.error(
-      "usage: bun cli/scripts/version.ts <version> | --check [version] | --final <version>",
+      "usage: bun cli/scripts/version.ts <version> | --check [version] | --final <version> | --marketplace <version>",
     );
     process.exit(64);
   }
