@@ -169,8 +169,16 @@ func jsNumber(_ x: Double) -> String {
 // --- Reading ---------------------------------------------------------------
 
 private struct JSONParser {
+    /**
+     * Arrays and objects nest at most this deep. Sealed text is parsed before its signature is
+     * checked, and anyone can seal to a public key: without a cap, deep nesting would overflow the
+     * stack, where JavaScript's JSON.parse throws. Real bodies nest a few levels.
+     */
+    static let maxDepth = 256
+
     let b: [UInt8]
     var i = 0
+    var depth = 0
 
     init(_ bytes: [UInt8]) { b = bytes }
 
@@ -207,7 +215,14 @@ private struct JSONParser {
         i += w.count
     }
 
+    mutating func enter() throws {
+        depth += 1
+        if depth > Self.maxDepth { throw ProtocolError(.badSchema, "JSON nests too deep") }
+    }
+
     mutating func object() throws -> JSON {
+        try enter()
+        defer { depth -= 1 }
         i += 1
         var o = JSONObject()
         skip()
@@ -232,6 +247,8 @@ private struct JSONParser {
     }
 
     mutating func array() throws -> JSON {
+        try enter()
+        defer { depth -= 1 }
         i += 1
         var items: [JSON] = []
         skip()

@@ -29,4 +29,12 @@ final class JSONTests: XCTestCase {
         }
         XCTAssertEqual(try JSON.parse(" \t\n\r[1e2,-0.5,\"\\u00e9\\ud83d\\ude00\"] "), [100, -0.5, "é😀"])
     }
+
+    /** Sealed text is parsed before its signature is checked: deep nesting fails, never overflows. */
+    func testDeepNestingIsRefusedNotACrash() throws {
+        let deep = String(repeating: "[", count: 100_000) + String(repeating: "]", count: 100_000)
+        XCTAssertThrowsError(try JSON.parse(deep)) { XCTAssertEqual(($0 as? ProtocolError)?.code, .badSchema) }
+        let ok = String(repeating: "{\"a\":", count: 255) + "1" + String(repeating: "}", count: 255)
+        XCTAssertNoThrow(try JSON.parse(ok))
+    }
 }

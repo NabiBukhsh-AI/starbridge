@@ -55,7 +55,10 @@ public enum Envelopes {
         guard let mine = item.boxes.first(where: { $0.to == me }) else {
             throw ProtocolError(.wrongRecipient, "no box for \(me)")
         }
-        guard let plain = Sodium.sealOpen(try fromB64(mine.box), keys: keys) else { throw ProtocolError(.cannotOpen) }
+        // A box that does not decode is one that does not open, as in packages/protocol.
+        guard let sealed = try? fromB64(mine.box), let plain = Sodium.sealOpen(sealed, keys: keys) else {
+            throw ProtocolError(.cannotOpen)
+        }
         var text = String(decoding: plain, as: UTF8.self)
         // TextDecoder's fatal mode: bytes that are not UTF-8 refuse, where String would replace them.
         guard Array(text.utf8) == plain else { throw ProtocolError(.badSchema, "sealed content is not UTF-8") }
