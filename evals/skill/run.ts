@@ -130,6 +130,13 @@ exit 0
   chmodSync(join(bin, "gh"), 0o755);
 }
 
+/**
+ * Claude Code's settings for the subject: an allow rule for the stubbed `gh`. The bare `Bash` of
+ * --allowedTools did not cover `gh pr merge`, whose block then measured the harness, not the skill
+ * (#1021).
+ */
+const subjectSettings = (cfg: string) => join(cfg, "subject-settings.json");
+
 interface Turn {
   commands: string[];
   /** Each `AskUserQuestion` call, and whether a hook turned it away (plugins before #848). */
@@ -198,6 +205,8 @@ async function turn(
       plugin,
       "--setting-sources",
       "project",
+      "--settings",
+      subjectSettings(env.CLAUDE_CONFIG_DIR as string),
       "--allowedTools",
       "Bash Write Edit Read Glob Grep",
       "--model",
@@ -400,6 +409,8 @@ async function interactiveTurn(
     plugin,
     "--setting-sources",
     "project",
+    "--settings",
+    subjectSettings(cfg),
     "--allowedTools",
     "Bash Write Edit Read Glob Grep",
     "--model",
@@ -547,6 +558,7 @@ async function liveRun(
         "--plugin-dir", join(armDir, "plugin"),
         ...(s.live?.mod ? ["--plugin-dir", join(armDir, "mod")] : []),
         "--setting-sources", "project",
+        "--settings", subjectSettings(cfg),
         "--allowedTools", "Bash Write Edit Read Glob Grep",
         "--model", model as string,
         s.prompt,
@@ -733,8 +745,10 @@ async function one(s: Scenario, arm: string, rep: number): Promise<RunRecord> {
   const armDir = arms[arm] as string;
   const plugin = join(armDir, "plugin");
   const login: Record<string, string> = {};
-  if (agent === "claude") login.CLAUDE_CODE_OAUTH_TOKEN = claudeToken();
-  else if (agent === "pi") {
+  if (agent === "claude") {
+    login.CLAUDE_CODE_OAUTH_TOKEN = claudeToken();
+    writeFileSync(subjectSettings(cfg), JSON.stringify({ permissions: { allow: ["Bash(gh *)"] } }));
+  } else if (agent === "pi") {
     // Only the providers and their API keys: Pi's auth.json may hold OAuth logins that refresh.
     copyFileSync(join(homedir(), ".pi/agent/models.json"), join(cfg, "models.json"));
   } else {
