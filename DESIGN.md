@@ -377,13 +377,13 @@ clients share colours, type and spacing. Change a value here, then run
 
 ## The look
 
-Direction C, "Beacon" (SPEC.md, "Brand"). Soft black and neutral greys
+Direction C, "Beacon" (spec/product.md, "Brand"). Soft black and neutral greys
 with no hue, large type, round cards, airy spacing. One
 accent: the amber of the icon's climber, which means "needs you" and nothing
 else. Everything else is black, white and grey, except the quota bars, which
 fill in each provider's lab colour.
 
-Design v2 (SPEC.md, "Brand") gives each surface a job: the landing page shows the
+Design v2 (spec/product.md, "Brand") gives each surface a job: the landing page shows the
 product (direction B), the web app is a quiet, dense control surface for any
 browser (A), and Android is full Material 3 Expressive (C).
 
@@ -392,7 +392,7 @@ guidelines: connected button groups for a decision's options, the navigation
 bar with its pill indicator (a navigation rail on wide screens), flexible top
 app bars, the expressive motion scheme (springs with overshoot), progress
 indicators with a gap and a stop mark for quota windows, the loading
-indicator, predictive back, haptics (SPEC.md, "Android"), and list and detail side by
+indicator, predictive back, haptics (spec/android.md), and list and detail side by
 side on wide screens. Stock components take their colours from these tokens
 through the theme.
 

@@ -9,7 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.Instant
 
-// SPEC, Clients: prompts, then questions whose agent waits, then the rest, each oldest first, as on the web.
+// spec/clients.md: prompts, then questions whose agent waits, then the rest, each oldest first, as on the web.
 class InboxOrderTest {
     private val t0 = Instant.parse("2026-10-05T10:00:00Z")
     private val now = t0.plusSeconds(60)

@@ -106,7 +106,7 @@ function useSignInFailure(signedOut: boolean): string | undefined {
   return why;
 }
 
-/** GitHub sign-in; self-hosting sits behind "Use your own server" (SPEC.md, "Clients"). */
+/** GitHub sign-in; self-hosting sits behind "Use your own server" (spec/sign-in.md). */
 export function SignIn({
   ownServer = false,
   refused,
