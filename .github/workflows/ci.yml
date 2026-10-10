@@ -44,11 +44,12 @@ jobs:
       cli: ${{ steps.open.outputs.all == 'true' || steps.filter.outputs.cli == 'true' }}
       images: ${{ steps.open.outputs.all == 'true' || steps.filter.outputs.images == 'true' }}
     steps:
-      # Commits and trees only, enough to diff file names.
+      # The pushed commit and its parent, which is github.event.before for a squash merge. A push
+      # of more commits finds no before here and runs everything. Trees only, enough to diff names.
       - if: github.event_name == 'push'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          fetch-depth: 0
+          fetch-depth: 2
           filter: blob:none
       - id: all
         env:
