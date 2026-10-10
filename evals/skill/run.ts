@@ -131,10 +131,10 @@ exit 0
 }
 
 /**
- * Claude Code's settings for the subject: allow rules for the stubbed `gh` and for `git`, whose
- * remote is the run's own bare repo. Without them Claude Code's auto-mode classifier, which the
- * bare `Bash` of --allowedTools does not skip, blocked `gh pr merge` and `git pull`, and the eval
- * measured the harness, not the skill (#1021).
+ * Claude Code's settings for the subject. Its auto-mode classifier, which the bare `Bash` of
+ * --allowedTools does not skip, blocked `gh pr merge` and `git pull` as external writes, and the
+ * eval measured the harness, not the skill (#1021). Allow rules skip it for plain `gh` and `git`;
+ * the environment tells it what a compound command such as `gh pr merge 12; echo $?` touches.
  */
 const subjectSettings = (cfg: string) => join(cfg, "subject-settings.json");
 
@@ -748,7 +748,17 @@ async function one(s: Scenario, arm: string, rep: number): Promise<RunRecord> {
   const login: Record<string, string> = {};
   if (agent === "claude") {
     login.CLAUDE_CODE_OAUTH_TOKEN = claudeToken();
-    writeFileSync(subjectSettings(cfg), JSON.stringify({ permissions: { allow: ["Bash(gh *)", "Bash(git *)"] } }));
+    writeFileSync(
+      subjectSettings(cfg),
+      JSON.stringify({
+        permissions: { allow: ["Bash(gh *)", "Bash(git *)"] },
+        autoMode: {
+          environment: [
+            "This is a throwaway sandbox. `gh` is a local stub that prints canned output and changes nothing on GitHub; git's `origin` is a bare repository in the same temporary directory. Merges, pushes and other writes through them reach nothing outside the sandbox.",
+          ],
+        },
+      }),
+    );
   } else if (agent === "pi") {
     // Only the providers and their API keys: Pi's auth.json may hold OAuth logins that refresh.
     copyFileSync(join(homedir(), ".pi/agent/models.json"), join(cfg, "models.json"));
