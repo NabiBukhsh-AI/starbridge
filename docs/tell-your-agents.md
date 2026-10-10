@@ -62,7 +62,8 @@ so it asks you once at the keyboard to run `starbridge run` outside it.
 ### Pi
 
 Pi has no question picker of its own. If you add `ask_user_question` from
-@juicesharp/rpiv-ask-user-question, its questions race on your devices too.
+@juicesharp/rpiv-ask-user-question, its questions race on your devices in the TUI. In RPC mode,
+an answer from your devices reaches the agent only once the questionnaire closes at the keyboard.
 
 The Starbridge Pi package puts each answer into the TUI or RPC session. In `pi -p` the agent
 waits.
