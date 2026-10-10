@@ -140,9 +140,12 @@ provider plugins add providers, not panels.
   code and asking `Same code? [Y/n]`, Enter for yes, if the Android app shows the same; the
   browser shows it too, after Approve, for an owner with no app. Tom chose one keypress over
   typing a group, and Enter over `y` (2026-10-08), accepting that an agent running setup, or a
-  stray Enter, can confirm it. The QR code is a `starbridge://pair` link, as Signal's
-  `sgnl://linkdevice` and WhatsApp's in-app scan are, rather than an https one, which a phone
-  without the app would open in a browser and so hand the key to the server (Tom, 2026-10-08).
+  stray Enter, can confirm it. The QR code is text with no scheme, read by the app's own scanner
+  as WhatsApp's in-app scan is (#1099): the check key lets the machine skip the question, so it
+  must reach that scanner alone, and a phone's camera shows the text instead of opening an app
+  with it. An https link would hand the key to the server on a phone without the app (Tom,
+  2026-10-08). Without that scanner, the owner opens the printed link or types the code, and the
+  machine asks.
   Devices shows a machine's code, as "Same code as on the machine?", only while the machine
   can still ask: for `CHECK_CONFIRM_MS` (10 minutes, in `packages/protocol`) from its `add`
   entry, the time `starbridge pair` waits for an answer (#939). After that the code answers no
@@ -523,8 +526,8 @@ provider plugins add providers, not panels.
   keeps the pairing.
 - **The pairing link** `https://starbridge.run/pair#CODE`, which `pair` prints and a device shows
   as a QR code, is also an App Link (#611): a phone's camera hands links to apps, not to a browser
-  that would first ask to become a device itself. A machine's QR code is a `starbridge://pair`
-  link instead (#795), which the app opens on any server. The app
+  that would first ask to become a device itself. A machine's QR code is text only the app's
+  scanner reads instead (#795, #1099). The app
   opens Add a device with the code looked up, once the phone is in the account; a phone signed in
   but not in the account yet joins with it instead, as another device's "Scan with the new phone"
   code asks. Without the app,
