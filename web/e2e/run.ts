@@ -1964,9 +1964,9 @@ async function main() {
       await pageB.waitForTimeout(200);
     if ((await probes(pageB)).length !== 1) throw new Error("no notification for the snooze probe");
     // The second browser snoozes, since the first one's push subscription may be gone by now
-    // (Firefox drops one that got many quiet pushes). Its clock runs 57 minutes behind, so its
-    // "1 hour" ends 3 minutes from now.
-    const SHIFT = 57 * 60_000;
+    // (Firefox drops one that got many quiet pushes). Its clock runs 58 minutes behind, so its
+    // "1 hour" ends 2 minutes from now, and the server checks snoozes every 15 s.
+    const SHIFT = 58 * 60_000;
     await pageB.clock.install({ time: new Date(Date.now() - SHIFT) });
     await pageB.goto(ORIGIN);
     await probe(pageB).click({ timeout: 30_000 });

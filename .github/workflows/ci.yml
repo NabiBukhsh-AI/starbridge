@@ -228,8 +228,8 @@ jobs:
           if [ -d "$cache" ] && [ "$(du -sm "$cache" | cut -f1)" -gt 2048 ]; then rm -rf "$cache"; fi
           mkdir -p "$cache" web/.next
           ln -sfn "$cache" web/.next/cache
-      # A part takes up to ~4.5 min, most of it the snooze's wait for its time. At 7 the watchdog
-      # prints what is still running and stops it.
+      # A part takes up to ~4 min, the snooze's 2-minute wait for its time included. At 7 the
+      # watchdog prints what is still running and stops it.
       - if: steps.scope.outputs.run == 'true'
         run: .github/watchdog.sh 420 xvfb-run -a node web/e2e/run.ts
         timeout-minutes: 8
