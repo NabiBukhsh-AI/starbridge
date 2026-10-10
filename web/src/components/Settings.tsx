@@ -170,16 +170,19 @@ function NotificationSection({ data }: { data: SettingsData }) {
   return (
     <Section title="Notifications">
       <ThisDeviceRow push={data.push} />
-      <Row label="Sound for new questions" sub="While a Starbridge page is open">
-        <Switch
-          label="Sound for new questions"
-          checked={sound}
-          onChange={(on) => {
-            setSound(on);
-            if (on) chime();
-          }}
-        />
-      </Row>
+      {/* The chime plays on a Web Push, which the desktop app never gets; macOS sounds its notifications. */}
+      {!desktop && (
+        <Row label="Sound for new questions" sub="While a Starbridge page is open">
+          <Switch
+            label="Sound for new questions"
+            checked={sound}
+            onChange={(on) => {
+              setSound(on);
+              if (on) chime();
+            }}
+          />
+        </Row>
+      )}
       <HoldRow initial={data.pushHold} />
     </Section>
   );

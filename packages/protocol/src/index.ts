@@ -13,5 +13,6 @@ export * from "./permission";
 export * from "./presence";
 export * from "./quotaAlerts";
 export * from "./readable";
+export * from "./releases";
 export * from "./schemas";
 export { type ErrorCode, fromB64, ProtocolError, ready, toB64 } from "./sodium";
