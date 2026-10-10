@@ -218,7 +218,10 @@
   display: none;
 }
 
+/* Its gutter is the fill's bleed, so a waiting question's card keeps the content's edges, as the
+   answer box does, instead of touching the screen's (#1091). */
 .openDetail {
+  --head-bleed: 0px;
   padding: var(--s6) var(--s4);
 }
 
