@@ -105,6 +105,8 @@ interface Store {
     val notifyStates: StateFlow<Map<String, String>> get() = MutableStateFlow(emptyMap())
     /** The app each device said its notifications from: android, web or desktop (#1019). */
     val deviceClients: StateFlow<Map<String, String>> get() = MutableStateFlow(emptyMap())
+    /** The machines whose CLI is behind the latest release (#1050), read with the states. */
+    val machinesBehind: StateFlow<Set<String>> get() = MutableStateFlow(emptySet())
     fun loadNotifyStates() {}
     /** Tells the server whether Android shows this app's notifications; only on a change. */
     fun reportNotifications(on: Boolean) {}

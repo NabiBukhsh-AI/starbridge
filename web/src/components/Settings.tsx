@@ -587,6 +587,21 @@ function DeviceSection({ data }: { data: SettingsData }) {
   const [clock] = usePref("clock");
   const [notify, setNotify] = useState<Record<string, NotifyState>>({});
   const [clients, setClients] = useState<Record<string, string>>({});
+  const [behind, setBehind] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!ctx) return;
+    api.releases().then(
+      (r) =>
+        setBehind(
+          new Set(
+            Object.entries(r.machines)
+              .filter(([, m]) => m.behind)
+              .map(([id]) => id),
+          ),
+        ),
+      () => {},
+    );
+  }, [ctx]);
   // Read again when this device's switch reports a new state.
   useEffect(() => {
     if (!ctx) return;
@@ -662,6 +677,7 @@ function DeviceSection({ data }: { data: SettingsData }) {
                   {` · ${NOTIFY_LABELS[notify[d.id] as NotifyState]}`}
                 </span>
               )}
+              {behind.has(d.id) && " · Update available"}
             </div>
             {shownCheck(d, now) && (
               <div className={`t-meta ${s.sub}`} data-testid="device-check">

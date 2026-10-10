@@ -9,6 +9,7 @@ import { Decisions } from "./decisions";
 import { Permissions } from "./permissions";
 import { Presence } from "./presence";
 import { Quota } from "./quota";
+import { Release } from "./release";
 import { Runs } from "./runs";
 import { Agent } from "./server";
 
@@ -40,6 +41,7 @@ export function makeAgent(ctx: Ctx, opts: AgentOpts = {}): Agent {
       new Runs(hub),
       presence,
       new Antigravity(hub),
+      new Release(hub),
     ];
   });
   return agent;

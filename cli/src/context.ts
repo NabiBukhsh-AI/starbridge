@@ -21,6 +21,8 @@ export interface Ctx {
   sleep: (ms: number) => Promise<void>;
   /** Aborts long waits on Ctrl-C. */
   signal?: AbortSignal;
+  /** Stderr is a terminal: a person runs the command, so it may say a new release is out. */
+  terminal?: boolean;
 }
 
 /** `{machineKind}` for an item's source, when setup detected it or `config` set it. */

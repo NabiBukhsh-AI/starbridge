@@ -168,6 +168,8 @@ export const DEFAULT_LIMITS = {
   settingsWrites: [30, MINUTE] as RateWindow,
   /** A device's writes of its own notification state (#943): at boot and on each change. */
   notificationWrites: [30, MINUTE] as RateWindow,
+  /** A machine's writes of its CLI release (#1050): when its agent starts and when either changes. */
+  releaseWrites: [30, HOUR] as RateWindow,
 
   /** Asks for fresh quota snapshots per account; each makes every machine run CodexBar. */
   quotaAsks: [6, MINUTE] as RateWindow,
