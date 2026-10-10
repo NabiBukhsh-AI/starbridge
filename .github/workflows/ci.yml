@@ -32,10 +32,11 @@ jobs:
   # Which jobs a run's files can affect. A push compares github.event.before with the pushed
   # commit, so a merge that touches only the Android or desktop app or docs skips the rest. A
   # push whose before is missing (a new branch) or not in the history, a dispatched run, and a
-  # failure of this job run everything.
+  # failure of this job run everything. GitHub's runner, whatever vars.RUNNER says: every job
+  # waits for this one, and self-hosted runners can all be busy.
   changes:
     name: changes
-    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       checks: ${{ steps.open.outputs.all == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.android_read == 'true' }}
