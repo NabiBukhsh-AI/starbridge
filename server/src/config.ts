@@ -60,6 +60,11 @@ export interface Config {
    * unless set: it names addresses, so only the host may reach it (deploy/compose.yaml).
    */
   watchPort?: number;
+  /**
+   * Umami, where the server posts the launch funnel's steps (server/src/funnel.ts): its base URL
+   * and the website's id. Off unless both are set; only starbridge.run sets them.
+   */
+  umami?: { url: string; websiteId: string };
   /** The commit this server was built from, which /healthz names. */
   revision?: string;
   /** Rate limits, caps and retention; tests lower them. */
@@ -128,6 +133,10 @@ export function configFromEnv(env: Env = process.env): Config {
     relayMode: flag(env.RELAY_MODE),
     demo: flag(env.DEMO),
     watchPort: env.WATCH_PORT ? int(env.WATCH_PORT, 0) : undefined,
+    umami:
+      env.UMAMI_URL && env.UMAMI_WEBSITE_ID
+        ? { url: env.UMAMI_URL.replace(/\/$/, ""), websiteId: env.UMAMI_WEBSITE_ID }
+        : undefined,
     revision: env.STARBRIDGE_REVISION || undefined,
     limits: DEFAULT_LIMITS,
     minimumReleases: MINIMUM_RELEASES,

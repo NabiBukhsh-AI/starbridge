@@ -62,6 +62,15 @@ function seqOf(env: SignedEnvelope): number | undefined {
   }
 }
 
+/** How many members of each role the account ever had, revoked ones included. */
+function members(db: Database, account: string): { device: number; machine: number } {
+  const rows = db
+    .query("SELECT role, COUNT(*) AS n FROM members WHERE account_id = ? GROUP BY role")
+    .all(account) as { role: string; n: number }[];
+  const n = (role: string) => rows.find((r) => r.role === role)?.n ?? 0;
+  return { device: n("device"), machine: n("machine") };
+}
+
 /** Records the verified directory's members and drops the credentials of revoked ones. */
 function syncMembers(db: Database, account: string, dir: Directory): void {
   const upsert = db.query(
@@ -170,7 +179,12 @@ directoryRoutes.post("/directory", requireCaller("device"), async (c) => {
       entries.length,
       JSON.stringify(entry),
     );
+    const had = members(db, caller.account);
     syncMembers(db, caller.account, dir);
+    const has = members(db, caller.account);
+    if (!had.device && has.device) c.var.funnel.reached(c, caller.account, "first-keys");
+    if (!had.machine && has.machine) c.var.funnel.reached(c, caller.account, "first-machine");
+    if (had.device < 2 && has.device >= 2) c.var.funnel.reached(c, caller.account, "second-device");
     // The device that wrote the genesis, or recovered, is this session's device.
     const body = JSON.parse(entry.body) as { op: string; member?: { id: string } };
     if ((genesis || entry.signer === RECOVERY) && caller.member === null && body.member) {

@@ -11,6 +11,7 @@ import { clientVersion } from "./clients";
 import type { Config } from "./config";
 import { openDb } from "./db";
 import type { Deps, Env } from "./env";
+import { Funnel } from "./funnel";
 import { applyOverrides } from "./overrides";
 import { Presence, releaseHolds } from "./presence";
 import { Push } from "./push";
@@ -54,6 +55,7 @@ export async function createApp(config: Config, fetchFn: typeof fetch = fetch) {
     appSignIns: new AppSignIns(),
     watch: new Watch(),
     usage,
+    funnel: new Funnel(config, db, fetchFn),
   };
   deps.push.onSent = (type, result) => usage.record(`push.${type}.${result}`);
 

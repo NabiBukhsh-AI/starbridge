@@ -479,6 +479,14 @@ itemRoutes.post("/items", requireCaller("paired"), async (c) => {
     const seconds = (Date.now() - Date.parse(answered.receivedAt)) / 1000;
     c.var.usage.record(`answered.${answered.kind}.seconds`, null, seconds);
     c.var.usage.record(`answered.by.${caller.client}`);
+    // The account's first answer from a device: the items its devices posted to answer one.
+    const { n } = db
+      .query(
+        `SELECT COUNT(*) AS n FROM items i JOIN members m ON m.account_id = i.account_id
+         AND m.id = i.from_id AND m.role = 'device' WHERE i.account_id = ? AND i.kind = ?`,
+      )
+      .get(caller.account, item.kind) as { n: number };
+    if (n === 1) c.var.funnel.reached(c, caller.account, "first-answer", { via: caller.client });
   }
   if (item.kind === "quota") c.var.quotas.wake(caller.account);
   if (fromDevice) {

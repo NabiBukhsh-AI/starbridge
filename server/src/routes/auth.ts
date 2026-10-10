@@ -141,12 +141,16 @@ async function gitHubAccount(c: Context<Env>, code: string, verifier?: string): 
   if (!existing && signUpsPaused(c.var.config)) fail(403, "signups-paused", SIGNUPS_PAUSED);
   if (!existing) rateLimit(c, `signup:${ipKey(c)}`, c.var.config.limits.signUps);
   const account = existing?.id ?? newAccountId();
-  if (!existing)
+  if (!existing) {
     db.query("INSERT INTO accounts (id, github_id, created_at) VALUES (?, ?, ?)").run(
       account,
       user.id,
       new Date().toISOString(),
     );
+    // The page's sign-in is a navigation, which carries no client header; the apps send it.
+    const via = c.var.client?.name ?? (verifier === undefined ? "web" : "app");
+    c.var.funnel.reached(c, account, "first-sign-in", { via });
+  }
   return account;
 }
 
