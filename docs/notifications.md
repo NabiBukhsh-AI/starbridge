@@ -67,9 +67,17 @@ browser's site settings for starbridge.run. A closed browser gets questions, per
 join requests. Quota alerts show only while a Starbridge page is open, and runs only in the inbox,
 never as a notification. Settings → Notifications → Sound for new questions plays a chime, off by default.
 
-In Settings → Quotas, each quota window has a checkbox per alert: runs out before its reset, 50%
-left, 20% left, or resets with headroom unused. Weekly and monthly windows start with runs out
-ticked, and 5-hour and daily windows with nothing. These settings belong to each device.
+In Settings → Quotas, each quota window has a checkbox per alert:
+
+- **Runs out.** At the rate you have used it since it began, the window runs out before its
+  reset. Starbridge judges the rate once 5% of the window has passed.
+- **50% left** and **20% left.** Half, or a fifth, of the window is left.
+- **Unused.** At that same rate, 30% or more of the window will be left unused when it resets.
+  This alert comes in the last hour before the reset for a window of a day or less, such as a
+  5-hour window, and in the last day for a longer one, such as a weekly window.
+
+Weekly and monthly windows start with Runs out ticked, and 5-hour and daily windows with nothing.
+These settings belong to each device.
 
 Permission prompts stay at the keyboard until you run `starbridge config permissions on` on the
 machine, and again after `starbridge config permissions off`.

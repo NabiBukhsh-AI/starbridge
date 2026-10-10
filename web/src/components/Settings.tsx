@@ -416,10 +416,14 @@ function QuotaSections() {
 }
 
 const ALERT_COLUMNS: [QuotaAlertChoice, string, string][] = [
-  ["runs-out", "Runs out", "Runs out before its reset at this pace"],
+  ["runs-out", "Runs out", "At the rate used so far, the window runs out before its reset."],
   ["low-50", "50% left", "50% left"],
   ["low-20", "20% left", "20% left"],
-  ["unused-headroom", "Unused", "Resets soon with 30% or more unused"],
+  [
+    "unused-headroom",
+    "Unused",
+    "At the rate used so far, 30% or more of the window will be left unused when it resets. Comes in the last hour before the reset, or the last day for a window longer than a day.",
+  ],
 ];
 
 /**
