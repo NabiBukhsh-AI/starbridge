@@ -158,16 +158,22 @@ test("a decision goes to APNs as an alert the service extension opens, signed wi
   await subscribe(s, acct, OK);
   sent.length = 0;
   const before = Math.floor(Date.now() / 1000);
+  // Two phones at once: both pushes start before any provider token exists.
+  await subscribe(s, acct, SANDBOX_ONLY, "sandbox");
   const d = await postDecision(s, acct, devbox, "d1");
   await postDecision(s, acct, devbox, "d2");
 
-  expect(sent.map((x) => [x.env, x.token, x.jwtValid])).toEqual([
-    ["production", OK, true],
-    ["production", OK, true],
-  ]);
-  const [first, second] = sent;
-  // One provider token for both: APNs refuses a new one within 20 minutes.
-  expect(first?.headers.authorization).toBe(second?.headers.authorization);
+  expect(sent.map((x) => [x.env, x.token, x.jwtValid]).sort()).toEqual(
+    [
+      ["production", OK, true],
+      ["production", OK, true],
+      ["sandbox", SANDBOX_ONLY, true],
+      ["sandbox", SANDBOX_ONLY, true],
+    ].sort(),
+  );
+  // One provider token for all: APNs refuses a new one within 20 minutes.
+  expect(new Set(sent.map((x) => x.headers.authorization)).size).toBe(1);
+  const first = sent.find((x) => x.token === OK);
   const [h] = String(first?.headers.authorization).replace("bearer ", "").split(".");
   expect(JSON.parse(Buffer.from(h ?? "", "base64url").toString())).toEqual({
     alg: "ES256",
@@ -190,7 +196,7 @@ test("a decision goes to APNs as an alert the service extension opens, signed wi
     },
     p: { v: 1, kind: "decision", id: "d1", from: "devbox", box: d.boxes[0]?.box },
   });
-  expect(aggregate(s.deps.db, dayOf(Date.now()))).toMatchObject({ "push.apns.ok": 2 });
+  expect(aggregate(s.deps.db, dayOf(Date.now()))).toMatchObject({ "push.apns.ok": 4 });
 });
 
 test("runs skip APNs, as they skip Web Push: the app fetches them", async () => {

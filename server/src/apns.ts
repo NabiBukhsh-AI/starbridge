@@ -87,7 +87,8 @@ interface Response {
 
 /** Sends pushes to APNs over HTTP/2 with a token signed by the team's auth key (.p8). */
 export class Apns {
-  private token?: { value: string; madeAt: number };
+  /** The token being made or made, shared so concurrent sends never mint one each. */
+  private token?: { value: Promise<string>; madeAt: number };
   private readonly sessions = new Map<string, ClientHttp2Session>();
 
   constructor(
@@ -199,9 +200,18 @@ export class Apns {
   }
 
   /** The JWT APNs takes as a provider token: ES256, signed with the team's auth key. */
-  private async providerToken(): Promise<string> {
+  private providerToken(): Promise<string> {
     const now = Date.now();
     if (this.token && now - this.token.madeAt < TOKEN_LIFETIME_MS) return this.token.value;
+    const token = { value: this.signToken(now), madeAt: now };
+    this.token = token;
+    token.value.catch(() => {
+      if (this.token === token) this.token = undefined;
+    });
+    return token.value;
+  }
+
+  private async signToken(now: number): Promise<string> {
     const enc = (o: object) => Buffer.from(JSON.stringify(o)).toString("base64url");
     const unsigned = `${enc({ alg: "ES256", kid: this.config.keyId })}.${enc({
       iss: this.config.teamId,
@@ -221,8 +231,6 @@ export class Apns {
       key,
       Buffer.from(unsigned),
     );
-    const value = `${unsigned}.${Buffer.from(sig).toString("base64url")}`;
-    this.token = { value, madeAt: now };
-    return value;
+    return `${unsigned}.${Buffer.from(sig).toString("base64url")}`;
   }
 }
