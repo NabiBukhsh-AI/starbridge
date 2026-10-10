@@ -66,9 +66,9 @@ question; steps 1 and 3 say when it asks more. A rerun repairs only what is miss
 3. When another machine of your account sent quotas in the last day, it says which and asks
    whether to send them from this one too; Enter says no. Otherwise it finds CodexBar, or asks
    to install it (Linux and macOS; CodexBar has no Windows build, so a Windows machine uploads
-   no quotas): with Homebrew if you have it, else CodexBar's latest release tarball from
-   GitHub, checked against the `.sha256` that release publishes, into `~/.local/opt/codexbar`.
-   It installs nothing when the checksum is missing or does not match. Then it asks which
+   no quotas): with Homebrew if you have it, else the CodexBar release this Starbridge release
+   pins, from GitHub, checked against the SHA-256 the pin names, into `~/.local/opt/codexbar`.
+   It installs nothing when the checksum does not match. Then it asks which
    providers' quotas to upload.
 4. It installs and starts the background service, `starbridge agent`, as a systemd user unit, a
    launchd agent, or on Windows a Scheduled Task that starts at logon without administrator
@@ -100,14 +100,16 @@ their own manager; then run `starbridge setup --refresh`. Each of those files st
 `Written by starbridge <version>` line: setup replaces and uninstall removes only files that have
 it, so remove the line from one to keep it as yours.
 
-`starbridge update` then moves a CodexBar that setup installed in `~/.local/opt/codexbar` to
-CodexBar's latest release, with the same checksum check; a CodexBar from Homebrew or the macOS
-app is left to them (`brew upgrade codexbar`). When a CodexBar release breaks, its providers show
-a quota error on your devices; `starbridge update --codexbar 0.71.1` installs that release
-instead, until a later `starbridge update` moves it to the latest again.
+`starbridge update` then moves a CodexBar that setup installed in `~/.local/opt/codexbar` to the
+release the new Starbridge release pins, with the same checksum check, and keeps one that is
+newer; a CodexBar from Homebrew or the macOS app is left to them (`brew upgrade codexbar`). When a
+CodexBar release breaks, its providers show a quota error on your devices; `starbridge update
+--codexbar 0.71.1` installs that release instead, checked only against the `.sha256` published
+beside it, until a later `starbridge update` moves an older one back to the pinned release.
 
 `starbridge uninstall` removes the background service, Starbridge from every harness and the binary,
-and asks your devices to revoke the machine. It deletes the keys only when you say so, or with `--purge`.
+and asks your devices to revoke the machine. It deletes the keys only when you say so, or with
+`--purge`; `--yes` takes every default without asking.
 
 ### Check a download
 
@@ -288,8 +290,8 @@ prompts, so that one prompt doesn't notify you twice.
 `starbridge agent` runs once per machine, as a user service. It holds the keys and the server
 connection, uploads quota snapshots and hands each session its answers. The other commands go
 through it when it runs, and to the server directly when it doesn't or when
-`STARBRIDGE_NO_AGENT=1` is set. Its flags (`--provider`, `--interval`) override `agent.json` in
-the config directory.
+`STARBRIDGE_NO_AGENT=1` is set. Its flags (`--provider`, `--interval`, `--codexbar`, `--no-quota`, `--log`)
+override `agent.json` in the config directory.
 
 ### Config
 
