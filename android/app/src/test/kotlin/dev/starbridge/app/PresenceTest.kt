@@ -51,6 +51,6 @@ class PresenceTest {
 
     @Test
     fun holdTimesReadAsTheWebShowsThem() {
-        assertEquals(listOf("Off", "15 s", "30 s", "1 min", "2 min"), Beacon.HOLD_CHOICES.map(::holdLabel))
+        assertEquals(listOf("Off", "0 s", "15 s", "30 s", "1 min"), Beacon.HOLD_CHOICES.map(::holdLabel))
     }
 }
