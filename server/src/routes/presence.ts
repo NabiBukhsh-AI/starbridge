@@ -30,7 +30,7 @@ presenceRoutes.put("/settings", requireCaller("paired-device"), async (c) => {
   const settings = await json(c, AccountSettings);
   recheck(c);
   c.var.db
-    .query("UPDATE accounts SET push_hold = ? WHERE id = ?")
+    .query("UPDATE accounts SET hold_seconds = ? WHERE id = ?")
     .run(settings.pushHold, caller.account);
   return c.json(settings);
 });

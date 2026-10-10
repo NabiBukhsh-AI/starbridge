@@ -3,6 +3,7 @@ import {
   PRESENCE_VALID_MS,
   PUSH_HOLD_DEFAULT,
   PUSH_HOLD_MAX,
+  PUSH_HOLD_OFF,
   type SealedItem,
 } from "@starbridge/protocol";
 import type { Push } from "./push";
@@ -76,11 +77,16 @@ export class Presence {
 /** Kinds whose push waits while the owner is present: those that block an agent. */
 export const HELD_KINDS: readonly SealedItem["kind"][] = ["decision", "permission", "waiting"];
 
-/** The account's hold time in seconds; unset is the default. */
+/**
+ * The account's hold time in seconds, or `PUSH_HOLD_OFF`; unset is the default. A hold set before
+ * #1060 reads from `push_hold`, where 0 was off.
+ */
 export function pushHold(db: Database, account: string): number {
-  const row = db.query("SELECT push_hold FROM accounts WHERE id = ?").get(account) as {
-    push_hold: number | null;
-  } | null;
+  const row = db
+    .query("SELECT hold_seconds, push_hold FROM accounts WHERE id = ?")
+    .get(account) as { hold_seconds: number | null; push_hold: number | null } | null;
+  if (row?.hold_seconds != null) return row.hold_seconds;
+  if (row?.push_hold === 0) return PUSH_HOLD_OFF;
   return row?.push_hold ?? PUSH_HOLD_DEFAULT;
 }
 
@@ -99,7 +105,7 @@ export function holdFor(
   const present = presence.present(account, now);
   if (present.length === 0) return undefined;
   const seconds = pushHold(db, account);
-  if (seconds <= 0) return undefined;
+  if (seconds === PUSH_HOLD_OFF) return undefined;
   const held = to.filter((id) => !present.includes(id));
   if (held.length === 0) return undefined;
   return { held, due: new Date(now + seconds * 1000).toISOString() };
@@ -139,7 +145,7 @@ export function releaseHolds(
     if (end === undefined) {
       const seconds = pushHold(db, account);
       const left = presence.absentSince(account, now);
-      end = seconds <= 0 ? now : left === undefined ? Infinity : left + seconds * 1000;
+      end = seconds === PUSH_HOLD_OFF ? now : left === undefined ? Infinity : left + seconds * 1000;
       ends.set(account, end);
     }
     return end;
