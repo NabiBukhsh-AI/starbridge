@@ -1534,8 +1534,13 @@ Tokens, type and components: `DESIGN.md`.
 - **The desktop app's release** (#886). Once the repository variable `DESKTOP_RELEASE` is true,
   the tag also builds the macOS app on GitHub's macOS runner, signed with the Developer ID and
   notarized, its secrets in the `desktop-release` environment, and adds its DMGs, zips and
-  `latest-mac.yml` to the Release. The app reads that file from the latest Release every 6 hours
-  and at start, downloads the zip, and installs it on quit or from Restart to Update. macOS
+  `latest-mac.yml` to the Release. Every 6 hours and at start, the app reads that file from the
+  release it follows, downloads the zip, and installs it on quit or from Restart to Update. It
+  follows GitHub's latest release, or with Get Release Candidates checked in its menu, the newest
+  rc when that is newer (#1071); an app installed from an rc starts checked. The app picks the
+  release from the `releases/latest` redirect and the releases feed: electron-updater's own GitHub
+  lookup keeps an app installed from an rc on rcs and never offers it a final, and GitHub's API
+  allows 60 requests an hour per address. macOS
   installs an update only with the running app's Developer ID, so ad hoc builds never update.
 - **One version everywhere** (#471). `bun cli/scripts/version.ts <version>` stamps the version
   into `cli/package.json`, `web/package.json`, `desktop/package.json`, both `plugin.json`, the mod's `VERSION`, Android's

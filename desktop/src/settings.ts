@@ -23,11 +23,14 @@ export interface Settings {
   place: Place;
   /** Whether macOS was asked to allow notifications, which happens once, after sign-in. */
   notificationsAsked: boolean;
+  /** Whether updates include release candidates, not only finals (#1071). */
+  releaseCandidates: boolean;
 }
 
 export const DEFAULT_SHORTCUT = "Control+Alt+S";
 
-export function readSettings(file: string): Settings {
+/** `version` is the running app's: one installed from a release candidate follows them at first. */
+export function readSettings(file: string, version = ""): Settings {
   let saved: Partial<Settings> = {};
   try {
     saved = JSON.parse(readFileSync(file, "utf8"));
@@ -45,6 +48,10 @@ export function readSettings(file: string): Settings {
       typeof saved.notificationsAsked === "boolean"
         ? saved.notificationsAsked
         : notified.length > 0,
+    releaseCandidates:
+      typeof saved.releaseCandidates === "boolean"
+        ? saved.releaseCandidates
+        : version.includes("-rc."),
   };
 }
 
