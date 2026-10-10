@@ -258,6 +258,8 @@ try {
     await page.getByRole("link", { name: /^Inbox/ }).click();
 
     step("switching tabs waits on nothing: no request for the page, painted within 100 ms");
+    // The tabs prefetch their pages once they show (web: Shell.tsx); Quotas shows with quotas.
+    const prefetched = page.waitForResponse((r) => /\/quotas\?_rsc=/.test(r.url()));
     const quota = cli(
       "quota",
       ["quota", "push", "--once", "--codexbar", join(ROOT, "cli/test/fixtures/fake-codexbar.sh")],
@@ -266,8 +268,7 @@ try {
     assert.equal(await quota.exited, 0, "quota push failed");
     const rail = page.getByRole("navigation", { name: "Main" }).first();
     await rail.getByRole("link", { name: "Quotas" }).waitFor();
-    // The tabs prefetch their pages once they show (web: Shell.tsx).
-    await page.waitForLoadState("networkidle");
+    await prefetched;
     for (const round of ["cold", "warm"]) {
       for (const [tab, heading] of [
         ["Quotas", "Quotas"],
