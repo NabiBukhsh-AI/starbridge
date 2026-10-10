@@ -85,7 +85,7 @@ remove the setup.
 step 2. `starbridge status` prints the same checks, and names a harness installed since setup,
 which `starbridge setup --refresh` then sets up.
 
-`starbridge uninstall --agent <name>` (`claude-code`, `codex`, `pi`, `opencode`, `cursor` or
+`starbridge uninstall --agent <name>` (`claude`, `codex`, `pi`, `opencode`, `cursor` or
 `antigravity`) removes Starbridge from one harness. Setup and `--refresh` then leave that harness alone, until `starbridge setup
 --agent <name>` installs it there again.
 
