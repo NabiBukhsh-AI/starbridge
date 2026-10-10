@@ -92,14 +92,15 @@ Run the command in the session's own directory, since the last session is per di
 - **Quotas.** What's left on each AI plan, read from
   [CodexBar](https://github.com/steipete/CodexBar), with an optional alert before a window runs
   out.
-- **Permission prompts.** Allow or deny, from your phone, the calls Claude Code, Codex, opencode
-  and Pi ask permission for. Off until you turn them on.
+- **Permission prompts.** Allow or deny, from your phone, the calls Claude Code, Codex, Pi,
+  opencode and Antigravity ask permission for. Off until you turn them on.
 
 Your agents and their apps notify you too. [One notification per question](notifications.md)
 says how to turn off what Starbridge already covers.
 
-Starbridge works with Claude Code 2.1.287 or later, Codex, Pi and opencode.
-[Agent instructions](tell-your-agents.md#what-each-agent-supports) lists what each one supports.
+Starbridge works with the Claude Code, Codex, Pi, opencode, Cursor and Antigravity harnesses.
+[What each harness supports](tell-your-agents.md#what-each-harness-supports) lists what each one
+needs and does.
 
 ## Recovery key
 

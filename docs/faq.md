@@ -63,15 +63,11 @@ the agent doesn't matter. Quotas read your AI plans through CodexBar; with no pl
 
 ## Which agents, and how well?
 
-Claude Code gets the most: a plugin with rules, a skill and hooks; answers into the live session
-through a [Claude Code mod](https://code.claude.com/docs/en/plugins/mods/overview), code that
-runs inside Claude Code; its own `AskUserQuestion` on your phone as well as in the picker, first answer wins; and permission prompts if
-you turn them on. opencode gets the same through its plugin, its own `question` tool included.
-Pi gets the rules, the skill and answers into the live session through its package, and
-permission prompts with pi-permission-system. Codex gets the rules and permission prompts through
-its plugin, the skill, and answers into interactive sessions. Any other agent can run `starbridge ask` and
-`starbridge wait`.
-[What each agent supports](tell-your-agents.md#what-each-agent-supports) has the details.
+Starbridge installs in six harnesses, the tools an agent runs in: Claude Code, Codex, Pi,
+opencode, Cursor and Antigravity. In each, questions, answers into the live session and runs work.
+Cursor gets no permission prompts and does not show its own ask tool on your phone. Any other
+harness can run `starbridge ask` and `starbridge wait`.
+[What each harness supports](tell-your-agents.md#what-each-harness-supports) has the details.
 
 ## Do I restart my agents after setup?
 

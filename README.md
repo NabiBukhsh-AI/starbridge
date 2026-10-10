@@ -67,26 +67,24 @@ first question.
 [One notification per question](https://starbridge.run/docs/notifications) turns off your
 agents' own notifications for what Starbridge already sends.
 
-## What each agent supports
+## What each harness supports
 
-| | Claude Code | Codex | Pi | opencode |
-|---|---|---|---|---|
-| Questions | ✓ | ✓ | ✓ | ✓ |
-| Answers into the live session | ✓ | ✓ | ✓ | ✓ |
-| "Waiting for you" | ✓ | ✓ | ✓ | ✓ |
-| Runs | ✓ | ✓ | ✓ | ✓ |
-| Permission prompts | Opt-in | No | Opt-in | Opt-in |
-| The agent's own ask tool | ✓ | n/a | n/a | ✓ |
-| Rules for when to ask you | ✓ | ✓ | ✓ | ✓ |
+| | Claude Code | Codex | Pi | opencode | Cursor | Antigravity |
+|---|---|---|---|---|---|---|
+| Questions | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Answers into the live session | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| "Waiting for you" | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Runs | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| Permission prompts | Opt-in | Opt-in | Opt-in | Opt-in | No | Opt-in |
+| The harness's own ask tool | ✓ | ✓ | ✓ | ✓ | No | ✓ |
 
-In Claude Code, the answer arrives through a [Claude Code mod](https://code.claude.com/docs/en/plugins/mods/overview), code that
-runs inside Claude Code: it submits your answer into the live session as its next prompt. Setup
-installs it beside the Starbridge plugin.
+An answer arrives as the session's next prompt. In Claude Code, the Starbridge mod submits it. A
+[Claude Code mod](https://code.claude.com/docs/en/plugins/mods/overview) is code that runs inside
+Claude Code; setup installs it beside the Starbridge plugin. A headless run (`claude -p`,
+`codex exec`, `pi -p`, `opencode run`, `cursor-agent -p`, `agy -p`) has no next prompt, so there
+the agent waits for the answer with `starbridge wait`.
 
-Answers go into interactive sessions; Claude Code needs 2.1.287 or later, Codex CLI 0.160 or later. In `codex exec`, `pi -p` and
-`opencode run`, the agent waits for the answer with `starbridge wait` instead.
-
-[What each agent supports](https://starbridge.run/docs/tell-your-agents#what-each-agent-supports)
+[What each harness supports](https://starbridge.run/docs/tell-your-agents#what-each-harness-supports)
 lists the version and setup each one needs.
 
 Tested for 0.1.0: Claude Code on macOS, Linux and Windows 11; Codex, opencode and Pi on Linux.
