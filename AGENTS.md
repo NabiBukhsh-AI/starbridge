@@ -23,6 +23,8 @@ command and its local agent), `plugin` and
 - One issue, one branch, one PR that says `Closes #n`.
 - Keep a PR to its issue. A `packages/protocol` change that another change
   needs goes in its own small PR first.
+- Fill the PR's "Release notes" section: one `Product: line` per product a user sees change
+  (Android, Web, Desktop, CLI, Server, Docs), or `None`. The release groups them by product.
 - Before a PR is ready, run the checks in
   [CONTRIBUTING.md, "Develop"](CONTRIBUTING.md#develop).
 - When a change makes or changes a product decision, update its section of

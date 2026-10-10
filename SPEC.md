@@ -1488,7 +1488,7 @@ Tokens, type and components: `DESIGN.md`.
 - **Releases** (#64). A `v1.2.3` or `v1.2.3-rc.4` tag runs `release.yml`: the APK and AAB signed
   with the release key, six CLI binaries (Linux and macOS, and Windows `.exe`, each x64 and
   arm64, cross-compiled by Bun on Linux), `SHA256SUMS` signed with minisign in CI (public key in
-  `cli/minisign.pub`), `install.sh`, `install.ps1`, and notes from merged PRs. `-rc` tags are prereleases and go
+  `cli/minisign.pub`), `install.sh`, `install.ps1`, and the notes below. `-rc` tags are prereleases and go
   to npm under `next`. Non-rc tags commit the formula to `T0mSIlver/homebrew-starbridge`. npm
   takes the package through Trusted Publishing: the `npm` job trades its GitHub OIDC token for a
   publish token, so no npm token exists to leak or expire, and `npm publish --provenance` adds
@@ -1512,7 +1512,7 @@ Tokens, type and components: `DESIGN.md`.
 - **Play's Alpha track from CI** (#1024). Testers fell behind while each App Bundle went to Play
   Console by hand. Once the release is published, the `play` job uploads the tag's AAB to Alpha
   through the Play Developer API (`cli/scripts/play.ts`), status `completed`, with the GitHub
-  release's PR titles as notes in the listing's default language, cut to Play's 500 characters.
+  release's Android section as notes in the listing's default language, cut to Play's 500 characters.
   rcs go too: Alpha is the testers' track, and the final's higher versionCode replaces its rc
   there. Committing the edit sends it for review, and with managed publishing off, testers get it
   once Play approves; the cost is that any other change Play approves also goes live at once. A
@@ -1523,6 +1523,14 @@ Tokens, type and components: `DESIGN.md`.
   `PLAY_WIF_PROVIDER` and `PLAY_SERVICE_ACCOUNT`). Without them the job skips with a notice; a
   failed upload fails the run after the release is out. Run by hand on main, the job asks Play to
   validate the edit and discards it.
+- **Release notes by product** (#1057). A list of PR titles told users little. Each PR body has
+  a "Release notes" section, one `Product: line` per product a user sees change (Android, Web,
+  Desktop, CLI, Server, Docs) or `None`, written by whoever knows the change; it can be edited
+  after merge until the tag. `cli/scripts/release-notes.ts` renders a section per product, empty
+  ones omitted, then every PR inside a folded `<details>`. Grouping by paths was rejected: tests
+  and internal changes in `web/` or `cli/` would read as product changes. A final covers
+  everything since the previous final; an rc only what is new since the tag before it, which is
+  what Alpha testers have not seen.
 - **The desktop app's release** (#886). Once the repository variable `DESKTOP_RELEASE` is true,
   the tag also builds the macOS app on GitHub's macOS runner, signed with the Developer ID and
   notarized, its secrets in the `desktop-release` environment, and adds its DMGs, zips and
