@@ -131,9 +131,10 @@ exit 0
 }
 
 /**
- * Claude Code's settings for the subject: an allow rule for the stubbed `gh`. The bare `Bash` of
- * --allowedTools did not cover `gh pr merge`, whose block then measured the harness, not the skill
- * (#1021).
+ * Claude Code's settings for the subject: allow rules for the stubbed `gh` and for `git`, whose
+ * remote is the run's own bare repo. Without them Claude Code's auto-mode classifier, which the
+ * bare `Bash` of --allowedTools does not skip, blocked `gh pr merge` and `git pull`, and the eval
+ * measured the harness, not the skill (#1021).
  */
 const subjectSettings = (cfg: string) => join(cfg, "subject-settings.json");
 
@@ -747,7 +748,7 @@ async function one(s: Scenario, arm: string, rep: number): Promise<RunRecord> {
   const login: Record<string, string> = {};
   if (agent === "claude") {
     login.CLAUDE_CODE_OAUTH_TOKEN = claudeToken();
-    writeFileSync(subjectSettings(cfg), JSON.stringify({ permissions: { allow: ["Bash(gh *)"] } }));
+    writeFileSync(subjectSettings(cfg), JSON.stringify({ permissions: { allow: ["Bash(gh *)", "Bash(git *)"] } }));
   } else if (agent === "pi") {
     // Only the providers and their API keys: Pi's auth.json may hold OAuth logins that refresh.
     copyFileSync(join(homedir(), ".pi/agent/models.json"), join(cfg, "models.json"));
