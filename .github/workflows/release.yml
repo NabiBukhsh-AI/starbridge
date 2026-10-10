@@ -71,14 +71,15 @@ jobs:
             *-rc.*) want=$(git rev-parse HEAD) ;;
             *) want=$(git rev-parse "$(git tag -l "v$VERSION-rc.*" --sort=-v:refname | head -n1)^{commit}") ;;
           esac
+          # A failed poll waits like any other: the step's timeout is the limit.
           while :; do
             got=$(curl -fsS --retry 5 --retry-all-errors -D - -o /dev/null https://starbridge.run/healthz |
-              tr -d '\r' | awk -F': ' 'tolower($1) == "x-starbridge-revision" { print $2 }')
+              tr -d '\r' | awk -F': ' 'tolower($1) == "x-starbridge-revision" { print $2 }') || got=
             case $got in *[!0-9a-f]*) got= ;; esac
             if [ ${#got} -eq 40 ]; then
               # Not gh: some self-hosted runners lack it (dell2-2).
               status=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
-                "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/compare/$want...$got?per_page=1" | jq -r .status)
+                "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/compare/$want...$got?per_page=1" | jq -r .status) || status=
               case $status in identical | ahead) echo "starbridge.run runs $got"; break ;; esac
             fi
             echo "starbridge.run runs ${got:-no commit id}, not $want or later; waiting for the deploy"
