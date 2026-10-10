@@ -26,9 +26,10 @@ export function updateCheckOn(ctx: Ctx): boolean {
  * `latest.json` as it was, so the next call tries again; it never throws.
  */
 export async function checkLatest(ctx: Ctx, now = ctx.now()): Promise<LatestRelease | undefined> {
-  const saved = ctx.store.latest();
-  if (saved && now.getTime() - Date.parse(saved.checkedAt) < CHECK_EVERY_MS) return saved;
+  let saved: LatestRelease | undefined;
   try {
+    saved = ctx.store.latest();
+    if (saved && now.getTime() - Date.parse(saved.checkedAt) < CHECK_EVERY_MS) return saved;
     const res = await fetch(ctx.env.STARBRIDGE_LATEST_URL ?? LATEST_URL, {
       headers: {
         accept: "application/vnd.github+json",
@@ -69,10 +70,17 @@ export function updateCommand(install: InstallKind): string {
   return install.kind === "binary" ? "`starbridge update`" : MANAGED[install.kind].update;
 }
 
-/** The line a command a person ran ends with when a newer release is out, else undefined. */
+/**
+ * The line a command a person ran ends with when a newer release is out, else undefined. An
+ * unreadable config file says nothing here: the command already did its work.
+ */
 export function updateLine(ctx: Ctx, install: () => InstallKind): string | undefined {
-  if (!updateCheckOn(ctx)) return undefined;
-  const latest = newerRelease(ctx);
-  if (!latest) return undefined;
-  return `Starbridge ${latest} is out (you have ${VERSION}): run ${updateCommand(install())}`;
+  try {
+    if (!updateCheckOn(ctx)) return undefined;
+    const latest = newerRelease(ctx);
+    if (!latest) return undefined;
+    return `Starbridge ${latest} is out (you have ${VERSION}): run ${updateCommand(install())}`;
+  } catch {
+    return undefined;
+  }
 }

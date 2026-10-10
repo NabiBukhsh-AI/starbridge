@@ -18,15 +18,15 @@ export class Release implements Feature {
 
   constructor(private readonly hub: Hub) {}
 
+  /** Never throws: an unreadable config file or a failed call waits for the next tick. */
   async tick(): Promise<void> {
     const ctx = this.hub.ctx;
-    const on = updateCheckOn(ctx);
-    const latest = on ? ((await checkLatest(ctx))?.version ?? null) : null;
-    if (!ctx.store.machine()) return;
-    const body: MachineRelease = { version: VERSION, latest };
-    const key = JSON.stringify(body);
-    if (key === this.sent) return;
     try {
+      const latest = updateCheckOn(ctx) ? ((await checkLatest(ctx))?.version ?? null) : null;
+      if (!ctx.store.machine()) return;
+      const body: MachineRelease = { version: VERSION, latest };
+      const key = JSON.stringify(body);
+      if (key === this.sent) return;
       await session(ctx).api.release(body, AbortSignal.timeout(10_000));
       this.sent = key;
     } catch {}

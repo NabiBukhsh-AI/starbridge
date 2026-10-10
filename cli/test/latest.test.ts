@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, expect, setDefaultTimeout, test } from "bun:test";
+import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { LiveServer } from "@starbridge/server/test-support";
 import { Release } from "../src/agent/release";
 import { run } from "../src/cli";
@@ -143,4 +145,16 @@ test("status shows the installed and latest releases (#1050)", async () => {
   expect(ctx.lines[1]).toMatch(
     /^Latest: 99\.0\.0, checked .+: run npm i -g starbridge@latest, then starbridge setup --refresh$/,
   );
+});
+
+test("an unreadable latest.json or agent.json neither stops the agent's check nor --version (#1050)", async () => {
+  const ctx = { ...testCtx({ STARBRIDGE_LATEST_URL: gh.url }), terminal: true };
+  ctx.store.saveLatest({ checkedAt: "2026-01-01T00:00:00Z", version: "99.0.0" });
+  writeFileSync(join(ctx.store.dir, "latest.json"), "{");
+  writeFileSync(join(ctx.store.dir, "agent.json"), "{");
+  expect(await checkLatest(ctx)).toBeUndefined();
+  const hub = { ctx, notify: () => {}, changed: async () => {}, log: () => {}, seen: () => false };
+  await new Release(hub).tick();
+  expect(await run(["--version"], ctx)).toBe(0);
+  expect(ctx.errors).toEqual([]);
 });
