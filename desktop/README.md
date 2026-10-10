@@ -50,10 +50,10 @@ checks every field again.
 
 ## The widget
 
-`widgets/` holds the Needs you widget (#1031): `NeedsYou.swift`, the WidgetKit extension, and
-`reload.swift`, the helper the app runs to write `widgets.json` into the App Group container and
-ask WidgetKit to redraw (`src/widgets.ts`). `scripts/widgets.cjs`, electron-builder's afterPack
-hook, builds both with `swiftc` (Xcode's macOS SDK, no Xcode project), copies them into the app
+`widgets/` holds the Needs you widget (#1031), a Swift package: `NeedsYou`, the WidgetKit
+extension, and `Reload`, the helper the app runs to write `widgets.json` into the App Group
+container and ask WidgetKit to redraw (`src/widgets.ts`). `scripts/widgets.cjs`, electron-builder's
+afterPack hook, builds both with `widgets/build.sh` (`swift build`, Xcode's macOS SDK), copies them into the app
 and signs them with their own entitlements; `scripts/check-widgets.sh` checks a packaged app.
 The App Group needs the Team ID, so only a Developer ID build shows a count. A new widget build
 registers once the app sits in /Applications and has run; `pluginkit -m -p
