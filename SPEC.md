@@ -954,6 +954,12 @@ the Cursor IDE, which this machine does not run.
   made it a second-class answer. Cards in the list keep only the options, so they stay one-tap
   and short. The owner chose this from mockups over a full-width Reply button and a mic in the
   field; the field reads "Your answer" on both clients.
+- **One call's questions keep its order** (#1079). Claude Code's `AskUserQuestion`, opencode's
+  `question` and Codex's `request_user_input` ask several questions at once, and the CLI posts one
+  card for each. Their `createdAt` is the call's time plus each question's index in milliseconds,
+  so every inbox, which lists oldest first, shows them together in the agent's order. Posted in
+  parallel and stamped in whole seconds, they tied and came in any order. Clients compare times as
+  instants, since whole-second and millisecond stamps sort differently as text.
 - **Images** (#62, #170, #685): at most 4, PNG or JPEG, never SVG. The CLI keeps a file as is up
   to a 3000 px edge and 384 KB, so a phone screenshot reaches every device unchanged and viewers can zoom into real
   pixels. Android decodes by the image's real size, drops one larger than declared or 8192 px a
