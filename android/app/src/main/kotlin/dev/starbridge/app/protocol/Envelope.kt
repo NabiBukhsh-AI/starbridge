@@ -72,7 +72,9 @@ class Envelopes(private val sodium: Sodium) {
         } catch (e: java.nio.charset.CharacterCodingException) {
             throw ProtocolException("bad-schema", "sealed content is not UTF-8")
         }
-        val env = parseJson(SignedEnvelope.serializer(), parseJsonText(text)).also { it.check() }
+        // TextDecoder drops a leading byte order mark; packages/protocol reads the envelope after it.
+        val json = parseJsonText(text.removePrefix("\uFEFF"))
+        val env = parseJson(SignedEnvelope.serializer(), json).also { it.check() }
         if (env.kind != item.kind) throw ProtocolException("wrong-kind", "${env.kind} in ${item.kind}")
         return env
     }

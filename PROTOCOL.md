@@ -58,7 +58,9 @@ Besides the web app's trust in its server:
 
 ## Formats
 
-- Binary values are base64url without padding. Times are ISO 8601.
+- Binary values are base64url without padding. Times are ISO 8601 with seconds and an offset
+  (`Z` or `±HH:MM`, hours to 23) on a real date. A string's length limit counts code points, as
+  zod does, not UTF-16 units: an emoji is one (#1082).
 - **Signed envelope** `{v, kind, signer, body, sig}`: `body` is JSON text kept exactly as signed;
   `sig` is Ed25519 over `"starbridge/v1/<kind>" NUL signer NUL body`. Verifiers check the
   signature before they parse `body`.
