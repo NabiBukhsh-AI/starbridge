@@ -60,28 +60,33 @@ Or with npm:
 npm install -g starbridge
 ```
 
-The script runs `starbridge setup`, which pairs the machine, installs Starbridge in each agent it
+The script runs `starbridge setup`, which pairs the machine, installs Starbridge in each harness it
 finds and ends by offering to send a test question to your devices. After Homebrew or npm, run
 `starbridge setup` yourself. [Start](https://starbridge.run/docs#start) goes on to your agent's
 first question.
 [One notification per question](https://starbridge.run/docs/notifications) turns off your
-agents' own notifications for what Starbridge already sends.
+harnesses' own notifications for what Starbridge already sends.
 
 ## What each harness supports
 
+A harness is the tool the agent runs in: Claude Code, Codex, Pi, opencode, Cursor or Antigravity.
+A question picker is a harness's own tool for asking you a question with options, such as Claude
+Code's `AskUserQuestion`.
+
 | | Claude Code | Codex | Pi | opencode | Cursor | Antigravity |
 |---|---|---|---|---|---|---|
-| Its ask tool, raced on your devices | ✓ | ✓ | With add-on | ✓ | No | ✓ |
+| Question picker raced on your devices | ✓ | ✓ | With add-on | ✓ | No | ✓ |
 | Answer comes back without polling | ✓ | ✓ | ✓ | ✓ | CLI only | ✓ |
-| Permission prompts | Opt-in | Opt-in | Opt-in | Opt-in | No | Opt-in |
+| Permission prompts on your devices | Opt-in | Opt-in | Opt-in | Opt-in | No | Opt-in |
 | Runs | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | "Waiting for you" | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
-An answer arrives as the session's next prompt. In Claude Code, the Starbridge mod submits it. A
+Your answer to a `starbridge ask` question comes back as the session's next prompt. In Claude
+Code, the Starbridge mod submits it. A
 [Claude Code mod](https://code.claude.com/docs/en/plugins/mods/overview) is code that runs inside
 Claude Code; setup installs it beside the Starbridge plugin. A headless run (`claude -p`,
 `codex exec`, `pi -p`, `opencode run`, `cursor-agent -p`, `agy -p`) has no next prompt, so there
-the agent waits for the answer with `starbridge wait`.
+the agent waits with `starbridge wait` before it ends its turn.
 
 [What each harness supports](https://starbridge.run/docs/tell-your-agents#what-each-harness-supports)
 lists the version and setup each one needs.

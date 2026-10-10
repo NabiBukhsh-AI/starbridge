@@ -61,13 +61,12 @@ Yes. Starbridge works at the agent's level, through its plugin or skill, so the 
 the agent doesn't matter. Quotas read your AI plans through CodexBar; with no plan,
 `starbridge setup --no-quota` skips them, and CodexBar with them.
 
-## Which agents, and how well?
+## Which harnesses, and how well?
 
-Starbridge installs in six harnesses, the tools an agent runs in: Claude Code, Codex, Pi,
-opencode, Cursor and Antigravity. In each, questions and runs work, and answers come back into
-the live session, except in the Cursor IDE. Cursor gets no permission prompts and does not show
-its own ask tool on your phone. Any other
-harness can run `starbridge ask` and `starbridge wait`.
+A harness is the tool the agent runs in. Starbridge installs in six: Claude Code, Codex, Pi,
+opencode, Cursor and Antigravity. In each, questions and runs work, and your answer comes back as
+the session's next prompt, except in the Cursor IDE. Cursor's question picker and permission
+prompts stay at the keyboard. Any other harness can run `starbridge ask` and `starbridge wait`.
 [What each harness supports](tell-your-agents.md#what-each-harness-supports) has the details.
 
 ## Do I restart my agents after setup?
