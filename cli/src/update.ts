@@ -21,7 +21,7 @@ import { installedService, kind, restartTask } from "./setup/service";
 import { defaults, makeSys, otherCopies } from "./setup/sys";
 import { VERSION } from "./version";
 
-const MANAGED = {
+export const MANAGED = {
   brew: {
     update: "brew upgrade starbridge, then starbridge setup --refresh",
     remove: "brew uninstall starbridge",

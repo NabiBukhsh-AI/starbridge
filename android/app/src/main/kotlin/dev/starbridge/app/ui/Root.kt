@@ -415,6 +415,7 @@ fun Main(decisions: List<Decision>, notice: StateFlow<String?>, dismiss: () -> U
                         val recovery by vm.recovery.collectAsStateWithLifecycle()
                         val notify by vm.notifyStates.collectAsStateWithLifecycle()
                         val clients by vm.deviceClients.collectAsStateWithLifecycle()
+                        val behind by vm.machinesBehind.collectAsStateWithLifecycle()
                         LaunchedEffect(Unit) { vm.loadNotifyStates() }
                         DevicesScreen(
                             members, now, vm.actions,
@@ -426,6 +427,7 @@ fun Main(decisions: List<Decision>, notice: StateFlow<String?>, dismiss: () -> U
                             onReplaceRecovery = { backStack.add(RecoveryKeyKey) },
                             notify = notify,
                             clients = clients,
+                            behind = behind,
                         )
                     }
                     entry<RecoveryKeyKey> {

@@ -91,6 +91,17 @@ which `starbridge setup --refresh` then sets up.
 
 ### Update and uninstall
 
+Nothing updates the CLI by itself. Once a day the agent reads the latest release from GitHub,
+and when it is newer, `setup`, `pair`, `config` and `--version` end with one line on stderr:
+`Starbridge 0.2.0 is out (you have 0.1.4): run starbridge update`, or the Homebrew or npm
+command for those installs. `starbridge status` shows both versions, and your devices show
+"Update available" under the machine. `starbridge config update-check off` stops the check
+and the line; `STARBRIDGE_NO_UPDATE_CHECK=1` silences the line.
+
+The agents' integrations follow the CLI: `update` runs `setup --refresh`, which brings each
+agent's files to the new version, and the Claude Code plugins update themselves from the
+Starbridge marketplace.
+
 `starbridge update` installs the latest release over a script install, then runs `starbridge
 setup --refresh` with it and updates the Claude Code plugins. `--refresh` rewrites the files
 setup put into other tools (the background service's unit, the Codex skill and rule, opencode's

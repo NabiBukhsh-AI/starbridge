@@ -2,7 +2,10 @@
 import type { Status } from "../agent/api";
 import { AgentClient } from "../agent/client";
 import { REMOVED } from "../api";
+import type { LatestRelease } from "../config";
 import { deliverable } from "../decisions";
+import { newerRelease, updateCheckOn, updateCommand } from "../latest";
+import { installKind } from "../release";
 import { VERSION } from "../version";
 import { AGENT_IDS, AGENTS, found as agentFound, installed, removedAgents } from "./agents";
 import { codexPlugin, codexPluginDir } from "./codex-plugin";
@@ -24,11 +27,29 @@ async function agentStatus(sys: Sys): Promise<Status | string> {
   }
 }
 
+/** The latest release as the agent last read it (#1050), and what to run when it is newer. */
+function latestLine(sys: Sys): string {
+  const { ctx } = sys;
+  if (!updateCheckOn(ctx)) return "Latest: not checked (`starbridge config update-check on`)";
+  let latest: LatestRelease | undefined;
+  try {
+    latest = ctx.store.latest();
+  } catch (e) {
+    return `Latest: ${(e as Error).message}`;
+  }
+  if (!latest) return "Latest: not checked yet (the agent reads it once a day)";
+  const newer = newerRelease(ctx);
+  return newer
+    ? `Latest: ${newer}, checked ${latest.checkedAt}: run ${updateCommand(installKind())}`
+    : `Latest: ${latest.version}, checked ${latest.checkedAt}`;
+}
+
 export async function status(sys: Sys): Promise<number> {
   const { ctx } = sys;
   const out = ctx.out;
   out(`starbridge ${VERSION} (${sys.self.join(" ")})`);
   for (const line of await otherCopies(sys)) out(line);
+  out(latestLine(sys));
 
   const machine = ctx.store.machine();
   out(
