@@ -47,8 +47,10 @@ or "always" when Claude Code does.
 Codex's own question tool, `request_user_input`, which it offers only in Plan mode, asks in the
 terminal and on your devices at once, except on Windows, where it stays at the keyboard.
 
-In the interactive CLI, 0.160 or later, the answer comes back as the next prompt. In `codex exec`
-the agent waits.
+In the interactive CLI, 0.160 or later, your answer wakes the session with a next prompt. That
+prompt tells the agent to run `starbridge wait <id>`, which returns the answer at once; it doesn't
+carry the answer, since other users on the machine can read a command's arguments. In
+`codex exec` the agent waits.
 
 Permission prompts don't race. Codex asks the Starbridge hook before it opens its own prompt. With
 `starbridge config presence on`, a prompt goes to the terminal while you are at this machine and
