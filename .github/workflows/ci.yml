@@ -298,36 +298,33 @@ jobs:
   # Builds the deployed images, without pushing them, when a pull request can change their base
   # images or dependencies: a change that breaks a build fails here, not at the deploy (#430).
   # Source changes outside these paths that a Dockerfile copies (docs/ for web, cli/ for the demo)
-  # are not covered. On a push, main's deploy builds them on the server. Set
-  # DOCKER_RUNNER when RUNNER's runners have no Docker: the changes job on the usual runners
-  # picks one of its runners only when there is something to build, so main's CI never waits on
-  # them.
+  # are not covered. On a push, main's deploy builds them on the server. Set DOCKER_RUNNER when
+  # RUNNER's runners have no Docker.
   images:
     name: images
     needs: changes
-    runs-on: ${{ github.event_name != 'push' && needs.changes.outputs.images == 'true' && vars.DOCKER_RUNNER || vars.RUNNER || 'ubuntu-latest' }}
+    if: github.event_name != 'push' && needs.changes.outputs.images == 'true'
+    runs-on: ${{ vars.DOCKER_RUNNER || vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 30
     env:
-      BUILD: ${{ github.event_name != 'push' && needs.changes.outputs.images == 'true' }}
       # Tagged per run, so runs on one host never share a tag; removed after.
       TAG: ci-${{ github.run_id }}
     steps:
-      - if: env.BUILD == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # One step each, so one broken image does not hide another. --pull as the deploy does, so a
       # stale local copy of a base image cannot pass here and fail there; Caddy's is not pulled
       # there either.
-      - if: env.BUILD == 'true' && !cancelled()
+      - if: ${{ !cancelled() }}
         run: docker build --pull -f server/Dockerfile -t starbridge-server:$TAG .
-      - if: env.BUILD == 'true' && !cancelled()
+      - if: ${{ !cancelled() }}
         run: docker build --pull -f web/Dockerfile -t starbridge-web:$TAG .
-      - if: env.BUILD == 'true' && !cancelled()
+      - if: ${{ !cancelled() }}
         run: docker build --pull -f deploy/demo/Dockerfile -t starbridge-demo:$TAG .
-      - if: env.BUILD == 'true' && !cancelled()
+      - if: ${{ !cancelled() }}
         run: docker build -f deploy/caddy.Dockerfile -t starbridge-caddy:$TAG deploy
       # A self-hosted runner's disk may be shared with other work: keep the build cache to 3 GB, as
       # deploy/host/apply.sh does on the server. BuildKit keeps records a running build uses.
-      - if: always() && env.BUILD == 'true'
+      - if: always()
         run: |
           docker image rm -f starbridge-server:$TAG starbridge-web:$TAG starbridge-demo:$TAG starbridge-caddy:$TAG >/dev/null 2>&1 || true
           docker builder prune -f --keep-storage 3GB >/dev/null || true
