@@ -1001,7 +1001,7 @@ the Cursor IDE, which this machine does not run.
   notification's line counts at most 400 dp, a phone's in portrait: on a tablet, a foldable or in
   landscape the shade is a fixed-width panel or a split column, narrower than the display (#490).
 - **Lock screen** (#389). Deny answers from there. Allow asks for the unlock, then opens the
-  prompt's sheet. "Quick Allow" in Settings (off, labelled unsafe) sends at once instead (#390).
+  prompt's sheet. "Allow from notifications" in Settings (off, labelled unsafe) sends at once instead (#390).
 - **Escapes** (#357, #410). Control and format characters show as escapes (`‮`), on the
   machine before sealing and again in every client, so a bidi override cannot reorder the command.
   An input with two keys that read alike once redacted or escaped stays at the keyboard.
@@ -1199,7 +1199,7 @@ first window, so a provider with a window running out leads.
 - **Find** matches every word in the machine, repo, the agent's words, the session and a History
   item's answer. On the web it lists open matches, then History's; Android uses Material 3's
   search view.
-- **Answer buttons** (#138, #166): "Answer buttons on questions", Always (default), When the agent
+- **Answer buttons** (#138, #166): "Answer buttons on narrow screens", Always (default), When the agent
   waits, or Never, applies under 1100 px. More than two options, or a label over 18 characters,
   stack. `answerIn` and typed-only questions have no buttons.
 - **Typed answers** (#562): Enter sends, Shift+Enter starts a new line, on the web and with an
@@ -1248,7 +1248,7 @@ first window, so a provider with a window running out leads.
   429 `rate-limited`. A 429 without `Retry-After` is a cap and reaches the caller at once.
 - **Settings** (#914) in the same sections on both clients: Notifications (what decides whether
   something notifies here: Android's channels or this device's switch (#943), the hold, the web's
-  sound, Android's Quick Allow), Quotas (see "Quota alerts per window"), the Inbox's,
+  sound, Android's Allow from notifications), Quotas (see "Quota alerts per window"), the Inbox's,
   Devices, Look (colours and the clock) and Account (the server, Android's push delivery, agent
   instructions, sign out). They had grown one issue at a time: the hold sat under Inbox on the web
   and under Notifications on Android, and push delivery, a connection setting, sat with
@@ -1294,7 +1294,10 @@ first window, so a provider with a window running out leads.
 - **Notifications.** The service worker shows one per question and closes it once answered. Its
   actions answer only for the account it was shown for (#274). Signing out, revocation or adopting
   new keys closes them all (#311).
-- **Sound**: off by default, while a page is open only; a service worker cannot play audio.
+- **Sound**: off by default. The page plays it when a push reaches it, since a service worker
+  cannot play audio, so it needs an open page and this browser's notifications: while they are
+  off the switch shows off, and turning it on asks for them first (#1061). A closed web app
+  sounds as the system does.
 - **Layout.** Panes resize by dragging or arrow keys. From an 840 px page, Quotas is one table and
   providers reorder by drag or keys; a group that "Running out first" pins shows a pin with a
   popover explaining why (#296, #351). The detail pane widens with the window (DESIGN.md `wide`).

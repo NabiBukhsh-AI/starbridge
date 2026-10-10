@@ -95,7 +95,7 @@ class Notifier(private val context: Context, private val prefs: Prefs) : Alerts 
         manager.createNotificationChannel(
             NotificationChannel(QUOTAS, "Quotas", NotificationManager.IMPORTANCE_LOW).apply {
                 group = ACTIVITY
-                description = "Quota windows running low, running out, or resetting with headroom unused, as Settings → Quota alerts picks"
+                description = "Quota windows running low, running out, or resetting with headroom unused, as Settings → Quotas → Alerts picks"
             },
         )
     }

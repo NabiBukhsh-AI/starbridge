@@ -158,23 +158,23 @@ fun SettingsScreen(
             LinkRow(
                 0, notificationRows,
                 if (notificationsOff) "Notifications are off" else "Notification settings",
-                if (notificationsOff) "Questions only show in the app. Turn notifications on in Android's settings." else null,
+                null,
                 Sym.Chevron,
             ) { openNotificationSettings(context) }
         }
         item { SwitchRow(1, notificationRows, "Remind me when notifications are off", inbox.remindOff) { actions.inbox(inbox.copy(remindOff = it)) } }
         if (pushHold != null) item {
             ChoiceRow(
-                2, notificationRows, "Hold while you’re at a screen",
-                "While you use any of your screens, your other devices stay quiet, then wait this long after you leave",
+                2, notificationRows, "Quiet other devices while you’re at a screen",
+                "Then notify them this long after you leave",
             ) {
                 Segments(Beacon.HOLD_CHOICES.map { it to holdLabel(it) }, pushHold, actions.pushHold)
             }
         }
         item {
             SwitchRow(
-                notificationRows - 1, notificationRows, "Quick Allow", allowUnseen,
-                sub = "Allow from a notification without seeing the whole command. Unsafe.",
+                notificationRows - 1, notificationRows, "Allow from notifications", allowUnseen,
+                sub = "Without seeing the whole command. Unsafe.",
                 onChange = actions.allowUnseen,
             )
         }
@@ -233,8 +233,8 @@ fun SettingsScreen(
         item { LinkRow(1, 2, "Add a device", null, Sym.Qr, actions.addDevice) }
 
         item { Section("Look") }
-        item { RadioRow(0, 3, "Starbridge", colours == Colours.Starbridge) { actions.colours(Colours.Starbridge) } }
-        item { RadioRow(1, 3, "Material You", colours == Colours.Wallpaper) { actions.colours(Colours.Wallpaper) } }
+        item { RadioRow(0, 3, "Starbridge colours", colours == Colours.Starbridge) { actions.colours(Colours.Starbridge) } }
+        item { RadioRow(1, 3, "Wallpaper colours", colours == Colours.Wallpaper) { actions.colours(Colours.Wallpaper) } }
         item {
             ChoiceRow(2, 3, "Time format") {
                 Segments(listOf(Clock.System to "System", Clock.H12 to "12-hour", Clock.H24 to "24-hour"), clock, actions.clock)
@@ -244,7 +244,7 @@ fun SettingsScreen(
         item { Section("Account") }
         item { LinkRow(0, 4, "Server", server, null) {} }
         item {
-            ChoiceRow(1, 4, "Delivered through", pushState(push, server)) {
+            ChoiceRow(1, 4, "Notifications delivered through", pushState(push, server)) {
                 Segments(listOf("fcm" to "Google", "unifiedpush" to "UnifiedPush"), push.type, actions.push)
             }
         }
@@ -266,8 +266,8 @@ private const val GUIDE = "https://starbridge.run/docs/tell-your-agents"
 
 /** How pushes reach this phone, as a state; registered, it names the server's host. */
 internal fun holdLabel(seconds: Int) = when {
-    seconds == 0 -> "Off"
-    seconds % 60 == 0 -> "${seconds / 60} min"
+    seconds == Beacon.HOLD_OFF -> "Off"
+    seconds > 0 && seconds % 60 == 0 -> "${seconds / 60} min"
     else -> "$seconds s"
 }
 

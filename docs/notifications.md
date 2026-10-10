@@ -65,7 +65,7 @@ with one category per kind:
 On the web, notifications are on once you pick Turn on notifications in the inbox, and off in the
 browser's site settings for starbridge.run. A closed browser gets questions, permission prompts and
 join requests. Quota alerts show only while a Starbridge page is open, and runs only in the inbox,
-never as a notification. Settings → Notifications → Sound for new questions plays a chime, off by default.
+never as a notification. Settings → Notifications → Sound for new questions plays a chime in an open Starbridge page or web app, off by default. It needs notifications on in this browser, since the push is what starts it, and the page needs a click since it loaded before a browser lets it play. A closed web app makes your system's notification sound instead.
 
 In the Mac app, questions and permission prompts play the macOS notification sound, a failed
 answer plays the error sound, and quota alerts are silent. Turn sounds off in System Settings →
@@ -79,7 +79,7 @@ ticked, and 5-hour and daily windows with nothing. These settings belong to each
 Permission prompts stay at the keyboard until you run `starbridge config permissions on` on the
 machine, and again after `starbridge config permissions off`.
 
-Settings → Notifications → Hold while you’re at a screen keeps a question off your other devices
+Settings → Notifications → Quiet other devices while you’re at a screen keeps a question off your other devices
 while you use Starbridge: a page or the app you touched in the last minute. They stay quiet for as
 long as you are there, then for the hold time after you leave (30 s by default), and notify if
 nothing answered it. A computer counts too once you run

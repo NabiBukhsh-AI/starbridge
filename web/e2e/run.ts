@@ -1979,7 +1979,7 @@ async function main() {
   await pageB.reload();
   const quietSince = Date.now();
   await page.goto(`${ORIGIN}/settings`);
-  const holdTime = page.getByRole("radiogroup", { name: /^Hold while you/ });
+  const holdTime = page.getByRole("radiogroup", { name: /^Quiet other devices while you/ });
   await holdTime.waitFor({ timeout: 30_000 });
   await choose(holdTime, "15 s");
   await shoot(page, "settings-hold");

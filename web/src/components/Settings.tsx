@@ -142,9 +142,9 @@ function InboxSection() {
   const [rowAnswers, setRowAnswers] = usePref("rowAnswers");
   return (
     <Section title="Inbox">
-      <Row label="Answer buttons on questions" sub="On narrow screens">
+      <Row label="Answer buttons on narrow screens">
         <Segmented<Prefs["rowAnswers"]>
-          label="Answer buttons on questions"
+          label="Answer buttons on narrow screens"
           value={rowAnswers}
           options={[
             ["always", "Always"],
@@ -158,7 +158,7 @@ function InboxSection() {
           missing ones (#970). */}
       <Row
         label="Keyboard shortcuts"
-        sub="In a window 1100 px wide or more: J and K move through the items, 1 to 4 pick an answer, A allows and D denies a prompt. / goes to Find anywhere."
+        sub="J and K move, 1 to 4 answer, A allows, D denies, / finds. In windows 1100 px wide or more."
       />
     </Section>
   );
@@ -166,49 +166,28 @@ function InboxSection() {
 
 /** What decides whether something notifies here (#914): the browser, sound, and the hold. */
 function NotificationSection({ data }: { data: SettingsData }) {
-  const [sound, setSound] = usePref("sound");
+  const push = useBrowserPush(data.push);
   return (
     <Section title="Notifications">
-      <ThisDeviceRow push={data.push} />
+      {desktop ? <AppNotifyRow /> : <BrowserRow push={push} />}
       {/* The chime plays on a Web Push, which the desktop app never gets; macOS sounds its notifications. */}
-      {!desktop && (
-        <Row label="Sound for new questions" sub="While a Starbridge page is open">
-          <Switch
-            label="Sound for new questions"
-            checked={sound}
-            onChange={(on) => {
-              setSound(on);
-              if (on) chime();
-            }}
-          />
-        </Row>
-      )}
+      {!desktop && <SoundRow push={push} />}
       <HoldRow initial={data.pushHold} />
     </Section>
   );
 }
 
-/**
+/*
  * Whether this device notifies (#943): one switch for a browser's Web Push and for the desktop
- * app's own notifications. Each device turns only its own; Devices shows the others'.
+ * app's own notifications. Each device turns only its own; Devices shows the others'. Rows say
+ * nothing the title and switch already say (#1061).
  */
-function ThisDeviceRow({ push }: { push: PushState }) {
-  return desktop ? <AppNotifyRow /> : <BrowserRow initial={push} />;
-}
-
 const LABEL = "Notifications on this device";
 
 function AppNotifyRow() {
   const [on, setOn] = usePref("desktopNotify");
   return (
-    <Row
-      label={LABEL}
-      sub={
-        on
-          ? "Questions and permission prompts"
-          : "Off: the window and the menu bar light still show what needs you"
-      }
-    >
+    <Row label={LABEL}>
       <Switch
         label={LABEL}
         checked={on}
@@ -221,8 +200,13 @@ function AppNotifyRow() {
   );
 }
 
-/** A browser's Web Push: on asks for the permission first; blocked says where to allow it. */
-function BrowserRow({ initial }: { initial: PushState }) {
+type BrowserPush = ReturnType<typeof useBrowserPush>;
+
+/**
+ * This browser's Web Push, shared by its switch and the sound's: on asks for the permission
+ * first. `then` hears the state once the browser answered, a prompt left open included.
+ */
+function useBrowserPush(initial: PushState) {
   const [state, setState] = useState(initial);
   const [error, setError] = useState<string>();
   // A refresh underneath never undoes what the owner just turned on or off.
@@ -233,44 +217,75 @@ function BrowserRow({ initial }: { initial: PushState }) {
   // Stops waiting for an answer the browser's prompt has yet to give (#1030).
   const waiting = useRef<() => void>(undefined);
   useEffect(() => () => waiting.current?.(), []);
+  const turn = async (on: boolean, then?: (s: PushState) => void) => {
+    touched.current = true;
+    waiting.current?.();
+    setError(undefined);
+    const notify = await import("@/lib/notify");
+    try {
+      const push = await import("@/lib/push");
+      const next = await (on ? push.enablePush() : push.disablePush());
+      setState(next);
+      then?.(next);
+      if (on && next === "off")
+        waiting.current = push.finishOnAnswer(
+          (s) => {
+            setState(s);
+            then?.(s);
+            notify.report();
+          },
+          (e) => setError(message(e)),
+        );
+    } catch (e) {
+      setError(message(e));
+    }
+    notify.report();
+  };
+  return { state, error, turn };
+}
+
+function BrowserRow({ push: { state, error, turn } }: { push: BrowserPush }) {
   if (state === "unsupported") return null;
   if (state === "install")
     return <Row label={LABEL} sub="Add Starbridge to the Home Screen and open it from there" />;
   const sub =
     error ??
-    {
-      on: "Questions and permission prompts",
-      off: "Off: questions show only while a Starbridge page is open",
-      denied:
-        "Blocked in this browser. Click the icon left of the address, allow Notifications, then reload.",
-    }[state];
+    (state === "denied"
+      ? "Blocked: allow Notifications from the icon left of the address, then reload"
+      : undefined);
   return (
-    <Row label={LABEL} sub={<span className={state === "denied" ? s.bad : undefined}>{sub}</span>}>
+    <Row label={LABEL} sub={sub && <span className={s.bad}>{sub}</span>}>
       <Switch
         label={LABEL}
         checked={state === "on"}
         disabled={state === "denied"}
-        onChange={async (on) => {
-          touched.current = true;
-          waiting.current?.();
-          setError(undefined);
-          const notify = await import("@/lib/notify");
-          try {
-            const push = await import("@/lib/push");
-            const next = await (on ? push.enablePush() : push.disablePush());
-            setState(next);
-            if (on && next === "off")
-              waiting.current = push.finishOnAnswer(
-                (s) => {
-                  setState(s);
-                  notify.report();
-                },
-                (e) => setError(message(e)),
-              );
-          } catch (e) {
-            setError(message(e));
-          }
-          notify.report();
+        onChange={(on) => turn(on)}
+      />
+    </Row>
+  );
+}
+
+/**
+ * The page's chime (#165) plays when a push reaches an open page, so it needs this device's
+ * notifications: off without them, and turning it on turns them on first (#1061).
+ */
+function SoundRow({ push }: { push: BrowserPush }) {
+  const [sound, setSound] = usePref("sound");
+  if (push.state === "unsupported" || push.state === "install") return null;
+  const on = (v: boolean) => {
+    setSound(v);
+    if (v) chime();
+  };
+  const pushed = push.state === "on";
+  return (
+    <Row label="Sound for new questions" muted={!pushed}>
+      <Switch
+        label="Sound for new questions"
+        checked={sound && pushed}
+        disabled={push.state === "denied"}
+        onChange={(v) => {
+          if (!v || pushed) return on(v);
+          push.turn(true, (s) => s === "on" && on(true));
         }}
       />
     </Row>
@@ -300,14 +315,11 @@ function HoldRow({ initial }: { initial: number | undefined }) {
   if (hold === undefined) return null;
   return (
     <Row
-      label="Hold while you’re at a screen"
-      sub={
-        error ??
-        "While you use any of your screens, your other devices stay quiet, then wait this long after you leave"
-      }
+      label="Quiet other devices while you’re at a screen"
+      sub={error ?? "Then notify them this long after you leave"}
     >
       <Segmented<number>
-        label="Hold while you’re at a screen"
+        label="Quiet other devices while you’re at a screen"
         value={hold}
         options={PUSH_HOLD_CHOICES.map((c) => [c, HOLD_LABELS[c]])}
         onChange={(pushHold) => {
@@ -806,10 +818,9 @@ function AccountSection() {
   );
 }
 
-const PLACE_SUBS: Record<DesktopPlace, string> = {
-  menu: "In the Dock only while its window is open",
-  dock: "Always in the Dock, with no menu bar icon",
-  both: "Always in the menu bar and the Dock",
+/** Only the menu bar needs a word: the app joins the Dock while its window is open. */
+const PLACE_SUBS: Partial<Record<DesktopPlace, string>> = {
+  menu: "Also in the Dock while its window is open",
 };
 
 /** Where the desktop app stays (#936): it is always in one of them, so Starbridge stays at hand. */
