@@ -130,6 +130,14 @@ exit 0
   chmodSync(join(bin, "gh"), 0o755);
 }
 
+/**
+ * Claude Code runs every command unasked, as Codex's bypass and opencode's `--auto` do. With only
+ * --allowedTools, its auto-mode classifier still judged commands and blocked `gh pr merge` and
+ * `git pull` against the run's own stub and bare remote, so the eval measured the harness, not the
+ * skill (#1021).
+ */
+const CLAUDE_PERMISSIONS = ["--permission-mode", "bypassPermissions"];
+
 interface Turn {
   commands: string[];
   /** Each `AskUserQuestion` call, and whether a hook turned it away (plugins before #848). */
@@ -198,8 +206,7 @@ async function turn(
       plugin,
       "--setting-sources",
       "project",
-      "--allowedTools",
-      "Bash Write Edit Read Glob Grep",
+      ...CLAUDE_PERMISSIONS,
       "--model",
       model as string,
       "--output-format",
@@ -400,8 +407,7 @@ async function interactiveTurn(
     plugin,
     "--setting-sources",
     "project",
-    "--allowedTools",
-    "Bash Write Edit Read Glob Grep",
+    ...CLAUDE_PERMISSIONS,
     "--model",
     model as string,
     prompt,
@@ -547,7 +553,7 @@ async function liveRun(
         "--plugin-dir", join(armDir, "plugin"),
         ...(s.live?.mod ? ["--plugin-dir", join(armDir, "mod")] : []),
         "--setting-sources", "project",
-        "--allowedTools", "Bash Write Edit Read Glob Grep",
+        ...CLAUDE_PERMISSIONS,
         "--model", model as string,
         s.prompt,
       ];

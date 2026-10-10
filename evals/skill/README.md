@@ -19,7 +19,8 @@ bun evals/skill/render.ts --out evals/skill/cards evals/skill/results/claude/aft
 `PI_CODING_AGENT_DIR` or opencode XDG folders holding the login, the real server app on a random port with the
 CLI paired to it, a git project with a bare remote, and a `gh` that prints canned output. Nothing
 touches your own `~/.claude`, `~/.codex`, `~/.pi` or opencode config. Claude Code loads the plugin with
-`--plugin-dir`; Codex gets the skill in `$CODEX_HOME/skills` and the rule in
+`--plugin-dir` and runs with `--permission-mode bypassPermissions`, so its auto-mode classifier
+cannot block the stub (#1021); Codex gets the skill in `$CODEX_HOME/skills` and the rule in
 `$CODEX_HOME/AGENTS.md`, opencode the same in `$XDG_CONFIG_HOME/opencode` (`opencode run
 --pure --auto`, which waits for answers as `codex exec` does); Pi loads the Starbridge extension and skill with `-e` and `--skill`,
 and uses the providers in `~/.pi/agent`. Anthropic bills a Claude subscription used from Pi as
