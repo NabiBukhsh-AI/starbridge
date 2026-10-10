@@ -173,7 +173,8 @@ struct Fields {
     }
 
     func number(_ key: String) throws -> Double {
-        guard let n = try value(key).number else { throw ProtocolError(.badSchema, "\(name(key)): not a number") }
+        // zod refuses Infinity, which JSON.parse makes of 1e309.
+        guard let n = try value(key).number, n.isFinite else { throw ProtocolError(.badSchema, "\(name(key)): not a number") }
         return n
     }
 

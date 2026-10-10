@@ -512,9 +512,11 @@ public struct Decision: ItemBody, Equatable {
         done = try f.optTrue("done")
         dir = try optDir(f)
         try schema(options.count != 1, "options: 0 or 2 to 4")
-        try schema(Set(options).count == options.count, "options must be distinct")
+        // By code points, as JavaScript compares: Swift's == would equate "é" and "e\u{301}".
+        let points = options.map { Array($0.unicodeScalars) }
+        try schema(Set(points).count == options.count, "options must be distinct")
         if !options.isEmpty {
-            try schema(recommended.map(options.contains) == true, "recommended must be one of the options")
+            try schema(recommended.map { points.contains(Array($0.unicodeScalars)) } == true, "recommended must be one of the options")
         } else {
             try schema(recommended == nil, "recommended needs options")
         }
@@ -939,7 +941,7 @@ public struct Pace: Equatable, Sendable {
         expectedUsedPercent = try f.number("expectedUsedPercent")
         deltaPercent = try f.number("deltaPercent")
         projectedUsedPercent = try f.nullable("projectedUsedPercent").map { v in
-            guard let n = v.number else { throw ProtocolError(.badSchema, "projectedUsedPercent") }
+            guard let n = v.number, n.isFinite else { throw ProtocolError(.badSchema, "projectedUsedPercent") }
             return n
         }
         willLastToReset = try f.bool("willLastToReset")

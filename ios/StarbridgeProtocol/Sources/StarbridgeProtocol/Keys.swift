@@ -1,3 +1,5 @@
+import Clibsodium
+
 // packages/protocol/src/keys.ts: member keys and the recovery key.
 
 /** A device's or machine's keys. The secret halves never leave it. */
@@ -42,7 +44,10 @@ public enum RecoveryKeys {
     static let chars = 28
 
     /** A fresh recovery seed: 16 bytes, shown once as a recovery key. */
-    public static func generateSeed() -> SecretKey { SecretKey(Sodium.randomBytes(16)) }
+    public static func generateSeed() -> SecretKey {
+        ready()
+        return SecretKey(count: 16) { randombytes_buf($0.baseAddress!, 16) }
+    }
 
     /** The 12-bit check: the first 12 bits of BLAKE2b-256 of "starbridge/v1/recovery-check", NUL, the seed. */
     private static func check(_ seed: [UInt8]) -> [UInt8] {
@@ -87,7 +92,9 @@ public enum RecoveryKeys {
     private static func checks(_ chars: [Character]) -> Bool {
         var bytes = keyBytes(chars)
         defer { wipe(&bytes) }
-        let c = check(Array(bytes[0..<16]))
+        var seed = Array(bytes[0..<16])
+        defer { wipe(&seed) }
+        let c = check(seed)
         return bytes[16] == c[0] && bytes[17] & 0xF0 == c[1]
     }
 
@@ -97,7 +104,7 @@ public enum RecoveryKeys {
         if reading.problem != nil { throw RecoveryKeyError(reading: reading) }
         var bytes = keyBytes(keyChars(text))
         defer { wipe(&bytes) }
-        return SecretKey(Array(bytes[0..<16]))
+        return SecretKey(count: 16) { $0.copyBytes(from: bytes[0..<16]) }
     }
 
     /**
