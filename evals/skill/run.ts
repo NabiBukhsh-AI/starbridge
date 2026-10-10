@@ -131,12 +131,12 @@ exit 0
 }
 
 /**
- * Claude Code's settings for the subject. Its auto-mode classifier, which the bare `Bash` of
- * --allowedTools does not skip, blocked `gh pr merge` and `git pull` as external writes, and the
- * eval measured the harness, not the skill (#1021). Allow rules skip it for plain `gh` and `git`;
- * the environment tells it what a compound command such as `gh pr merge 12; echo $?` touches.
+ * Claude Code runs every command unasked, as Codex's bypass and opencode's `--auto` do. With only
+ * --allowedTools, its auto-mode classifier still judged commands and blocked `gh pr merge` and
+ * `git pull` against the run's own stub and bare remote, so the eval measured the harness, not the
+ * skill (#1021).
  */
-const subjectSettings = (cfg: string) => join(cfg, "subject-settings.json");
+const CLAUDE_PERMISSIONS = ["--permission-mode", "bypassPermissions"];
 
 interface Turn {
   commands: string[];
@@ -206,10 +206,7 @@ async function turn(
       plugin,
       "--setting-sources",
       "project",
-      "--settings",
-      subjectSettings(env.CLAUDE_CONFIG_DIR as string),
-      "--allowedTools",
-      "Bash Write Edit Read Glob Grep",
+      ...CLAUDE_PERMISSIONS,
       "--model",
       model as string,
       "--output-format",
@@ -410,10 +407,7 @@ async function interactiveTurn(
     plugin,
     "--setting-sources",
     "project",
-    "--settings",
-    subjectSettings(cfg),
-    "--allowedTools",
-    "Bash Write Edit Read Glob Grep",
+    ...CLAUDE_PERMISSIONS,
     "--model",
     model as string,
     prompt,
@@ -559,8 +553,7 @@ async function liveRun(
         "--plugin-dir", join(armDir, "plugin"),
         ...(s.live?.mod ? ["--plugin-dir", join(armDir, "mod")] : []),
         "--setting-sources", "project",
-        "--settings", subjectSettings(cfg),
-        "--allowedTools", "Bash Write Edit Read Glob Grep",
+        ...CLAUDE_PERMISSIONS,
         "--model", model as string,
         s.prompt,
       ];
@@ -746,20 +739,8 @@ async function one(s: Scenario, arm: string, rep: number): Promise<RunRecord> {
   const armDir = arms[arm] as string;
   const plugin = join(armDir, "plugin");
   const login: Record<string, string> = {};
-  if (agent === "claude") {
-    login.CLAUDE_CODE_OAUTH_TOKEN = claudeToken();
-    writeFileSync(
-      subjectSettings(cfg),
-      JSON.stringify({
-        permissions: { allow: ["Bash(gh *)", "Bash(git *)"] },
-        autoMode: {
-          environment: [
-            "This is a throwaway sandbox. `gh` is a local stub that prints canned output and changes nothing on GitHub; git's `origin` is a bare repository in the same temporary directory. Merges, pushes and other writes through them reach nothing outside the sandbox.",
-          ],
-        },
-      }),
-    );
-  } else if (agent === "pi") {
+  if (agent === "claude") login.CLAUDE_CODE_OAUTH_TOKEN = claudeToken();
+  else if (agent === "pi") {
     // Only the providers and their API keys: Pi's auth.json may hold OAuth logins that refresh.
     copyFileSync(join(homedir(), ".pi/agent/models.json"), join(cfg, "models.json"));
   } else {
