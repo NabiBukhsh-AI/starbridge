@@ -1,4 +1,4 @@
-import { expect, test } from "bun:test";
+import { afterEach, expect, setSystemTime, test } from "bun:test";
 import { needsYou, snoozedEntries } from "./feed";
 import { pickDays, pickTimes, snoozePresets, snoozeStart, snoozeTime } from "./snooze";
 import type { InboxItem } from "./types";
@@ -67,4 +67,32 @@ test("a snoozed question leaves what needs you for Snoozed, the soonest back fir
     "soon",
     "over",
   ]);
+});
+
+const zone = process.env.TZ;
+afterEach(() => {
+  if (zone === undefined) delete process.env.TZ;
+  else process.env.TZ = zone;
+  setSystemTime();
+});
+
+// The e2e's snooze near local midnight (#994): its browser's clock runs 57 minutes behind, so "1 hour"
+// ends 3 minutes from now, whatever the zone and the time of day.
+test.each(["Europe/Paris", "Pacific/Kiritimati"])("1 hour near midnight in %s", (tz) => {
+  process.env.TZ = tz;
+  for (const [h, m] of [
+    [23, 50],
+    [23, 57],
+    [23, 58],
+    [0, 0],
+    [0, 30],
+  ] as const) {
+    const real = new Date(2026, 9, 9, h, m);
+    setSystemTime(new Date(real.getTime() - 57 * 60_000));
+    const now = new Date();
+    const [hour] = snoozePresets(now);
+    expect(hour?.label).toBe("1 hour");
+    expect(hour?.until.getTime()).toBe(real.getTime() + 3 * 60_000);
+    expect(snoozeTime(hour?.until as Date, now, "24")).toMatch(/^(tomorrow )?\d\d:\d\d$/);
+  }
 });
