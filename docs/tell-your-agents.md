@@ -24,7 +24,7 @@ live session by itself, or the agent has to wait for it with `starbridge wait`.
 | Runs | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | "Waiting for you" | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
-¹ The answer arrives as the session's next prompt. A headless run (`claude -p`, `codex exec`,
+¹ Your answer wakes the session with its next prompt. A headless run (`claude -p`, `codex exec`,
 `pi -p`, `opencode run`, `cursor-agent -p`, `agy -p`) has no next prompt, so there the agent
 waits for the answer with `starbridge wait` before it ends its turn.
 
