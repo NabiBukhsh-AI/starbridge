@@ -100,7 +100,7 @@ if (import.meta.main) {
   if (!version || !token) throw new Error("usage: GH_TOKEN=… release-notes.ts <version> [head]");
   const tags = git("tag", "--list", "v*").split("\n").filter(Boolean);
   // A dry run of a version below every tag, like the workflow's default, starts from the newest.
-  const base = baseTag(version, tags) ?? baseTag("999.0.0", tags);
+  const base = baseTag(version, tags) ?? baseTag("999.0.0-rc.1", tags);
   if (!base) throw new Error("no release tag");
   const subjects = git("log", "--first-parent", "--format=%s", `${base}..${head}`)
     .split("\n")

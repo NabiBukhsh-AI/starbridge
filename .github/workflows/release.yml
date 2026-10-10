@@ -223,6 +223,8 @@ jobs:
     runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     permissions:
       contents: write
+      # The release notes read each pull request's body.
+      pull-requests: read
     steps:
       # Every tag and commit, for the release notes' range.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
