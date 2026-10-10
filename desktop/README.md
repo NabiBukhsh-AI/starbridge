@@ -41,6 +41,8 @@ The page finds `window.starbridgeDesktop` only on the configured server's origin
   milliseconds since its last input, null while asleep or quitting (`src/screen.ts`).
   `onScreen(f)`: `f()` runs every 10 s and when it changes; the app waits for its promise before
   it quits.
+- `shown()`: whether the window is on screen; `onShown(f)`: `f()` runs when it shows or hides.
+  The page's `document.visibilityState` stays "visible" in the app, which never throttles it.
 
 The main process checks that each message comes from the window's top frame on that origin, and
 checks every field again.

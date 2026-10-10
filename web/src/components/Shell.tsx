@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { drafts } from "@/lib/drafts";
 import { needsYou } from "@/lib/feed";
 import { setFind, useFind } from "@/lib/find";
+import { useFreshBuild } from "@/lib/freshBuild";
 import { holdsQuotas } from "@/lib/quotaSettings";
 import { type Store, useApp } from "./AppProvider";
 import { Icon, type IconName, Mark } from "./icons";
@@ -16,6 +18,9 @@ const TABS: { href: string; label: string; icon: IconName }[] = [
   { href: "/quotas", label: "Quotas", icon: "gauge" },
   { href: "/settings", label: "Settings", icon: "settings" },
 ];
+
+/** A reload loses a typed reply, and anything under a tab, such as a pairing under way. */
+const busy = () => drafts.size > 0 || !TABS.some((t) => t.href === location.pathname);
 
 type LaunchQueue = { setConsumer(fn: (p: { targetURL?: string }) => void): void };
 
@@ -32,6 +37,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
       router.push(url.pathname + url.search);
     });
   }, [router]);
+  useFreshBuild(busy);
   const app = useApp();
   const { inbox, prompts, withheld, stopWaiting } = app;
   const open = needsYou(inbox.items, prompts, Date.now()).length;
@@ -94,6 +100,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <li key={t.href}>
               <Link
                 href={t.href}
+                prefetch
                 className={`t-small ${s.tab}`}
                 aria-current={t.active ? "page" : undefined}
               >
@@ -134,6 +141,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <Link
             key={t.href}
             href={t.href}
+            prefetch
             className={`t-caption ${s.bottomTab}`}
             aria-current={t.active ? "page" : undefined}
           >

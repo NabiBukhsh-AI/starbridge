@@ -21,3 +21,8 @@ test("an app that already notified is not asked about notifications again", () =
   expect(read({ notified: ["q_1"] }).notificationsAsked).toBe(true);
   expect(read({ notified: ["q_1"], notificationsAsked: false }).notificationsAsked).toBe(false);
 });
+
+test("the window keeps only a #rrggbb background from the page", () => {
+  expect(read({ background: "#F4F4F4" }).background).toBe("#f4f4f4");
+  expect(read({ background: "red; x" }).background).toBeUndefined();
+});
