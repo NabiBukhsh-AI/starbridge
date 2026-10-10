@@ -1302,6 +1302,13 @@ first window, so a provider with a window running out leads.
   script sets Zod's `jitless`. Styles allow `'unsafe-inline'` (React style attributes), images
   `data:` and `blob:`, `frame-ancestors 'none'`. Every page renders per request, except the
   landing page below. Caddy adds HSTS, `nosniff` and `Referrer-Policy: same-origin`.
+- **Tab switches wait on nothing** (#1072). Inbox, Quotas and Settings render on the client from
+  the app's own data, so their links prefetch the whole page and keep it for an hour
+  (`staleTimes.static`): a switch paints in one frame instead of a round trip to the server
+  (80–150 ms at starbridge.run's 55 ms). A page of an older build reloads in full on its next
+  navigation that reaches the server, and starbridge.run deploys many times a day; so a hidden page
+  asks `/build` every 5 minutes and reloads onto a new build, unless a reply is typed or it is
+  off the three tabs, where a reload would lose work.
 - **Landing page HTML** (#694). A request for `/` without the session cookie gets the whole
   landing page from the server, with its own title, description and link preview
   (`public/og.png`), so link previews and crawlers see it and a first visit is never blank. The
@@ -1488,7 +1495,9 @@ a browser; the app adds a menu bar light and notifications, so a web release nee
   52 px strip across the top, macOS's toolbar height, drags the window. Pages without the rail
   (sign-in, docs) leave that strip empty in the page's background; under 600 px it takes the top
   bar's colour. The window keeps the name "Starbridge" for Mission Control and
-  the Window menu, whatever the page's title.
+  the Window menu, whatever the page's title. Under the page, the window shows the page's last
+  background, else the system theme's (#1072): a fixed dark one flashed black in light mode
+  whenever the page reloaded.
 - **Presence** (#945). The window in use holds pushes as a web page does (#848). Hidden, it said
   absent while the owner worked in another app, so the phone buzzed at a desk. Electron's
   `powerMonitor` reads what the CLI's machine presence reads: lock, sleep and wake, and the
