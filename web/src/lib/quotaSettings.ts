@@ -8,6 +8,7 @@ import {
   type QuotaAlertSettings,
   wantsQuotaAlert,
 } from "@starbridge/protocol";
+import { desktop } from "./desktop";
 import { clockTime, relative } from "./format";
 import { switchedOff } from "./notify";
 import { readStored, stored, writable } from "./stored";
@@ -343,7 +344,9 @@ export async function notifyAlerts(cards: QuotaCardData[], s: QuotaSettings): Pr
     const { title, body } = alertText(a, c.window.label);
     // One tag per window and kind: a second tab showing it too replaces, not repeats, it.
     const tag = `q:${a.provider}/${a.window}/${a.kind}`;
-    if (reg) await reg.showNotification(title, { body, tag });
-    else new Notification(title, { body, tag });
+    // Silent in the desktop app, whose questions and prompts sound (#1055).
+    const opts = { body, tag, silent: !!desktop };
+    if (reg) await reg.showNotification(title, opts);
+    else new Notification(title, opts);
   }
 }
