@@ -867,6 +867,12 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
       expect: { body: decisionBody, signer: "devbox" },
     },
     {
+      name: "a box that is not base64url",
+      item: { ...decisionItem, boxes: [{ to: "phone", box: "AAAAA" }] },
+      recipient: "phone",
+      expect: { error: "cannot-open" },
+    },
+    {
       name: "an item that is quiet: false",
       item: { ...decisionItem, quiet: false },
       recipient: "phone",

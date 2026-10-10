@@ -66,7 +66,13 @@ class Envelopes(private val sodium: Sodium) {
     /** Opens this member's box. The envelope inside is not verified yet. */
     fun openBox(item: SealedItem, me: String, box: KeyPair): SignedEnvelope {
         val mine = item.boxes.find { it.to == me } ?: throw ProtocolException("wrong-recipient", "no box for $me")
-        val plain = sodium.sealOpen(fromB64(mine.box), box) ?: throw ProtocolException("cannot-open")
+        // A box that does not decode is one that does not open, as in packages/protocol.
+        val sealed = try {
+            fromB64(mine.box)
+        } catch (e: ProtocolException) {
+            throw ProtocolException("cannot-open")
+        }
+        val plain = sodium.sealOpen(sealed, box) ?: throw ProtocolException("cannot-open")
         val text = try {
             Charsets.UTF_8.newDecoder().decode(java.nio.ByteBuffer.wrap(plain)).toString()
         } catch (e: java.nio.charset.CharacterCodingException) {
