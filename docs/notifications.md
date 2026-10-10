@@ -1,6 +1,6 @@
 # One notification per question
 
-Your agents and their apps notify you too: a terminal bell when Claude Code waits, a push from the
+Your harnesses and their apps notify you too: a terminal bell when Claude Code waits, a push from the
 Claude app, a banner from the Codex app. With Starbridge on, the same question can then reach you
 twice. Here is what each tool sends and how to turn it off once Starbridge covers it.
 
@@ -12,9 +12,11 @@ that ends without a question. `starbridge setup` changes none of these settings.
 
 Menu names come from each tool's documentation in October 2026 and may have moved since.
 
-## Agents on your machine
+<a id="agents-on-your-machine"></a>
 
-| Agent | What it notifies | Turn it off |
+## Harnesses on your machine
+
+| Harness | What it notifies | Turn it off |
 |---|---|---|
 | Claude Code (terminal) | A desktop notification or bell when a permission prompt waits about 6 seconds, or a turn ended about 60 seconds ago and you haven't typed. Desktop notifications are on by default in Ghostty, Kitty and iTerm2. | `/config` → Local notifications → `notifications_disabled`, or `"preferredNotifChannel": "notifications_disabled"` in `~/.claude/settings.json`. A `Notification` hook you added still runs: remove it from `hooks` in the same file. |
 | Claude Code, Remote Control | A push to the Claude app for permission prompts and questions, and when Claude decides a finished task is worth one. Both are off by default. | `/config` → clear Push when actions required (permission prompts and questions) and Push when Claude decides (finished tasks). In settings: `inputNeededNotifEnabled` and `agentPushNotifEnabled`. |
@@ -69,8 +71,8 @@ In Settings → Quotas, each quota window has a checkbox per alert: runs out bef
 left, 20% left, or resets with headroom unused. Weekly and monthly windows start with runs out
 ticked, and 5-hour and daily windows with nothing. These settings belong to each device.
 
-Permission prompts reach your devices only after you run `starbridge config permissions on` on the
-machine, and stop with `starbridge config permissions off`.
+Permission prompts stay at the keyboard until you run `starbridge config permissions on` on the
+machine, and again after `starbridge config permissions off`.
 
 Settings → Notifications → Hold while you’re at a screen keeps a question off your other devices
 while you use Starbridge: a page or the app you touched in the last minute. They stay quiet for as

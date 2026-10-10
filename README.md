@@ -3,12 +3,13 @@
 Know the moment your agent is stuck.
 
 When a coding agent stops for a question, Starbridge puts it on your phone and in your browser.
-You answer with one tap, and the waiting session carries on with your answer as its next prompt.
-Claude Code, Codex, Pi and opencode on every machine reach you in one place. An agent also stops
-when its quota runs out, so Starbridge shows what's left on each AI plan, read from CodexBar, with
-an optional alert before a window runs out. CodexBar is optional: setup asks before installing it,
-and `--no-quota` skips it. You also follow the runs that affect you, such as an eval on a rented
-GPU or a release, and can answer permission prompts from your phone once you turn them on.
+You answer with one tap, and your answer comes back as the session's next prompt. Claude Code,
+Codex, Pi, opencode, Cursor and Antigravity sessions on every machine reach you in one place. An
+agent also stops when its quota runs out, so Starbridge shows what's left on each AI plan, read
+from CodexBar, with an optional alert before a window runs out. CodexBar is optional: setup asks
+before installing it, `--no-quota` skips it, and questions, runs and permission prompts work
+without it. You also follow the runs that affect you, such as an eval on a rented GPU or a
+release, and can answer permission prompts from your phone once you turn them on.
 
 Your phone, browsers and machines encrypt everything they send each other, so the server stores
 your content only as ciphertext; it still sees who sent each item, to which
@@ -36,7 +37,7 @@ Launch week: [known issues](https://github.com/T0mSIlver/starbridge/issues?q=is%
 ## Install the CLI
 
 Sign in at [starbridge.run](https://starbridge.run) or in the Android app, then install the CLI
-on each machine that runs agents:
+on each machine that runs your harnesses:
 
 ```bash
 curl -fsSL https://starbridge.run/install.sh | sh

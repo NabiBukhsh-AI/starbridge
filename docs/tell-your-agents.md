@@ -1,9 +1,8 @@
 # Agent instructions
 
-The Starbridge plugin gives every Claude Code session two rules. The agent
-reaches you through Starbridge for decisions that are yours and for work that
-waits on you. It also wraps commands that take over your machine in
-`starbridge run`. Anything else you want to hear about goes in your harness's
+Setup gives every harness the same rules: the agent asks you through Starbridge
+for decisions that are yours and for work that waits on you, and wraps the
+commands that block you in `starbridge run`. Anything else you want to hear about goes in your harness's
 instruction files, in your words. Starbridge never writes to them.
 
 <a id="what-each-agent-supports"></a>
@@ -140,9 +139,8 @@ setup then leaves that harness alone until `starbridge setup --agent <name>`:
   and the hooks, and allow rules so that `starbridge ask`, `waiting`,
   `working`, `wait` and `settle` run without a permission prompt. Beside it,
   the Starbridge mod, a [Claude Code mod](https://code.claude.com/docs/en/plugins/mods/overview) (code that runs
-  inside Claude Code, 2.1.287 or later), submits each answer into the live
-  session as its next prompt, in the terminal, the desktop app and Remote
-  Control.
+  inside Claude Code, 2.1.287 or later), which brings your answer back as the
+  session's next prompt.
 - Codex: the skill, in `~/.codex/skills/starbridge` (or under `$CODEX_HOME`),
   so it knows how to write a question, and the Starbridge Codex plugin, whose
   hooks bring the rules above and send permission prompts once you turn them on. Codex installs plugins from a
@@ -151,28 +149,28 @@ setup then leaves that harness alone until `starbridge setup --agent <name>`:
   ("Hooks need review"); until you trust them, sessions start without the rules,
   and `codex exec` skips them without a word. A later setup updates
   the skill and the rules when the CLI carries newer ones. Codex runs commands in a sandbox with no network, so setup also writes
-  `~/.codex/rules/starbridge.rules`, which runs `starbridge ask`, `waiting`,
-  `working`, `wait` and `settle` outside it.
+  `~/.codex/rules/starbridge.rules`, so that `starbridge ask`, `waiting`,
+  `working`, `wait` and `settle` run without a permission prompt, outside it.
 - Pi: the Starbridge Pi package (`pi install
   git:github.com/T0mSIlver/starbridge@v<version>`, at your CLI's version), which brings the skill, the rules and
-  the extension that puts each answer into the session. With
+  the extension that brings your answer back as the session's next prompt. With
   pi-permission-system, setup adds, and `starbridge config permissions on` offers,
   allow rules, so that Pi loads the `starbridge` skill and reads the files in its
-  folder without a prompt, and the Starbridge link in its `authorizerChain`, which
-  runs `starbridge ask`, `waiting`, `working`, `wait` and `settle` without one
-  when the command is only that. Other reads and commands still ask.
+  folder without a prompt, and the Starbridge link in its `authorizerChain`, so
+  that `starbridge ask`, `waiting`, `working`, `wait` and `settle` run without a
+  permission prompt when the command is only that. Other reads and commands still ask.
 - opencode: the skill, in `~/.config/opencode/skills/starbridge`, and the
   Starbridge plugin, in `~/.config/opencode/plugins/starbridge.ts` with its code
-  in `~/.config/opencode/starbridge/`. The plugin brings the rules, puts each
-  answer into the session and sends permission prompts. A later setup, or the
-  local agent once `starbridge update` restarts it, updates both when the CLI carries
-  newer ones.
+  in `~/.config/opencode/starbridge/`. The plugin brings the rules, brings your
+  answer back as the session's next prompt and sends permission prompts. A later
+  setup, or the background service once `starbridge update` restarts it, updates
+  both when the CLI carries newer ones.
 - Cursor: the skill, in `~/.cursor/skills/starbridge`, and hooks that bring the
-  rules and put each answer into the chat: their scripts in `~/.cursor/starbridge`,
+  rules and bring your answer back as the session's next prompt: their scripts in `~/.cursor/starbridge`,
   their entries added to your `~/.cursor/hooks.json` beside your own. A chat
   started after setup has them. Setup also adds allow rules to
   `cursor-agent`'s `~/.cursor/cli-config.json`, so that `starbridge ask`,
-  `waiting`, `working`, `wait` and `settle` run without a prompt there.
+  `waiting`, `working`, `wait` and `settle` run without a permission prompt there.
 - Antigravity (the app, the IDE and `agy`): the Starbridge plugin, in
   `~/.gemini/config/plugins/starbridge`, which all three load. It brings the
   rules and the skill. For `agy`, setup also adds allow entries to
