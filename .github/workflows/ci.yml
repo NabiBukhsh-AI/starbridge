@@ -31,17 +31,17 @@ permissions:
 jobs:
   # Which jobs a run's files can affect. A push compares github.event.before with the pushed
   # commit, so a merge that touches only the Android or desktop app or docs skips the rest. A
-  # push whose before is missing (a new branch) or not in the history, and a dispatched run, run
-  # everything.
+  # push whose before is missing (a new branch) or not in the history, a dispatched run, and a
+  # failure of this job run everything.
   changes:
     name: changes
     runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
     outputs:
-      checks: ${{ steps.open.outputs.all == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.tokens == 'true' }}
+      checks: ${{ steps.open.outputs.all == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.android_read == 'true' }}
       e2e: ${{ steps.open.outputs.all == 'true' || steps.filter.outputs.e2e == 'true' || steps.filter.outputs.pages == 'true' }}
       desktop: ${{ steps.open.outputs.all == 'true' || steps.filter.outputs.desktop == 'true' }}
-      cli: ${{ steps.open.outputs.all == 'true' || steps.filter.outputs.cli == 'true' }}
+      cli: ${{ steps.open.outputs.all == 'true' || steps.filter.outputs.cli == 'true' || steps.filter.outputs.android_read == 'true' }}
       images: ${{ steps.open.outputs.all == 'true' || steps.filter.outputs.images == 'true' }}
     steps:
       # The pushed commit and its parent, which is github.event.before for a squash merge. A push
@@ -75,9 +75,11 @@ jobs:
               - '**'
               - '!android/**'
               - '!.github/workflows/android.yml'
-            # web's tests check it against DESIGN.md (web/scripts/tokens.ts).
-            tokens:
+            # Android files other suites read: web's tests check Tokens.kt against DESIGN.md
+            # (web/scripts/tokens.ts), the CLI's the app's version (cli/test/version.test.ts).
+            android_read:
               - 'android/app/src/main/kotlin/dev/starbridge/app/ui/theme/Tokens.kt'
+              - 'android/app/build.gradle.kts'
             # Not the apps, the evals, and Markdown no page renders.
             e2e:
               - '**'
@@ -130,7 +132,7 @@ jobs:
   checks:
     name: test, typecheck, lint
     needs: changes
-    if: needs.changes.outputs.checks == 'true'
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.checks == 'true') }}
     runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 15
     steps:
@@ -160,7 +162,7 @@ jobs:
   e2e:
     name: end to end (${{ matrix.shard }})
     needs: changes
-    if: needs.changes.outputs.e2e == 'true'
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.e2e == 'true') }}
     strategy:
       fail-fast: false
       matrix:
@@ -260,7 +262,7 @@ jobs:
   desktop-e2e:
     name: desktop end to end
     needs: changes
-    if: needs.changes.outputs.desktop == 'true'
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.desktop == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -336,7 +338,7 @@ jobs:
   windows:
     name: CLI on Windows
     needs: changes
-    if: ${{ !github.event.repository.private && needs.changes.outputs.cli == 'true' }}
+    if: ${{ !cancelled() && !github.event.repository.private && (needs.changes.result != 'success' || needs.changes.outputs.cli == 'true') }}
     runs-on: windows-latest
     timeout-minutes: 20
     defaults:
@@ -364,7 +366,7 @@ jobs:
   macos:
     name: CLI on macOS
     needs: changes
-    if: ${{ !github.event.repository.private && needs.changes.outputs.cli == 'true' }}
+    if: ${{ !cancelled() && !github.event.repository.private && (needs.changes.result != 'success' || needs.changes.outputs.cli == 'true') }}
     runs-on: macos-latest
     timeout-minutes: 20
     defaults:
