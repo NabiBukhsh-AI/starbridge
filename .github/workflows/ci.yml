@@ -154,7 +154,9 @@ jobs:
 
   # The whole product on one machine (web/e2e/run.ts), in three parts side by side, each with its
   # own server and browser (E2E_SHARD). Each screenshot also fails on layout breakage: a page wider
-  # than the window, clipped, spilled or overlapping text (web/e2e/layout.ts).
+  # than the window, clipped, spilled or overlapping text (web/e2e/layout.ts). GitHub's runners,
+  # whatever vars.RUNNER says: the parts wait on timers more than they compute, and three at once
+  # would fill the self-hosted runners that the other jobs and pull requests share.
   e2e:
     name: end to end (${{ matrix.shard }})
     needs: changes
@@ -163,7 +165,7 @@ jobs:
       fail-fast: false
       matrix:
         shard: [inbox, snooze, devices]
-    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     # actions: the tested step lists artifacts.
     permissions:
