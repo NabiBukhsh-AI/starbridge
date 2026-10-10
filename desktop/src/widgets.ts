@@ -15,7 +15,7 @@ import type { PageState } from "./bridge";
  */
 export const APP_GROUP = "3N63N7U9R3.dev.starbridge";
 
-/** What the widget draws (widgets/NeedsYou.swift, `Snapshot`). */
+/** What the widget draws (widgets/Sources/NeedsYou/NeedsYou.swift, `Snapshot`). */
 export interface Snapshot {
   state: "ready" | "signedOut" | "closed";
   open: number;

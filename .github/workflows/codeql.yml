@@ -11,12 +11,9 @@ on:
   schedule:
     - cron: "17 4 * * 1"
 
-# A newer push cancels a pull request's run, but never main's: the Swift job takes over 10 minutes,
-# main merges more often than that, and a cancelled run leaves no Swift analysis for pull requests
-# to compare against ("configuration not found").
 concurrency:
   group: codeql-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -37,7 +34,7 @@ jobs:
           - { language: actions, build-mode: none, runner: ubuntu-latest }
           - { language: java-kotlin, build-mode: manual, runner: ubuntu-latest }
           - { language: javascript-typescript, build-mode: none, runner: ubuntu-latest }
-          - { language: swift, build-mode: manual, runner: macos-15 }
+          - { language: swift, build-mode: autobuild, runner: macos-15 }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: github/codeql-action/init@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
@@ -59,12 +56,6 @@ jobs:
         env:
           STARBRIDGE_KEYSTORE: ""
         run: ./gradlew --no-daemon --no-build-cache --console=plain -Pkotlin.compiler.execution.strategy=in-process assembleDebug
-      # The widget and its helper, as electron-builder's afterPack hook builds them, for one
-      # architecture: the source is the same, and the tracer makes each compile slow.
-      - if: matrix.language == 'swift'
-        env:
-          ARCHS: arm64
-        run: desktop/widgets/build.sh dev.starbridge.desktop 0.0.0 0.0.0 3N63N7U9R3.dev.starbridge
       - uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:
           category: /language:${{ matrix.language }}
