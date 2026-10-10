@@ -5,7 +5,7 @@ Claude app, a banner from the Codex app. With Starbridge on, the same question c
 twice. Here is what each tool sends and how to turn it off once Starbridge covers it.
 
 Starbridge notifies when an agent asks you something, waits on you, or asks permission (once you
-[turn permission prompts on](tell-your-agents.md#what-each-agent-supports)). An agent that asks
+[turn permission prompts on](tell-your-agents.md#what-each-harness-supports)). An agent that asks
 through Starbridge often ends its turn to wait, so a tool's "turn done" notification arrives with
 the question. Turning those off leaves Starbridge alone, but you then hear nothing about a turn
 that ends without a question. `starbridge setup` changes none of these settings.

@@ -3,98 +3,138 @@
 The Starbridge plugin gives every Claude Code session two rules. The agent
 reaches you through Starbridge for decisions that are yours and for work that
 waits on you. It also wraps commands that take over your machine in
-`starbridge run`. Anything else you want to hear about goes in the agent's own
+`starbridge run`. Anything else you want to hear about goes in your harness's
 instruction files, in your words. Starbridge never writes to them.
 
-## What each agent supports
+<a id="what-each-agent-supports"></a>
+
+## What each harness supports
+
+A harness is the tool the agent runs in: Claude Code, Codex, Pi, opencode, Cursor or Antigravity.
+A question picker is a harness's own tool for asking you a question with options, such as Claude
+Code's `AskUserQuestion`.
+
+Two things decide how well Starbridge works in a harness:
+
+- **Question picker raced on your devices.** Each question shows at the keyboard and on your
+  devices at once, and the first answer wins.
+- **Answer comes back without polling.** Your answer to a `starbridge ask` question comes back as
+  the session's next prompt, so the agent doesn't wait for it with `starbridge wait`.
 
 | | Claude Code | Codex | Pi | opencode | Cursor | Antigravity |
 |---|---|---|---|---|---|---|
-| Questions | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Answers into the live session | ✓ | ✓¹ | ✓³ | ✓⁵ | ✓¹¹ | ✓¹⁴ |
+| Question picker raced on your devices | ✓ | ✓ | With add-on | ✓ | No | ✓ |
+| Answer comes back without polling¹ | ✓ | ✓ | ✓ | ✓ | CLI only | ✓ |
+| Permission prompts on your devices² | Opt-in | Opt-in | Opt-in | Opt-in | No | Opt-in |
+| Runs | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | "Waiting for you" | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Runs | ✓ | ✓⁸ | ✓ | ✓ | ✓ | ✓ |
-| Permission prompts | Opt-in | Opt-in⁹ | Opt-in⁴ | Opt-in⁶ | No¹³ | Opt-in¹⁵ |
-| The agent's own ask tool | ✓² | ✓¹⁰ | n/a | ✓⁷ | No¹² | ✓¹⁵ |
 
-¹ In interactive sessions, when `starbridge agent` runs (Codex CLI 0.160 or
-later). In `codex exec`, the agent waits for the answer with `starbridge wait`
-before it ends its turn.
+¹ A headless run (`claude -p`, `codex exec`, `pi -p`, `opencode run`, `cursor-agent -p`,
+`agy -p`) has no next prompt, so there the agent waits with `starbridge wait` before it ends its
+turn.
 
-² `AskUserQuestion` asks in Claude Code's picker and on your devices at once;
-the first answer wins. Pi has no ask tool of its own.
+² Off until you run `starbridge config permissions on`. Your devices can then allow a call once
+or deny it.
 
-³ In the interactive TUI and RPC mode, through `starbridge agent` or the CLI.
-In `pi -p`, the agent waits for the answer with `starbridge wait` before it
-ends its turn.
+### Claude Code
 
-⁴ With [pi-permission-system](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-permission-system),
-which `pi install npm:@gotgenes/pi-permission-system` installs. Then
-`starbridge config permissions on` offers to add `starbridge` to its
-`authorizerChain`, and to let Starbridge's own calls through without a prompt
-(see the Pi item below). Both go in
-`~/.pi/agent/extensions/pi-permission-system/config.json`. Your devices can
-allow a call once or deny it, and "Answer here" in Pi brings back its own
-prompt. An ask from a `path` or `external_directory` rule stays at the
-keyboard, because pi-permission-system lets no link allow those. An ask from a
-tool rule, such as `read` or `bash`, reaches your devices.
+**Question picker.** Starbridge races `AskUserQuestion`. Each question shows at the keyboard and
+on your devices at once, and the first answer wins.
 
-⁵ In the TUI and `opencode serve`, through `starbridge agent` or the CLI. In
-`opencode run`, the agent waits for the answer with `starbridge wait` before it
-ends its turn.
+**Answers.** Your answer comes back as the session's next prompt, through the Starbridge mod,
+which runs inside Claude Code 2.1.287 or later. This works in the terminal, the desktop app, IDEs
+and Remote Control. In `claude -p` and Agent SDK scripts, the agent waits with `starbridge wait`.
 
-⁶ Like Claude Code's: opencode's prompt stays open at the keyboard and the
-first answer wins. Your devices can allow a call once or deny it. `opencode run`
-rejects every prompt at once, so none reaches your devices.
+**Permission prompts.** Starbridge races them. Each prompt shows at the keyboard and on your
+devices at once, and the first answer wins. Besides allowing once, your devices offer "this
+session" or "always" when Claude Code does.
 
-⁷ Each question of opencode's `question` tool reaches your devices too, its
-options as one-tap answers, and your answer goes back into the waiting call.
-The question stays open in the terminal, and the first answer wins; answering
-or dismissing it there closes it on your devices. A question with more than 4
-options lists them and takes a typed reply; to pick several where the agent
-allows it, reply with their names.
+### Codex
 
-⁸ Codex asks you once at the keyboard to run `starbridge run` outside its
-sandbox, which has no network. The skill has Codex ask before the first run,
-so the wrapped command runs once, outside.
+**Question picker.** Starbridge races `request_user_input`. Each question shows at the keyboard
+and on your devices at once, and the first answer wins. Codex offers this picker only in Plan
+mode. On Windows, Starbridge doesn't race it, and it stays at the keyboard.
 
-⁹ Codex asks the Starbridge hook before it opens its own prompt, so the two
-can't both be open. With `starbridge config presence on`, a prompt goes to the
-terminal while you're at this machine and to your devices while you're away;
-when you sit back down, it moves to the terminal. Without presence, or on a
-machine with no screen, each prompt waits up to 10 minutes for your devices
-before Codex asks in the terminal. Your devices can allow a call once or deny
-it. Codex asks you once, at its next launch, to trust the plugin's hooks.
+**Answers.** Your answer comes back as the session's next prompt, through Codex's message queue,
+in the interactive CLI 0.160 or later. That prompt holds no answer, since other users on the
+machine can read a command's arguments. It tells the agent to run `starbridge wait <id>`, which
+returns the answer at once. In `codex exec`, the agent waits with `starbridge wait`.
 
-¹⁰ On macOS and Linux, Codex's own question tool, which it uses in Plan mode,
-asks in the terminal and on your devices at once; the first answer wins. A
-typed reply reaches Codex as a note, as one typed in the terminal does.
+**Permission prompts.** Starbridge doesn't race them. Codex asks the Starbridge hook before it
+opens its own prompt, so each prompt shows in one place. With `starbridge config presence on`, a
+prompt stays at the keyboard while you are at this machine and goes to your devices while you
+are away. Without presence, a prompt goes to your devices for up to 10 minutes, then to the
+keyboard.
 
-¹¹ In `cursor-agent` chats, when the chat ends its turn with a question open,
-Cursor waits up to 10 minutes for your answer, showing the chat as busy, and
-your answer comes in as the next prompt. Past that, in `cursor-agent -p`, or in
-the Cursor IDE, which doesn't tell commands which chat runs them, the agent
-waits for the answer with `starbridge wait`.
+**Setup.** At its next launch after setup, Codex asks you once to trust the Starbridge plugin's
+hooks. Until you do, sessions start without the rules. Codex runs commands in a sandbox with no
+network, so it asks you once at the keyboard to run `starbridge run` outside it.
 
-¹² Cursor's `askQuestion` tool runs no hooks, so nothing can show it on your
-devices. The rules tell the agent to ask through `starbridge ask` instead.
+### Pi
 
-¹³ Cursor shows its own prompt even when a hook allows the call, so an Allow
-from your phone could not take effect. Cursor's prompts stay at the keyboard.
+**Question picker.** Pi has none of its own. If you add `ask_user_question` from
+@juicesharp/rpiv-ask-user-question, Starbridge races it in the TUI. Each question shows at the
+keyboard and on your devices at once, and the first answer wins. In RPC mode, Starbridge doesn't
+race it: an answer from your devices reaches the agent only once the question closes at the
+keyboard.
 
-¹⁴ In interactive sessions, when `starbridge agent` runs. In `agy -p`, the agent
-waits for the answer with `starbridge wait` before it ends its turn.
+**Answers.** Your answer comes back as the session's next prompt, through the Starbridge Pi
+package, in the TUI and RPC mode. In `pi -p`, the agent waits with `starbridge wait`.
 
-¹⁵ Like opencode's: Antigravity's own prompt and `ask_question` stay open at
-the keyboard and the first answer wins, when `starbridge agent` runs. Your
-devices can allow a call once or deny it. Only a command the agent runs gets
-the key that lets Starbridge answer them, so with permission prompts on, the
-plugin has each new conversation run `starbridge hello` first. Checked with
-`agy`; the app and the IDE are untested.
+**Permission prompts.** They need
+[pi-permission-system](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-permission-system).
+Starbridge doesn't race them. Each prompt goes to your devices, and "Answer here" in Pi brings
+it back to the keyboard. Prompts from its `path` and `external_directory` rules stay at the
+keyboard.
 
-`starbridge setup` installs Starbridge in each agent it finds, and prints one
-line per agent; `starbridge uninstall --agent <name>` removes it from one, and
-setup then leaves that agent alone until `starbridge setup --agent <name>`:
+### opencode
+
+**Question picker.** Starbridge races `question`. Each question shows at the keyboard and on your
+devices at once, and the first answer wins. A question with more than 4 options takes a typed
+reply on your devices.
+
+**Answers.** Your answer comes back as the session's next prompt, through the Starbridge opencode
+plugin, in the TUI and `opencode serve`. In `opencode run`, the agent waits with `starbridge wait`.
+
+**Permission prompts.** Starbridge races them. Each prompt shows at the keyboard and on your
+devices at once, and the first answer wins. `opencode run` rejects every prompt itself, so none
+reaches your devices.
+
+### Cursor
+
+**Question picker.** Starbridge doesn't race `askQuestion`, which runs no hooks, and it stays at
+the keyboard. The rules tell the agent to use `starbridge ask` instead.
+
+**Answers.** Your answer comes back as the session's next prompt, through the Starbridge stop
+hook, in `cursor-agent`. When a chat ends its turn with a question open, the hook holds the chat,
+shown as busy, for up to 10 minutes. Past 10 minutes, and in the Cursor IDE, which doesn't tell a
+command which chat runs it, the agent waits with `starbridge wait`. The IDE is untested.
+
+**Permission prompts.** Starbridge doesn't race them, and they stay at the keyboard. Cursor shows
+its own prompt even after a hook allows the call, so an Allow from your devices could not take
+effect.
+
+### Antigravity
+
+**Question picker.** Starbridge races `ask_question`. Each question shows at the keyboard and on
+your devices at once, and the first answer wins.
+
+**Answers.** Your answer comes back as the session's next prompt, through the conversation's
+language server, in interactive conversations. In `agy -p`, the agent waits with `starbridge
+wait`.
+
+**Permission prompts.** Starbridge races them. Each prompt shows at the keyboard and on your
+devices at once, and the first answer wins. Only a command the agent runs can reach the language
+server, so with permission prompts on, the plugin has each new conversation run `starbridge
+hello` first.
+
+Checked with `agy`; the Antigravity app and IDE are untested.
+
+## What setup installs
+
+`starbridge setup` installs Starbridge in each harness it finds, and prints one
+line per harness; `starbridge uninstall --agent <name>` removes it from one, and
+setup then leaves that harness alone until `starbridge setup --agent <name>`:
 
 - Claude Code: the Starbridge plugin, which brings the rules above, the skill
   and the hooks, and allow rules so that `starbridge ask`, `waiting`,
@@ -125,7 +165,7 @@ setup then leaves that agent alone until `starbridge setup --agent <name>`:
   Starbridge plugin, in `~/.config/opencode/plugins/starbridge.ts` with its code
   in `~/.config/opencode/starbridge/`. The plugin brings the rules, puts each
   answer into the session and sends permission prompts. A later setup, or the
-  agent once `starbridge update` restarts it, updates both when the CLI carries
+  local agent once `starbridge update` restarts it, updates both when the CLI carries
   newer ones.
 - Cursor: the skill, in `~/.cursor/skills/starbridge`, and hooks that bring the
   rules and put each answer into the chat: their scripts in `~/.cursor/starbridge`,

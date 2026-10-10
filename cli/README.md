@@ -52,7 +52,7 @@ question; steps 1 and 3 say when it asks more. A rerun repairs only what is miss
    `--server`, `STARBRIDGE_SERVER`, the install script (each server's own names that server),
    or the machine's pairing, else https://starbridge.run. It asks only when the machine is
    already paired with another server, and Enter keeps that one.
-2. It installs Starbridge in each agent it finds and prints one line per agent: the Claude Code
+2. It installs Starbridge in each harness it finds and prints one line per harness: the Claude Code
    plugin at user scope, the skill and sandbox rule in Codex's folders, the Starbridge Pi
    package, the skill and plugin in opencode's config folder, and the skill in
    `~/.cursor/skills/starbridge`. A failed install prints its

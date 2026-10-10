@@ -60,33 +60,35 @@ Or with npm:
 npm install -g starbridge
 ```
 
-The script runs `starbridge setup`, which pairs the machine, installs Starbridge in each agent it
+The script runs `starbridge setup`, which pairs the machine, installs Starbridge in each harness it
 finds and ends by offering to send a test question to your devices. After Homebrew or npm, run
 `starbridge setup` yourself. [Start](https://starbridge.run/docs#start) goes on to your agent's
 first question.
 [One notification per question](https://starbridge.run/docs/notifications) turns off your
-agents' own notifications for what Starbridge already sends.
+harnesses' own notifications for what Starbridge already sends.
 
-## What each agent supports
+## What each harness supports
 
-| | Claude Code | Codex | Pi | opencode |
-|---|---|---|---|---|
-| Questions | ✓ | ✓ | ✓ | ✓ |
-| Answers into the live session | ✓ | ✓ | ✓ | ✓ |
-| "Waiting for you" | ✓ | ✓ | ✓ | ✓ |
-| Runs | ✓ | ✓ | ✓ | ✓ |
-| Permission prompts | Opt-in | No | Opt-in | Opt-in |
-| The agent's own ask tool | ✓ | n/a | n/a | ✓ |
-| Rules for when to ask you | ✓ | ✓ | ✓ | ✓ |
+A harness is the tool the agent runs in: Claude Code, Codex, Pi, opencode, Cursor or Antigravity.
+A question picker is a harness's own tool for asking you a question with options, such as Claude
+Code's `AskUserQuestion`.
 
-In Claude Code, the answer arrives through a [Claude Code mod](https://code.claude.com/docs/en/plugins/mods/overview), code that
-runs inside Claude Code: it submits your answer into the live session as its next prompt. Setup
-installs it beside the Starbridge plugin.
+| | Claude Code | Codex | Pi | opencode | Cursor | Antigravity |
+|---|---|---|---|---|---|---|
+| Question picker raced on your devices | ✓ | ✓ | With add-on | ✓ | No | ✓ |
+| Answer comes back without polling | ✓ | ✓ | ✓ | ✓ | CLI only | ✓ |
+| Permission prompts on your devices | Opt-in | Opt-in | Opt-in | Opt-in | No | Opt-in |
+| Runs | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| "Waiting for you" | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
-Answers go into interactive sessions; Claude Code needs 2.1.287 or later, Codex CLI 0.160 or later. In `codex exec`, `pi -p` and
-`opencode run`, the agent waits for the answer with `starbridge wait` instead.
+Your answer to a `starbridge ask` question comes back as the session's next prompt. In Claude
+Code, the Starbridge mod submits it. A
+[Claude Code mod](https://code.claude.com/docs/en/plugins/mods/overview) is code that runs inside
+Claude Code; setup installs it beside the Starbridge plugin. A headless run (`claude -p`,
+`codex exec`, `pi -p`, `opencode run`, `cursor-agent -p`, `agy -p`) has no next prompt, so there
+the agent waits with `starbridge wait` before it ends its turn.
 
-[What each agent supports](https://starbridge.run/docs/tell-your-agents#what-each-agent-supports)
+[What each harness supports](https://starbridge.run/docs/tell-your-agents#what-each-harness-supports)
 lists the version and setup each one needs.
 
 Tested for 0.1.0: Claude Code on macOS, Linux and Windows 11; Codex, opencode and Pi on Linux.
