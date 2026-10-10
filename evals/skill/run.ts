@@ -606,8 +606,10 @@ async function liveRun(
       );
       for (const d of ["opencode", "hooks"])
         cpSync(join(armDir, "mod", d), join(conf, "starbridge/mod", d), { recursive: true });
-      mkdirSync(join(conf, "starbridge/plugin/hooks"), { recursive: true });
-      copyFileSync(join(armDir, "plugin/hooks/rule.md"), join(conf, "starbridge/plugin/hooks/rule.md"));
+      // Where the arm's plugin reads its rule: plugin/rules since #1063, plugin/hooks before.
+      for (const d of ["hooks", "rules"])
+        if (existsSync(join(armDir, "plugin", d)))
+          cpSync(join(armDir, "plugin", d), join(conf, "starbridge/plugin", d), { recursive: true });
       const allow = { bash: "allow", webfetch: "allow", external_directory: "allow" };
       writeFileSync(
         join(conf, "opencode.json"),
@@ -762,14 +764,10 @@ async function one(s: Scenario, arm: string, rep: number): Promise<RunRecord> {
       if (r.status !== 0) throw new Error(`codex login --with-api-key: ${r.stderr}`);
     }
     cpSync(join(plugin, "skills/starbridge"), join(conf, "skills/starbridge"), { recursive: true });
-    const hook = spawnSync("sh", [join(plugin, "hooks/session-start.sh")], {
-      env: { STARBRIDGE_CONFIG_DIR: sb },
-      encoding: "utf8",
-    });
-    writeFileSync(
-      join(conf, "AGENTS.md"),
-      `${JSON.parse(hook.stdout).hookSpecificOutput.additionalContext}\n`,
-    );
+    // The harness's own rule (#1063), else the one rule every harness had before.
+    const own = join(plugin, "rules", `${agent}.md`);
+    const rule = readFileSync(existsSync(own) ? own : join(plugin, "hooks/rule.md"), "utf8");
+    writeFileSync(join(conf, "AGENTS.md"), `${rule.trimEnd()}\n`);
   }
 
   const env: Record<string, string> = {

@@ -3,7 +3,9 @@
 The Starbridge plugin gives every Claude Code session two rules. The agent
 reaches you through Starbridge for decisions that are yours and for work that
 waits on you. It also wraps commands that take over your machine in
-`starbridge run`. Anything else you want to hear about goes in your harness's
+`starbridge run`. Setup gives the other harnesses the same rules, each naming
+only its own question picker when Starbridge races it, so a quick question may
+use it. Anything else you want to hear about goes in your harness's
 instruction files, in your words. Starbridge never writes to them.
 
 <a id="what-each-agent-supports"></a>

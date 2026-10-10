@@ -736,7 +736,7 @@ line, the safe side: at worst a prompt repeats an answer the agent already read.
   plugin's `Stop` hook stays as the fallback: it hands over answers that came in, and holds the
   end of a turn up to 10 minutes for a question marked waiting that has no route. The token
   stays in the machine's state file, readable by its owner only, like the process it came from.
-- **Pi and opencode** append `plugin/hooks/rule.md` to the system prompt and run the mod's own
+- **Pi and opencode** append their rule (`plugin/rules/pi.md`, `opencode.md`) to the system prompt and run the mod's own
   answer loop (`agent.ts`, `poller.ts`, `switch.ts`). opencode gives commands no session id, so
   its plugin sets `STARBRIDGE_OPENCODE_SESSION` through `shell.env`. After opencode restarts, the
   plugin resumes the loops of sessions still expecting an answer (#398); two processes showing one
@@ -759,9 +759,24 @@ line, the safe side: at worst a prompt repeats an answer the agent already read.
   agent reaches its user: a card for a decision that is
   theirs, a question before ending a turn on work that waits on them, `starbridge run` around commands
   that block them. Everything else the agent decides. It asks in the terminal only when
-  `starbridge` fails (#121). In Claude Code a quick question may use `AskUserQuestion`, since
-  its picker reaches the devices too (#848); a decision read cold, or needing links or images,
-  stays a card (#911).
+  `starbridge` fails (#121). A quick question may use the harness's own ask tool where it races
+  the devices (#848), which the harness's rule names; a decision read cold, or needing links or
+  images, stays a card (#911).
+- One skill, a rule per harness (#1063). Every harness reads the same `SKILL.md`, which names no
+  harness: an agent in one never reads another's lines, the eval tests one text, and the file
+  stays plain agentskills.io for any harness that reads it. What differs by harness reaches the
+  agent in one of two places. What it must know before its first call goes in its session-start
+  rule: `plugin/rules/template.md` with only that harness's ask tool (none for Cursor, whose
+  `askQuestion` fires no hooks), rendered by `bun cli/scripts/rules.ts` into the committed
+  `plugin/hooks/rule.md` (Claude Code's plugin) and `plugin/rules/<harness>.md`, which setup, the
+  Pi package and the opencode plugin read; a test checks that they match the template and that
+  none names another harness. The rest comes from the CLI's output when it applies, at no
+  standing cost: `ask` prints how this session gets the answer, Codex's queued prompt names the
+  command that prints it, `ask --answer-in` says to settle when the page answers, and `run` in
+  Codex's sandbox (`CODEX_SANDBOX_NETWORK_DISABLED=1`) starts nothing and says to run it again
+  with escalated permissions, so a command that takes over the screen runs once. Per-harness
+  skills, or reference files per harness, would cost the same or one more read per use, and
+  multiply what the eval must cover.
 - A question answers cold: its options answer it, and its context runs two to five lines, the fact
   that forces the choice, then one line per option saying what it changes. Links and images only
   when they help; one question per card. The first option is
@@ -782,11 +797,11 @@ line, the safe side: at worst a prompt repeats an answer the agent already read.
   (#680).
 - Cursor (#954): a `sessionStart` entry that setup adds to `~/.cursor/hooks.json` runs the same
   script, copied to `~/.cursor/starbridge`, with `cursor`, which prints `{"additional_context":
-  <rule.md>}`; Cursor adds it to the session's context. Setup merges its entries into the
+  <plugin/rules/cursor.md>}`; Cursor adds it to the session's context. Setup merges its entries into the
   owner's file and knows them by that folder in their command; uninstall removes only those. A
   file that does not parse, such as one with comments, is left as it is, and setup prints what to
-  add. The rule's AskUserQuestion line is harmless there: Cursor's `askQuestion` fires no
-  hooks, so `starbridge ask` stays the way to the phone.
+  add. Cursor's rule names no ask tool: its `askQuestion` fires no hooks, so `starbridge ask`
+  stays the way to the phone.
 - `cursor-agent` also runs installed Claude Code plugins' hooks, Starbridge's among them (#958).
   Their input is Cursor's and carries `cursor_version`, which Claude Code never sends, so the
   Claude Code plugin's hooks step aside there and setup's Cursor hooks run: the rule comes once, and
