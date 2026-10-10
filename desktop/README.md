@@ -73,7 +73,7 @@ script: a real Mac uses more memory than the runner, so its budget is 400 MB, wh
 | Warm open: the hidden window to its next frame, as from the menu bar | 50 ms | 7–49 ms | 15 ms |
 | Idle memory: every process's working set, page loaded | 350 MB on the runner, 400 MB on a Mac | 304–310 MB | 371–378 MB |
 | Download: the largest DMG | 140 MB | 133–134 MB | 134 MB |
-| Tab switch: click to the frame painting the new page, warm, with no request for the page (`test/stack.ts`) | 100 ms | RUNNER | MACMINI |
+| Tab switch: click to the frame painting the new page, warm, with no request for the page (`test/stack.ts`) | 100 ms | 29–33 ms | 26–40 ms, behind a 55 ms round trip; 80–97 ms before (#1072) |
 
 What keeps them: the main process is one 15 KB file, the updater (most of the code) loads 5 s
 after start from its own file, the window shows at once on the page's background colour, and
