@@ -267,7 +267,8 @@ private const val GUIDE = "https://starbridge.run/docs/tell-your-agents"
 /** How pushes reach this phone, as a state; registered, it names the server's host. */
 internal fun holdLabel(seconds: Int) = when {
     seconds == Beacon.HOLD_OFF -> "Off"
-    seconds > 0 && seconds % 60 == 0 -> "${seconds / 60} min"
+    seconds == Beacon.HOLD_ON_LEAVE -> "0 s"
+    seconds % 60 == 0 -> "${seconds / 60} min"
     else -> "$seconds s"
 }
 
