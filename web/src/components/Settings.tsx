@@ -3,6 +3,8 @@
 import {
   type NotifyState,
   PUSH_HOLD_CHOICES,
+  PUSH_HOLD_OFF,
+  PUSH_HOLD_ON_LEAVE,
   QUOTA_ALERT_CHOICES,
   type QuotaAlertChoice,
   type QuotaAlertSettings,
@@ -278,11 +280,11 @@ function BrowserRow({ initial }: { initial: PushState }) {
 }
 
 const HOLD_LABELS: Record<(typeof PUSH_HOLD_CHOICES)[number], string> = {
-  0: "Off",
+  [PUSH_HOLD_OFF]: "Off",
+  [PUSH_HOLD_ON_LEAVE]: "0 s",
   15: "15 s",
   30: "30 s",
   60: "1 min",
-  120: "2 min",
 };
 
 /**

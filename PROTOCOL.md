@@ -569,8 +569,8 @@ own credentials; the payload is already ciphertext or an id. UnifiedPush always 
 | Route | Who | What |
 |---|---|---|
 | `PUT /presence` | device, machine | `{present}`: whether the owner sits at this screen ("Held pushes") → 204 |
-| `GET /settings` | device | the account's settings, `{pushHold}`: seconds a held push waits after the owner left the last screen, 30 unless set; 0 holds nothing |
-| `PUT /settings` | device | `{pushHold}`, 0 to 300 → the settings as stored |
+| `GET /settings` | device | the account's settings, `{pushHold}`: seconds a held push waits after the owner left the last screen, 30 unless set; 0 holds nothing, -1 pushes as soon as they leave (#1060); above 60, no longer offered, reads as 60 |
+| `PUT /settings` | device | `{pushHold}`, -1 to 300 → the settings as stored |
 
 ### Device notifications
 
