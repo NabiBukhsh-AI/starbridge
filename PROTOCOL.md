@@ -569,7 +569,7 @@ own credentials; the payload is already ciphertext or an id. UnifiedPush always 
 | Route | Who | What |
 |---|---|---|
 | `PUT /presence` | device, machine | `{present}`: whether the owner sits at this screen ("Held pushes") → 204 |
-| `GET /settings` | device | the account's settings, `{pushHold}`: seconds a held push waits after the owner left the last screen, 30 unless set; 0 pushes as soon as they leave, -1 holds nothing (#1060) |
+| `GET /settings` | device | the account's settings, `{pushHold}`: seconds a held push waits after the owner left the last screen, 30 unless set; 0 holds nothing, -1 pushes as soon as they leave (#1060); above 60, no longer offered, reads as 60 |
 | `PUT /settings` | device | `{pushHold}`, -1 to 300 → the settings as stored |
 
 ### Device notifications
@@ -712,7 +712,7 @@ waits a little, and goes only if nothing answered it meanwhile.
   end of its last beat's 75 s. A restart forgets it: a new item pushes at once, and every account
   counts as present for 75 s, as if each source had just beaten.
 - **What waits.** A machine's `decision`, `permission` or `waiting` item that asks for a push,
-  posted while the account is present and its `pushHold` is not -1. Its push goes at once to the
+  posted while the account is present and its `pushHold` is not 0. Its push goes at once to the
   devices that are themselves present, and waits for the others while the account stays present,
   then `pushHold` seconds from when it stopped (#1003); never less than `pushHold` seconds from
   the post. Present again before then, it waits again. A re-seal's new devices join the same hold.

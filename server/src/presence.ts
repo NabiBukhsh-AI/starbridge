@@ -79,18 +79,20 @@ export class Presence {
 export const HELD_KINDS: readonly SealedItem["kind"][] = ["decision", "permission", "waiting"];
 
 /**
- * The account's hold time in seconds, or `PUSH_HOLD_OFF`; unset is the default. A hold set before
- * #1060 reads from `push_hold`, where 0 was off and 2 minutes, no longer offered, reads as the
- * longest choice left.
+ * The account's hold setting (`AccountSettings.pushHold`); unset is the default. 2 minutes, no
+ * longer offered (#1060), reads as the longest choice left.
  */
 export function pushHold(db: Database, account: string): number {
-  const row = db
-    .query("SELECT hold_seconds, push_hold FROM accounts WHERE id = ?")
-    .get(account) as { hold_seconds: number | null; push_hold: number | null } | null;
-  if (row?.hold_seconds != null) return row.hold_seconds;
-  if (row?.push_hold === 0) return PUSH_HOLD_OFF;
-  if (row?.push_hold == null) return PUSH_HOLD_DEFAULT;
-  return Math.min(row.push_hold, Math.max(...PUSH_HOLD_CHOICES));
+  const row = db.query("SELECT push_hold FROM accounts WHERE id = ?").get(account) as {
+    push_hold: number | null;
+  } | null;
+  return Math.min(row?.push_hold ?? PUSH_HOLD_DEFAULT, Math.max(...PUSH_HOLD_CHOICES));
+}
+
+/** Seconds a held push waits once the owner left the last screen, or undefined while off. */
+function holdSeconds(db: Database, account: string): number | undefined {
+  const hold = pushHold(db, account);
+  return hold === PUSH_HOLD_OFF ? undefined : Math.max(hold, 0);
 }
 
 /**
@@ -107,8 +109,8 @@ export function holdFor(
 ): { held: string[]; due: string } | undefined {
   const present = presence.present(account, now);
   if (present.length === 0) return undefined;
-  const seconds = pushHold(db, account);
-  if (seconds === PUSH_HOLD_OFF) return undefined;
+  const seconds = holdSeconds(db, account);
+  if (seconds === undefined) return undefined;
   const held = to.filter((id) => !present.includes(id));
   if (held.length === 0) return undefined;
   return { held, due: new Date(now + seconds * 1000).toISOString() };
@@ -146,9 +148,9 @@ export function releaseHolds(
   const endOf = (account: string) => {
     let end = ends.get(account);
     if (end === undefined) {
-      const seconds = pushHold(db, account);
+      const seconds = holdSeconds(db, account);
       const left = presence.absentSince(account, now);
-      end = seconds === PUSH_HOLD_OFF ? now : left === undefined ? Infinity : left + seconds * 1000;
+      end = seconds === undefined ? now : left === undefined ? Infinity : left + seconds * 1000;
       ends.set(account, end);
     }
     return end;
