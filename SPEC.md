@@ -619,8 +619,8 @@ provider plugins add providers, not panels.
   the entries, setup adds them only while the plugin there is Starbridge's and turned on, and takes
   them out otherwise. The app and the IDE keep their settings elsewhere; setup adds nothing there. `starbridge run` is left out,
   since the command it wraps is the agent's own. So Codex asks at the keyboard to run it outside
-  the sandbox, and the skill has it ask on the first call: run in the sandbox first, the command
-  ran unreported, then again once approved (#831). A `prompt` rule only adds an approval: Codex
+  the sandbox: run in the sandbox first, the command ran unreported, then again once approved
+  (#831), so `run` there now refuses before the command starts and says to escalate (#1063). A `prompt` rule only adds an approval: Codex
   still runs the command in the sandbox first. `cursor-agent` gets `Shell(starbridge ask)` and the
   four others in `cli-config.json`'s `permissions.allow`; each matches the command and what starts
   with it plus a space, and a compound line runs without a prompt only when each of its commands
