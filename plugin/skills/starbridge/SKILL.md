@@ -107,13 +107,16 @@ saying what waits and until when, and that `starbridge wait <id>` reads the
 answer later. Never post a snoozed question again.
 
 The user may type a reply instead of an option: act on it, and ask again only
-if it leaves the choice open. Act on the answer at once. Post again only when
+if it leaves the choice open. When the reply is itself a question, answer it
+on a new card that restates the choice, never one that points at "the last
+card". Act on the answer at once. Post again only when
 the outcome changes what they would do (the merge failed); otherwise say it
 in your final message.
 
 A card still open that no longer needs an answer (the owner answered in the
-terminal, or you found it yourself) stays in their inbox until you take it
-back, before you act: `starbridge settle <id> --outcome withdrawn --reason
+terminal, you found it yourself, or you reworded or reposted it) stays in
+their inbox until you take it back, before you act or in the same step as
+the repost: `starbridge settle <id> --outcome withdrawn --reason
 '…'`. The reason shows in their History: one short line, 120 characters at
 most, such as `'You answered in the terminal'` or `'Fixed it myself after
 rereading the logs'`.

@@ -789,6 +789,10 @@ line, the safe side: at worst a prompt repeats an answer the agent already read.
   nothing (names to pick from), and labels stay within 18 characters, where buttons still sit
   side by side. Plain words and numbers, after Tom's unslop rules. In 225 cards agents posted before this, the context's median was 430 characters and
   one in ten hid its options.
+- A reworded or reposted card withdraws the one it replaces in the same step, and a typed reply
+  that is itself a question gets a new card restating the choice, never one about "the last
+  card": a week's transcripts (2026-10-04 to 10-10) left about 8 superseded cards open, and one
+  question asked 4 times in 7 minutes (#1068).
 - Agents also wrap, unasked, any command that blocks the owner or needs them at the machine, and
   always give a reason (#60).
 - A card cannot approve an action the agent's own guidelines say needs the owner's yes in the
