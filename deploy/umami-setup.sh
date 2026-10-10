@@ -54,21 +54,23 @@ auth() {
   shift
   curl -fsS "$url/api/websites/$id/$path" -H "authorization: Bearer $token" "$@"
 }
-# The steps the pages send (web/src/components/Landing.tsx, web/src/lib/funnel.ts), made or brought
-# up to date. The window is a day: Umami's daily salt splits a visit at midnight UTC anyway.
-funnel=$(jq -n '{name: "Launch",
-  description: "Landing view, sign-in click, first sign-in, recovery key, first machine, first answer",
-  parameters: {window: 1440, steps: [
-    {type: "path", value: "/"},
-    {type: "event", value: "sign-in"},
-    {type: "event", value: "first-sign-in"},
-    {type: "event", value: "first-keys"},
-    {type: "event", value: "first-machine"},
-    {type: "event", value: "first-answer"}]}}')
-funnels=$(auth funnels)
-fid=$(echo "$funnels" | jq -r '[.data[] | select(.name == "Launch")][0].id // empty')
-auth "funnels${fid:+/$fid}" -H 'content-type: application/json' -d "$funnel" >/dev/null
-if [ -n "$fid" ]; then echo "funnel Launch updated"; else echo "funnel Launch added"; fi
+# The funnels, made or brought up to date. Landing: what the landing page sends
+# (web/src/components/Landing.tsx). Launch: a new account's steps, which the server sends as one
+# visit per account and day (server/src/funnel.ts); second-device comes in any order, so it is
+# counted beside them. The window is a day: Umami's daily salt splits a visit at midnight UTC.
+funnel() {
+  local name=$1 description=$2 steps=$3 body fid
+  body=$(jq -n --arg name "$name" --arg d "$description" --argjson steps "$steps" \
+    '{name: $name, description: $d, parameters: {window: 1440, steps: $steps}}')
+  fid=$(auth funnels | jq -r --arg name "$name" '[.data[] | select(.name == $name)][0].id // empty')
+  auth "funnels${fid:+/$fid}" -H 'content-type: application/json' -d "$body" >/dev/null
+  if [ -n "$fid" ]; then echo "funnel $name updated"; else echo "funnel $name added"; fi
+}
+funnel Landing "Landing view, sign-in click" \
+  '[{"type": "path", "value": "/"}, {"type": "event", "value": "sign-in"}]'
+funnel Launch "First sign-in, recovery key, first machine, first answer" \
+  '[{"type": "event", "value": "first-sign-in"}, {"type": "event", "value": "first-keys"},
+    {"type": "event", "value": "first-machine"}, {"type": "event", "value": "first-answer"}]'
 
 # Read-only views for the owner's phone; the link holds the only secret.
 views='{overview: true, events: true, funnels: true, journeys: true}'

@@ -10,11 +10,11 @@ import {
   useRef,
   useState,
 } from "react";
+import { send } from "@/lib/analytics";
 import { api, backingOff } from "@/lib/api";
 import { desktop } from "@/lib/desktop";
 import { desktopState } from "@/lib/desktopState";
 import type { Boot, Ctx, Inbox, Quotas, Runs } from "@/lib/device";
-import { reach, send } from "@/lib/funnel";
 import { newestWins } from "@/lib/newest";
 import { openItem } from "@/lib/opened";
 import { AnsweredFirst } from "@/lib/outcome";
@@ -171,27 +171,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Inbox reads overlap (a load, pushes, polls): only the newest to start may land (#547).
   const inboxRead = useRef(newestWins());
   const ctx = boot.state === "ready" ? boot.ctx : undefined;
-
-  // The launch funnel's signed-in steps, in the browser that created the account (#559, #590).
-  useEffect(() => {
-    if (!ctx) return;
-    const active = (role: string) =>
-      [...ctx.dir.members.values()].filter((m) => m.active && m.member.role === role).length;
-    reach(ctx.account, (step) => {
-      if (step === "first-machine") return active("machine") > 0;
-      if (step === "second-device") return active("device") > 1;
-      if (step !== "first-answer") return false;
-      // Answered by a device, not closed by its machine (a timeout, the keyboard).
-      const item = inbox.items
-        .filter((i) => i.answeredAt && !i.settled)
-        .sort((x, y) => (x.answeredAt ?? "").localeCompare(y.answeredAt ?? ""))[0];
-      if (!item) return false;
-      // Another device's answer shows here only once its machine took it: until then, no kind.
-      const reply = item.reply ?? item.answeredBy?.reply;
-      if (!reply) return true;
-      return { kind: "choice" in reply ? "choice" : "text" in reply ? "text" : "done" };
-    });
-  }, [ctx, inbox]);
 
   // Installed as an app from the landing page or the app, signed in or not (#590).
   useEffect(() => {

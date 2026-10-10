@@ -4,6 +4,7 @@ import type { Server } from "bun";
 import type { AppSignIns } from "./appSignIns";
 import type { Caller } from "./auth";
 import type { Config } from "./config";
+import type { Funnel } from "./funnel";
 import type { Presence } from "./presence";
 import type { Push } from "./push";
 import type { RateLimiter } from "./ratelimit";
@@ -34,6 +35,7 @@ export interface Deps {
   appSignIns: AppSignIns;
   watch: Watch;
   usage: Usage;
+  funnel: Funnel;
 }
 
 export interface Env {

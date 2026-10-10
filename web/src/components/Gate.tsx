@@ -2,10 +2,10 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { send } from "@/lib/analytics";
 import { outdated } from "@/lib/api";
 import { desktop } from "@/lib/desktop";
 import type { FirstDevice as PreparedDevice, RecoveryEntry } from "@/lib/device";
-import { firstSignIn, reach, send } from "@/lib/funnel";
 import { hasPairCode, holdPairCode } from "@/lib/pairLink";
 import { useGitHubSignIn } from "@/lib/signInMethods";
 import { useApp } from "./AppProvider";
@@ -191,8 +191,6 @@ function FirstDevice({ account, unsaved }: { account: string; unsaved?: string }
   const [name, setName] = useDefaultName(unsaved);
   const [prepared, setPrepared] = useState<PreparedDevice>();
   const { busy, error, run } = useAction();
-  // Only a new account has no device yet: its first sign-in, for the launch funnel (#559).
-  useEffect(() => firstSignIn(account), [account]);
   if (prepared)
     return (
       <Setup
@@ -201,7 +199,6 @@ function FirstDevice({ account, unsaved }: { account: string; unsaved?: string }
         // The genesis goes to the server only now, so a reload before this shows a new key.
         onContinue={async () => {
           await prepared.commit();
-          reach(account, (step) => step === "first-keys");
           await reload();
         }}
       />

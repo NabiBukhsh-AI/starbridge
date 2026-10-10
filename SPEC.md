@@ -1645,18 +1645,22 @@ Tokens, type and components: `DESIGN.md`.
   privacy@starbridge.run; abuse@ appears only in `/terms`.
 - **Analytics** (#141). Umami, self-hosted, on the landing page, the docs, `/privacy` and `/terms`
   only. No cookie, no stored IP, a daily salt, Do Not Track honoured, so no consent banner. The
-  Android app has none (Play data safety form). Caddy rate-limits its open endpoint, and an hourly
+  Android app sends none (Play data safety form); the server sends a new account's launch funnel
+  steps, whichever app took them (below). Caddy rate-limits its open endpoint, and an hourly
   timer keeps each table to 180 days and a million rows, so it cannot fill the disk (#574).
-- **Launch funnel** (#559, #590). Landing view, a sign-in click, first sign-in, recovery key
-  saved, first machine, first answer (with its kind: choice, text or Done); a second device is
-  counted beside it. The signed-in app loads no tracker: the browser that created an account posts
-  those events itself, once each, with `/` as the page and nothing about the account
-  (`web/src/lib/funnel.ts`); Umami joins them to the landing visit by address, browser and day.
-  For every signed-in user it sends only which error screen showed and an install as an app.
-  The first sign-in's time matches the account's creation, so the operator could link the two;
-  `/privacy` says so.
-  It sees machines and answers from any device, so a pairing or answer made on the phone counts
-  once this browser sees them. Owner's view: an Umami share link on `stats.starbridge.run`,
+- **Launch funnel** (#559, #590). The landing page sends its view and a sign-in click. The server
+  sends a new account's steps: first sign-in (with the app it came from), recovery key saved,
+  first machine, second device, first answer (with the app that sent it). The server sees each
+  step whichever app takes it, and no blocker stands between it and Umami: when the page sent
+  them, accounts made on Android or the desktop app, or behind a blocker, sent nothing, and 3 of 5
+  accounts at launch were missing. The server posts them to Umami's collect endpoint, only during
+  an account's first two days and not for a request that sends Do Not Track, with `/` as the page
+  and, as Umami's visitor id, a hash of the account id, so each account's steps of a day form one
+  visit; nothing else about the account goes with them (`server/src/funnel.ts`). These visits
+  are not joined to the landing visit, so the funnel has two parts. Since the server knows when
+  each account was created, the operator could match the first sign-in to the account; `/privacy`
+  says so. For every signed-in user the page sends only which error screen showed and an install
+  as an app. Owner's view: an Umami share link on `stats.starbridge.run`,
   where Caddy passes only GET requests and blocks the login. A password (user `tom`) guards the
   whole host, since the link alone would open it to whoever saw it; bcrypt cost 10 and a limit of
   300 requests a minute per address keep its checks from spending the box's CPU (#595). With no
