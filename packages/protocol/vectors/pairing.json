@@ -54,6 +54,14 @@
       "expect": "0111-1111-1111-1111-1111-1111"
     },
     {
+      "input": "0123 4567　89ab﻿cdef ghjk mnpq",
+      "expect": "0123-4567-89AB-CDEF-GHJK-MNPQ"
+    },
+    {
+      "input": "01234567 89ab cdef ghjk mnpq",
+      "expect": "bad-encoding"
+    },
+    {
       "input": "0123-4567-89AB-CDEF-GHJK-MNPU",
       "expect": "bad-encoding"
     },

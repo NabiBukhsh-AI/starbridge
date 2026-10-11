@@ -112,6 +112,17 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
       seed: toB64(recoverySeed),
       key: recoveryKey(recoverySeed),
       signPk: recoveryPk,
+      // JavaScript's \s, which every client strips: U+00A0, U+3000 and U+FEFF are in it (#1145).
+      typed: [
+        recoveryKey(recoverySeed).toLowerCase(),
+        recoveryKey(recoverySeed).replace(/-/g, ""),
+        recoveryKey(recoverySeed).replace(/-/g, " "),
+        recoveryKey(recoverySeed).replace(/0/g, "O").replace(/1/g, "l"),
+        recoveryKey(recoverySeed)
+          .replace("-", "\u00A0")
+          .replace("-", "\u3000")
+          .replace("-", "\uFEFF"),
+      ],
     },
   };
 
@@ -1174,6 +1185,12 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
       { input: formatPairingCode(code).toLowerCase(), expect: formatPairingCode(code) },
       { input: "0123 4567 89ab cdef ghjk mnpq", expect: "0123-4567-89AB-CDEF-GHJK-MNPQ" },
       { input: "o1l1-I111-1111-1111-1111-1111", expect: "0111-1111-1111-1111-1111-1111" },
+      // JavaScript's \s: U+00A0, U+3000 and U+FEFF are in it, U+0085 is not (#1145).
+      {
+        input: "0123\u00A04567\u300089ab\uFEFFcdef ghjk mnpq",
+        expect: "0123-4567-89AB-CDEF-GHJK-MNPQ",
+      },
+      { input: "0123\u00854567 89ab cdef ghjk mnpq", expect: "bad-encoding" },
       { input: "0123-4567-89AB-CDEF-GHJK-MNPU", expect: "bad-encoding" },
       { input: "0123-4567", expect: "bad-encoding" },
     ],

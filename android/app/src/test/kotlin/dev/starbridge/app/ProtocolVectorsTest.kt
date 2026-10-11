@@ -334,7 +334,7 @@ class ProtocolVectorsTest {
         val key = recovery.str("key")
         assertEquals(key, RecoveryKeys.encode(fromB64(recovery.str("seed")), sodium))
         assertEquals(recovery.str("signPk"), toB64(sodium.signSeedKeyPair(recoverySignSeed(fromB64(recovery.str("seed")), sodium)).public))
-        for (typed in listOf(key, key.lowercase(), key.replace("-", ""), key.replace("-", " "), key.replace('0', 'O').replace('1', 'l'))) {
+        for (typed in listOf(key) + recovery.getValue("typed").jsonArray.map { it.str }) {
             assertEquals(recovery.str("seed"), toB64(RecoveryKeys.seed(typed, sodium)))
         }
         assertEquals("Character 5, \"U\", is not in a recovery key.", RecoveryKeys.read(key.take(5) + "U" + key.drop(6)).problem)
