@@ -18,7 +18,7 @@ struct SetupView: View {
         case .joining:
             WaitingStep(store: store, title: "Approve this iPhone", text: "Approve it on the device that shows the QR code.", digits: nil)
         case .joiningByDigits(nil, _):
-            WaitingStep(store: store, title: "Compare digits", text: "Approve on your other device if the digits match.", digits: nil)
+            WaitingStep(store: store, title: "Compare digits", text: "Open Starbridge on a device you already use: it asks whether to let this iPhone join.", digits: nil)
         case let .joiningByDigits(digits, false):
             WaitingStep(store: store, title: "Compare digits", text: "Does your other device show the same digits?", digits: digits, onMatch: { store.confirmDigits() })
         case let .joiningByDigits(digits, true):
@@ -227,6 +227,7 @@ private struct JoinStep: View {
     let store: Store
     @State private var scanning = false
     @State private var recovering = false
+    @State private var deleting = false
 
     var body: some View {
         if recovering {
@@ -251,11 +252,13 @@ private struct JoinStep: View {
             .buttonStyle(Primary(busy: store.busy))
             .disabled(store.busy)
             LinkButton(text: "Can't scan? Compare digits") { Task { await store.askDevices() } }
-            HStack(spacing: Tokens.Spacing.s6) {
-                LinkButton(text: "Use the recovery key") { recovering = true }
-                LinkButton(text: "Sign out") { Task { await store.signOut() } }
+            // Three to a line when they fit, else stacked.
+            ViewThatFits {
+                HStack(spacing: Tokens.Spacing.s6) { links }
+                VStack(spacing: 0) { links }
             }
         }
+        .deleteAccount(store: store, isPresented: $deleting, text: DeleteAccount.unpaired)
         .sheet(isPresented: $scanning) {
             QRScanner { text in
                 scanning = false
@@ -263,6 +266,15 @@ private struct JoinStep: View {
             }
             .ignoresSafeArea()
         }
+    }
+}
+
+extension JoinStep {
+    @ViewBuilder fileprivate var links: some View {
+        LinkButton(text: "Use the recovery key") { recovering = true }
+        LinkButton(text: "Sign out") { Task { await store.signOut() } }
+        // The way out without a device or the recovery key (#1117).
+        LinkButton(text: "Delete account") { deleting = true }
     }
 }
 
