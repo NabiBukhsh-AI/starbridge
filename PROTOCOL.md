@@ -543,7 +543,7 @@ options. For permission answers, see below.
 | `POST /push/subscriptions` | device | `{type: "fcm" \| "webpush" \| "unifiedpush" \| "apns", endpoint, keys?, environment?}` → `{id}`; URL endpoints must be public HTTPS; an `apns` endpoint is the device token in hex, and `environment` (`production` unless set, or `sandbox`) names its APNs environment; 409 `too-many-subscriptions` past 10 per device or 30 per account (re-subscribing a known endpoint always works) |
 | `DELETE /push/subscriptions/:id` | device | stop pushing there |
 | `GET /push/vapid` | anyone | `{publicKey}`: the VAPID key a browser subscribes with (the relay's when this server forwards Web Push) |
-| `POST /relay` | another server | relay mode only: `{type: "fcm" \| "webpush" \| "apns", endpoint, keys?, environment?, payload}` → `{result: "ok" \| "gone" \| "failed" \| "no-route"}`; rate-limited per IP; 503 `busy` with `Retry-After` while the server has 16 relayed Web Pushes in flight, or the address 4 |
+| `POST /relay` | another server | relay mode only: `{type: "fcm" \| "webpush" \| "apns", endpoint, keys?, environment?, payload, thread?}` → `{result: "ok" \| "gone" \| "failed" \| "no-route"}`; rate-limited per IP; 503 `busy` with `Retry-After` while the server has 16 relayed Web Pushes in flight, or the address 4 |
 
 A push payload is JSON text: `{v, kind, id, from, re?, wakeAt?, box?}` for a new item, with the device's
 own box when the payload stays within 3 KB, else without it and the device fetches
@@ -557,7 +557,8 @@ APNs gets it parsed, as the key `p` beside `aps`. A `decision`, `permission`, `w
 and a `snooze` whose `wakeAt` has passed go as alerts: `apns-push-type: alert`, priority 10,
 `aps.mutable-content: 1`, a placeholder `aps.alert` that the notification service extension
 replaces, `aps.category` (`decision`, `permission` or `join`) and `aps.thread-id` (the sending
-machine, or `join`). `apns-collapse-id` is the item id, or for `waiting` and `snooze` the
+machine; for a `snooze`, which a device sends, its question's machine, which a relayed push
+carries as `thread`; or `join`). `apns-collapse-id` is the item id, or for `waiting` and `snooze` the
 decision's (`re`). Everything else, `answered`, `settled` and a `snooze` as it is posted, goes as
 a background push: `apns-push-type: background`, priority 5, `aps.content-available: 1`. Each
 expires after a day. A payload over APNs' 4 KB goes without its box.
