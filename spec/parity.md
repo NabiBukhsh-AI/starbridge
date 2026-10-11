@@ -13,7 +13,7 @@ opens an issue for each client the row says should follow.
 | Typed reply (field under the options, Enter sends) | yes | yes | yes | yes (#1122: field in the detail, the arrow sends; Return starts a new line) |
 | Drafts | yes (until the page reloads) | yes (survives rotation and process death) | yes (as web) | yes (#1122: until the app quits) |
 | Snooze | yes | yes | yes | yes (#1131: in the detail, times in place under Snooze; the time in the system picker) |
-| Swipe to snooze | no (Android gesture; web has the Snooze control only) | yes (#692) | no (as web) | not yet |
+| Swipe to snooze | no (Android gesture; web has the Snooze control only) | yes (#692) | no (as web) | yes (#1236: Undo in a bar at the bottom, as Android's snackbar) |
 | History | yes | yes | yes | yes (#1122: answered questions, with how; prompts not listed) |
 | Find | yes (rail box) | yes (Material 3 search view) | yes | yes (#1131: the system search field) |
 | Permission prompts, answer from the device (Allow / Deny) | yes | yes | yes | yes (#1122: Allow, Deny with a note, offered scopes) |
