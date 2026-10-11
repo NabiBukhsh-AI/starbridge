@@ -8,7 +8,7 @@ opens an issue for each client the row says should follow.
 | Feature | Web | Android | Desktop | iOS |
 |---|---|---|---|---|
 | Inbox order (runs, prompts, waiting, rest; group by machine / waiting) | yes | yes | yes | yes (#1131: one feed, by machine or by waiting, remembered on the iPhone) |
-| Question card and answer buttons (setting: Always / When the agent waits / Never, under 1100 px) | yes | yes | yes | yes (#1131: the setting is in the inbox's ⋯ menu until iOS has Settings) |
+| Question card and answer buttons (setting: Always / When the agent waits / Never, under 1100 px) | yes | yes | yes | yes (#1131; the setting in Settings, #1233) |
 | Selectable text (the question on its card; question, context, answer, prompt input in the detail) | yes (#1143) | yes (#1143) | yes (as web) | yes (#1143; a long press offers Copy) |
 | Typed reply (field under the options, Enter sends) | yes | yes | yes | yes (#1122: field in the detail, the arrow sends; Return starts a new line) |
 | Drafts | yes (until the page reloads) | yes (survives rotation and process death) | yes (as web) | yes (#1122: until the app quits) |
@@ -39,6 +39,6 @@ opens an issue for each client the row says should follow.
 | Keyboard shortcuts (J K 1-4 A D /) | yes (from 1100 px) | no (only Enter to send, Esc in Find) | yes (as web) | not yet |
 | Sound | yes (off by default, only while a page is open) | yes (system notification channel sound) | yes (macOS default sound; Basso on "Answer not sent"; web Sound row hidden) | not yet |
 | Recover with the recovery key (revokes every other member) | yes | yes | yes (as web) | yes (#1116) |
-| Delete account (Settings and the join screen, its recovery-key view included, typed confirmation) | yes (#1104, #1117) | yes (#1104, #1117, #1166) | yes (as web) | yes (#1141: the inbox's ⋯ menu and the join screen; not the recovery-key view, #1195) |
+| Delete account (Settings and the join screen, its recovery-key view included, typed confirmation) | yes (#1104, #1117) | yes (#1104, #1117, #1166) | yes (as web) | yes (#1141, #1233: Settings and the join screen; not the recovery-key view, #1195) |
 
 Only on desktop: the menu bar light, the Dock or menu bar choice, Open at Login, ⌃⌥S, and notifications while no browser runs.
