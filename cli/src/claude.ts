@@ -188,14 +188,15 @@ function titleOf(prompt: string): string | undefined {
     if (l.startsWith("```")) continue;
     const marked = /^(#+|[*-]|\d+[.)])\s/.test(l);
     if (marked && lines.length) break;
-    const text = l.replace(/^([#>*-]+|\d+[.)])\s*/, "");
+    const text = l.replace(/^([#>*-]+\s*|\d+[.)]\s+)/, "");
     if (text) lines.push(text);
     else if (lines.length) break;
     if (marked && lines.length) break;
   }
   const text = lines.join(" ").replace(/\s+/g, " ").trim();
-  // A period before a lowercase word ends an abbreviation ("e.g. the"), not the sentence.
-  const end = text.search(/[.!?](\s+[^\sa-z]|$)/);
+  // A period before a lowercase word ends an abbreviation ("e.g. the"), not the sentence, as
+  // does one after a common abbreviation ("e.g. GLM").
+  const end = text.search(/(?<!\b([eE]\.g|[iI]\.e|etc|vs|cf))[.!?](\s+[^\sa-z]|$)/);
   let title = end === -1 ? text : text.slice(0, end + 1);
   if (title.length > MAX_TITLE) {
     const cut = title.slice(0, MAX_TITLE + 1);
