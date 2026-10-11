@@ -58,7 +58,10 @@ What the code relies on, with the versions checked.
   session fires a local plugin's `sessionEnd` but not its `sessionStart` or `stop`, and lists
   none of its skills; `-p` fires its `sessionStart`.
   A hook's `timeout` is in seconds, any positive value. `cli-config.json` sits in
-  `$CURSOR_CONFIG_DIR`, else `$XDG_CONFIG_HOME/cursor`, else `~/.cursor`.
+  `$CURSOR_CONFIG_DIR`, else `$XDG_CONFIG_HOME/cursor`, else `~/.cursor`; the login sits in
+  `$XDG_CONFIG_HOME/cursor` whatever `CURSOR_CONFIG_DIR` says. A `--model` given once stays in
+  `cli-config.json` for later runs. The free plan runs only `auto`, and its usage limit stopped
+  the skill eval after 7 runs (#964).
 - **CodexBar**: `usage --provider <unknown>` exits 0 and prints every provider, so the uploader
   keeps only matching rows. Mistral windows carry no `windowMinutes`, so they get no pace. The
   Claude probe drives `claude /usage` and can take 10 s on a busy machine.
@@ -92,3 +95,7 @@ What the code relies on, with the versions checked.
   Round 2 (#624): a card that blocks nothing was still marked waiting until the skill said
   "post without `--waiting`" beside `--no-mark`, and GLM Flash put its pick first until "even
   when your pick is not first". Records: `evals/skill/results/624`.
+  Cursor and Antigravity (#964), until their plans ran out: Cursor on `auto` passed 99% of checks
+  over 7 runs, Antigravity on gemini-3.8-flash-medium every card check over 4. Three of those 4
+  read the eval's scenarios through the CLI shim's path, so the eval now runs a bundle of the CLI
+  from its work folder. Reruns: #1133. Records: `evals/skill/results/964`.

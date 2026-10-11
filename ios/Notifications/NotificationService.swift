@@ -16,10 +16,11 @@ final class NotificationService: UNNotificationServiceExtension, @unchecked Send
     override func didReceive(_ request: UNNotificationRequest, withContentHandler contentHandler: @escaping (UNNotificationContent) -> Void) {
         handler = contentHandler
         content = request.content
-        nonisolated(unsafe) let request = request
+        // Only the payload, which is Sendable, goes into the task.
+        let p = Notify.payload(request.content.userInfo)
         task = Task {
-            let rewritten = await Notify.rewrite(request)
-            self.finish(rewritten)
+            let shown = await Notify.rewrite(p)
+            self.finish(shown)
         }
     }
 
@@ -28,9 +29,14 @@ final class NotificationService: UNNotificationServiceExtension, @unchecked Send
         finish(nil)
     }
 
-    private func finish(_ rewritten: UNNotificationContent?) {
+    private func finish(_ shown: Shown?) {
         guard let handler, let content else { return }
         self.handler = nil
-        handler(rewritten ?? content)
+        if let shown, let rewritten = content.mutableCopy() as? UNMutableNotificationContent {
+            Notify.apply(shown, to: rewritten)
+            handler(rewritten)
+        } else {
+            handler(content)
+        }
     }
 }

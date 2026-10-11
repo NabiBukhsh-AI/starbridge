@@ -1,0 +1,121 @@
+{
+  "agent": "antigravity",
+  "model": "gemini-3.8-flash-medium",
+  "arm": "after",
+  "scenario": "snoozed-release",
+  "rep": 1,
+  "turns": [
+    {
+      "commands": [
+        "ls -la",
+        "starbridge --help",
+        "starbridge decisions --open",
+        "ls -la ~/.config/starbridge 2>/dev/null || ls -la ~/.gemini/config/plugins/starbridge 2>/dev/null",
+        "which starbridge && cat $(which starbridge)",
+        "echo \"STARBRIDGE_CONFIG_DIR=$STARBRIDGE_CONFIG_DIR\" && ls -la ~/.config",
+        "ls -la /var/tmp/skill-eval-0TvUvi/after-snoozed-release-1/sb",
+        "cat /var/tmp/skill-eval-0TvUvi/after-snoozed-release-1/sb/directory.json /var/tmp/skill-eval-0TvUvi/after-snoozed-release-1/sb/state.json",
+        "ls -la /var/tmp/skill-eval-0TvUvi/after-snoozed-release-1/sb/antigravity",
+        "grep -rn \"The answer will come back\" /home/dev/work/starbridge/ 2>/dev/null || true",
+        "starbridge ask \\\n  --question 'Publish @acme/notes v0.4.0 to npm?' \\\n  --context 'Publishing to npm cannot be undone.\n**Publish:** releases v0.4.0 with resumable uploads and sync timeout fixes.\n**Do not publish:** leaves v0.4.0 unreleased.' \\\n  --option 'Publish' --option 'Do not publish' --recommended 'Publish'",
+        "starbridge wait d_EuOT40SlklEeVgRS --timeout 5m"
+      ],
+      "final": "Publishing [@acme/notes](file:///var/tmp/skill-eval-0TvUvi/after-snoozed-release-1/proj/package.json) v0.4.0 to npm waits on card `d_EuOT40SlklEeVgRS`, which has been snoozed until tomorrow at 09:00.\n\n`starbridge wait d_EuOT40SlklEeVgRS` reads the answer later once the snooze expires.\n",
+      "session": "f0a38305-ce4a-49cd-8df3-00c1177541df",
+      "tokens": 120017,
+      "exit": 0,
+      "seconds": 140.286,
+      "delivery": [
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.` or ``Nothing brings the answer into this session: when only the answer is left, run `starbridge wait <id> --timeout 5m` (again on exit 2).`` |\r",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a prompt. I didn't wait for it.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back into this session as a new prompt, and I'll apply the fix then if you approve it.",
+        "The answer will come back into this session as a new prompt.",
+        "The answer will come back",
+        "The answer will come back[^",
+        "Nothing brings the answer[^",
+        "Nothing brings the answer into this session: when only the answer is left, run `starbridge wait d_EuOT40SlklEeVgRS --timeout 5m` (again on exit 2).\r"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "v": 1,
+      "id": "d_EuOT40SlklEeVgRS",
+      "to": [
+        "phone"
+      ],
+      "createdAt": "2026-10-11T09:48:41Z",
+      "question": "Publish @acme/notes v0.4.0 to npm?",
+      "context": "Publishing to npm cannot be undone.\n**Publish:** releases v0.4.0 with resumable uploads and sync timeout fixes.\n**Do not publish:** leaves v0.4.0 unreleased.",
+      "options": [
+        "Publish",
+        "Do not publish"
+      ],
+      "recommended": "Publish",
+      "agent": "antigravity",
+      "source": {
+        "machine": "devbox",
+        "machineKind": "server",
+        "project": "proj",
+        "session": "f0a38305-ce4a-49cd-8df3-00c1177541df",
+        "sessionTitle": "Publish Notes CLI v0.4.0"
+      },
+      "replies": true,
+      "dir": {
+        "length": 2,
+        "head": "E1ECiKiMzIs6c9sdhVtGFvqcmcK_4JVHHEtVZCKMpJs"
+      }
+    }
+  ],
+  "laterDecisions": [],
+  "runs": [],
+  "gh": [],
+  "snoozed": "2026-10-12T07:00:00.000Z",
+  "waiting": [
+    {
+      "v": 1,
+      "id": "w_2u7pMTAjGq-b7ZO0",
+      "decisionId": "d_EuOT40SlklEeVgRS",
+      "to": [
+        "phone"
+      ],
+      "at": "2026-10-11T09:48:46Z",
+      "state": "waiting",
+      "dir": {
+        "length": 2,
+        "head": "E1ECiKiMzIs6c9sdhVtGFvqcmcK_4JVHHEtVZCKMpJs"
+      }
+    }
+  ],
+  "permissions": [],
+  "settled": [],
+  "judge": {
+    "cold": true,
+    "consequences": true,
+    "terminal": false,
+    "links": null,
+    "plain": true,
+    "skim": true,
+    "notes": "The terminal message only reports the card and a later `starbridge wait` call instead of asking the user a question and waiting for a reply."
+  }
+}
