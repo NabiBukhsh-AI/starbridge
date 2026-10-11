@@ -190,12 +190,15 @@ enum Notify {
     /** Closes every notification about item `id`: answered, settled, or snoozed elsewhere. */
     static func removeDelivered(about id: String) async { await removeDelivered(about: [id]) }
 
-    /** Closes every notification about any of `items`. */
+    /** What a notification is about, to close it: its item, or a join by digits. */
+    private static func about(_ p: JSON) -> String? { p["kind"]?.string == "join" ? p["id"]?.string : item(p) }
+
+    /** Closes every notification about any of `items`, or about any of those joins. */
     static func removeDelivered(about items: Set<String>) async {
         guard !items.isEmpty else { return }
         let center = UNUserNotificationCenter.current()
         let ids = await center.deliveredNotifications()
-            .filter { items.contains($0.request.identifier) || payload($0.request.content.userInfo).flatMap(item).map(items.contains) == true }
+            .filter { items.contains($0.request.identifier) || payload($0.request.content.userInfo).flatMap(about).map(items.contains) == true }
             .map(\.request.identifier)
         if !ids.isEmpty { center.removeDeliveredNotifications(withIdentifiers: ids) }
     }

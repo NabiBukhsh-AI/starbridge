@@ -39,7 +39,8 @@ extension Store {
         guard on else { return }
         watchTask = Task { [weak self] in
             var cursor = "0"
-            while let self, !Task.isCancelled {
+            // A release the server refuses stops asking until it is updated, as the sync does.
+            while let self, !Task.isCancelled, tooOld == nil {
                 guard phase == .ready else { return }
                 do {
                     let (list, next) = try await api().joins(after: cursor, wait: 50)
@@ -84,6 +85,8 @@ extension Store {
                     if now.state == "cancelled" { throw Notice(message: "\(ask.name) cancelled the request.") }
                     guard let joinerKey = now.joinerKey else { continue }
                     let keys = try Joins.approverKeys(mine: eph, joinerKey: joinerKey, request: view.request, commitment: view.commitment)
+                    // Refused meanwhile: the digits must not come back with Approve.
+                    guard !Task.isCancelled else { return }
                     compared = Compared(join: view, body: body, keys: keys)
                     comparison = .digits(ask, keys.digits)
                     return
