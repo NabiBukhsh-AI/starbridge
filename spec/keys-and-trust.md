@@ -76,7 +76,10 @@
   machines included (#363, #364). A recovering device holds no pin, so a server could serve it a
   chain cut short of a revocation; revoking everyone means no fork keeps a revoked member. The
   owner then pairs what they still have again. The recovery key never signs a `revoke` or a plain
-  `add`.
+  `add`. A retry after a lost reply keeps the first attempt's keys (#274) only while the chain
+  lacks that member or a `recover` entry added it: a server holding an old device's key could
+  serve a fork where that device added the same member, and skipping the `recover` entry would
+  keep it in (#1132).
 - **Withheld revocations** (#280, #362). A member cannot tell a current directory from one the
   server cut short, so detection is on contact, both ways. Devices sign the directory head they
   hold into each answer (`dir`); a machine refuses every device answer while an active device has
