@@ -94,7 +94,7 @@ class NotifierTest {
         assertEquals("ls #\\u202E hs", p.fullInput)
     }
 
-    // With "Quick Allow" on, both Allows send (#390).
+    // With "Allow from notifications" on, both Allows send (#390).
     @Test
     fun theUnsafeSettingSendsFromTheShadeAndTheLockScreen() {
         val prefs = Prefs(context)

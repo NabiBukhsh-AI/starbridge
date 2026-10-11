@@ -11,6 +11,8 @@
 - Caps (#27, #36, #37): 10 subscriptions a device, 30 an account; 4 pushes in flight and 200
   waiting per account, 10 s each. A push connects to the exact address that passed the
   private-range check, and is sent only if its subscription and device are still active (#260).
+  An IPv6 address that embeds an IPv4 one (IPv4-compatible, IPv4-mapped, NAT64, 6to4) is judged
+  by that IPv4 address, since a translator on a self-hoster's network can route it there (#1095).
 - A server's VAPID key can change, as when a self-hoster leaves the relay for their own keys
   (#567). Each page boot compares the browser's subscription key with the server's and subscribes
   again when they differ. The server drops a Web Push subscription its push service refuses with
@@ -50,7 +52,7 @@
   the owner's machines or devices says they sit at its screen, the push of a question, a
   permission prompt or a waiting flip waits for every device not itself in use, and goes only if
   nothing answered it meanwhile. It waits as long as the owner stays, then the account's hold time
-  (30 s by default, off to 2 minutes in Settings) from when the last screen stopped saying so
+  (30 s by default; 0 s to 1 minute, or off, in Settings) from when the last screen stopped saying so
   (#1003): a fixed time from the question rang the phone at a desk the owner never left, and
   timed a walk away from the wrong moment. Coming back within the hold time holds again. What
   bounds a hold is each source's own reading, input in the last minute, so a Mac left unlocked

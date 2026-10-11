@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { drafts } from "@/lib/drafts";
 import {
   byMachine,
   closedToday,
@@ -74,12 +75,6 @@ const text = (e: Entry) =>
     : e.type === "question"
       ? [e.item.decision.question, e.item.decision.context, e.item.decision.source.sessionTitle]
       : [e.item.run.title, e.item.run.reason];
-
-/**
- * Replies typed but not sent, by question, until the page reloads (#992): one survives its detail
- * moving between the phone and wide layouts, and a visit to Settings, as Android keeps them.
- */
-const drafts = new Map<string, string>();
 
 export function Inbox() {
   const app = useApp();

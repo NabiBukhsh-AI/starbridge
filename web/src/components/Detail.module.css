@@ -221,9 +221,10 @@
     margin var(--t-state);
 }
 
-/* Filled while the agent waits: the same ground as its row (#191). */
+/* Filled while the agent waits: the same ground as its row (#191). The fill reaches past the
+   text by `--head-bleed`, which a pane with no room around it sets to 0. */
 .head.blocks {
-  margin: calc(-1 * var(--s4)) calc(-1 * var(--s4)) 0;
+  margin: calc(-1 * var(--head-bleed, var(--s4))) calc(-1 * var(--head-bleed, var(--s4))) 0;
   padding: var(--s4);
   border-radius: var(--radius-lg);
   background: var(--accent-soft);

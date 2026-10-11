@@ -52,7 +52,7 @@
 - **Find** matches every word in the machine, repo, the agent's words, the session and a History
   item's answer. On the web it lists open matches, then History's; Android uses Material 3's
   search view.
-- **Answer buttons** (#138, #166): "Answer buttons on questions", Always (default), When the agent
+- **Answer buttons** (#138, #166): "Answer buttons on narrow screens", Always (default), When the agent
   waits, or Never, applies under 1100 px. More than two options, or a label over 18 characters,
   stack. `answerIn` and typed-only questions have no buttons.
 - **Typed answers** (#562): Enter sends, Shift+Enter starts a new line, on the web and with an
@@ -101,7 +101,7 @@
   429 `rate-limited`. A 429 without `Retry-After` is a cap and reaches the caller at once.
 - **Settings** (#914) in the same sections on both clients: Notifications (what decides whether
   something notifies here: Android's channels or this device's switch (#943), the hold, the web's
-  sound, Android's Quick Allow), Quotas (see items.md, "Quota alerts per window"), the Inbox's,
+  sound, Android's Allow from notifications), Quotas (see "Quota alerts per window"), the Inbox's,
   Devices, Look (colours and the clock) and Account (the server, Android's push delivery, agent
   instructions, sign out). They had grown one issue at a time: the hold sat under Inbox on the web
   and under Notifications on Android, and push delivery, a connection setting, sat with

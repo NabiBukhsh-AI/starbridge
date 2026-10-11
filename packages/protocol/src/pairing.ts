@@ -100,6 +100,19 @@ export function appPairingLink(server: string, code: PairingCode, checkKey: stri
   return `starbridge://pair?server=${encodeURIComponent(server.slice(0, end))}&k=${checkKey}#${formatPairingCode(code)}`;
 }
 
+/**
+ * The text a machine's QR code carries, for the Android app's own scanner alone:
+ * `starbridge-pair?server=<server>&k=<check key>#<code>`. It names no scheme, so a phone's camera
+ * shows it as text instead of handing it to whichever app claims a link, and the check key reaches
+ * only the app that scanned it. Its query and `#` are where `checkKeyFromLink` and `codeFromLink`
+ * read a `starbridge://pair` link's.
+ */
+export function machineQrText(server: string, code: PairingCode, checkKey: string): string {
+  let end = server.length;
+  while (end > 0 && server[end - 1] === "/") end--;
+  return `starbridge-pair?server=${encodeURIComponent(server.slice(0, end))}&k=${checkKey}#${formatPairingCode(code)}`;
+}
+
 /** A code typed by hand, or read from a scanned pairing link: the part after `#` if any. */
 export function codeFromLink(text: string): PairingCode {
   const hash = text.indexOf("#");

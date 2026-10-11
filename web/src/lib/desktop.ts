@@ -41,6 +41,9 @@ export type DesktopBridge = {
     account: "ready" | "signedOut" | "loading";
     entries: DesktopEntry[];
   }): void;
+  /** Absent in older apps. */
+  shown?(): boolean;
+  onShown?(f: (() => void) | null): void;
   onAnswer(f: (a: DesktopAnswer) => Promise<void>): void;
   onOpen(f: (id: string) => void): void;
 };

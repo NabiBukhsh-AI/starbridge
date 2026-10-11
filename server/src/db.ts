@@ -220,7 +220,16 @@ const V4 = "ALTER TABLE members ADD COLUMN notify TEXT;";
 /** Which app each device last reported its notifications from (#1019): android, web or desktop. */
 const V5 = "ALTER TABLE members ADD COLUMN client TEXT;";
 
-export const MIGRATIONS = [V1, V2, V3, V4, V5];
+/**
+ * The CLI release each machine runs and the latest it knows (#1050), as it last said; unset
+ * until it says.
+ */
+const V6 = `
+ALTER TABLE members ADD COLUMN cli_version TEXT;
+ALTER TABLE members ADD COLUMN cli_latest TEXT;
+`;
+
+export const MIGRATIONS = [V1, V2, V3, V4, V5, V6];
 
 /** The `user_version` this server brings a database to. */
 export const SCHEMA_VERSION = MIGRATIONS.length;

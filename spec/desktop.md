@@ -58,7 +58,9 @@ a browser; the app adds a menu bar light and notifications, so a web release nee
   52 px strip across the top, macOS's toolbar height, drags the window. Pages without the rail
   (sign-in, docs) leave that strip empty in the page's background; under 600 px it takes the top
   bar's colour. The window keeps the name "Starbridge" for Mission Control and
-  the Window menu, whatever the page's title.
+  the Window menu, whatever the page's title. Under the page, the window shows the page's last
+  background, else the system theme's (#1072): a fixed dark one flashed black in light mode
+  whenever the page reloaded.
 - **Presence** (#945). The window in use holds pushes as a web page does (#848). Hidden, it said
   absent while the owner worked in another app, so the phone buzzed at a desk. Electron's
   `powerMonitor` reads what the CLI's machine presence reads: lock, sleep and wake, and the

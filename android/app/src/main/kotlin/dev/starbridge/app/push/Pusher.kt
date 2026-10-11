@@ -40,13 +40,13 @@ class Pusher(private val context: Context, private val store: ServerStore, priva
     private fun useFcm() {
         runCatching { UnifiedPush.unregister(context) }
         if (FirebaseApp.getApps(context).isEmpty()) {
-            store.say("This build has no Firebase project, so Google push is off. In Settings, set \"Delivered through\" to UnifiedPush.")
+            store.say("This build has no Firebase project, so Google push is off. In Settings, set \"Notifications delivered through\" to UnifiedPush.")
             return
         }
         FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
             if (!task.isSuccessful) {
                 Log.w("Starbridge", "FCM token failed", task.exception)
-                store.say("Google push is not available on this phone. In Settings, set \"Delivered through\" to UnifiedPush.")
+                store.say("Google push is not available on this phone. In Settings, set \"Notifications delivered through\" to UnifiedPush.")
                 return@addOnCompleteListener
             }
             scope.launch {

@@ -157,8 +157,8 @@ setup then leaves that harness alone until `starbridge setup --agent <name>`:
   pi-permission-system, setup adds, and `starbridge config permissions on` offers,
   allow rules, so that Pi loads the `starbridge` skill and reads the files in its
   folder without a prompt, and the Starbridge link in its `authorizerChain`, so
-  that `starbridge ask`, `waiting`, `working`, `wait` and `settle` run without a
-  permission prompt when the command is only that. Other reads and commands still ask.
+  that `starbridge ask`, `waiting`, `working`, `wait`, `settle` and `hello` run
+  without a permission prompt when the command is only that. Other reads and commands still ask.
 - opencode: the skill, in `~/.config/opencode/skills/starbridge`, and the
   Starbridge plugin, in `~/.config/opencode/plugins/starbridge.ts` with its code
   in `~/.config/opencode/starbridge/`. The plugin brings the rules, brings your

@@ -28,6 +28,13 @@ class InboxOrderTest {
     }
 
     @Test
+    fun oneCallsQuestionsInTheCallsOrder() {
+        // #1079: the CLI stamps them a millisecond apart.
+        val decisions = (0L..3L).reversed().map { Decision("q$it", "q$it", "", emptyList(), null, source, t0.plusMillis(it)) }
+        assertEquals(listOf("q0", "q1", "q2", "q3"), openQuestions(decisions).map { it.id })
+    }
+
+    @Test
     fun promptsOldestFirst() {
         assertEquals(listOf("a", "b"), shownPrompts(listOf(prompt("b", 5), prompt("a", 0)), now).map { it.id })
     }

@@ -5,6 +5,13 @@
   script sets Zod's `jitless`. Styles allow `'unsafe-inline'` (React style attributes), images
   `data:` and `blob:`, `frame-ancestors 'none'`. Every page renders per request, except the
   landing page below. Caddy adds HSTS, `nosniff` and `Referrer-Policy: same-origin`.
+- **Tab switches wait on nothing** (#1072). Inbox, Quotas and Settings render on the client from
+  the app's own data, so their links prefetch the whole page and keep it for an hour
+  (`staleTimes.static`): a switch paints in one frame instead of a round trip to the server
+  (80–150 ms at starbridge.run's 55 ms). A page of an older build reloads in full on its next
+  navigation that reaches the server, and starbridge.run deploys many times a day; so a hidden page
+  asks `/build` every 5 minutes and reloads onto a new build, unless a reply is typed or it is
+  off the three tabs, where a reload would lose work.
 - **Landing page HTML** (#694). A request for `/` without the session cookie gets the whole
   landing page from the server, with its own title, description and link preview
   (`public/og.png`), so link previews and crawlers see it and a first visit is never blank. The
@@ -28,7 +35,10 @@
 - **Notifications.** The service worker shows one per question and closes it once answered. Its
   actions answer only for the account it was shown for (#274). Signing out, revocation or adopting
   new keys closes them all (#311).
-- **Sound**: off by default, while a page is open only; a service worker cannot play audio.
+- **Sound**: off by default. The page plays it when a push reaches it, since a service worker
+  cannot play audio, so it needs an open page and this browser's notifications: while they are
+  off the switch shows off, and turning it on asks for them first (#1061). A closed web app
+  sounds as the system does.
 - **Layout.** Panes resize by dragging or arrow keys. From an 840 px page, Quotas is one table and
   providers reorder by drag or keys; a group that "Running out first" pins shows a pin with a
   popover explaining why (#296, #351). The detail pane widens with the window (DESIGN.md `wide`).

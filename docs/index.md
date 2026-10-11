@@ -81,6 +81,8 @@ keeps its conversation:
 | Codex | `codex resume --last` | `codex resume` |
 | Pi | `pi --continue` | `pi --resume` |
 | opencode | `opencode --continue` | `opencode --session <id>` |
+| Cursor | `cursor-agent --continue` | `cursor-agent --resume` |
+| Antigravity | `agy --continue` | `agy --conversation <id>` |
 
 Run the command in the session's own directory, since the last session is per directory.
 

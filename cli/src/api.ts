@@ -1,4 +1,9 @@
-import { CLIENT_HEADER, clientHeader, type SealedItem } from "@starbridge/protocol";
+import {
+  CLIENT_HEADER,
+  clientHeader,
+  type MachineRelease,
+  type SealedItem,
+} from "@starbridge/protocol";
 import { VERSION } from "./version";
 
 /** What every command and `status` say once the owner revoked this machine. */
@@ -135,6 +140,11 @@ export class Api {
   /** Whether the owner sits at this machine's screen (#848): the one bit the server hears. */
   async presence(present: boolean, signal?: AbortSignal): Promise<void> {
     await this.call("PUT", "/presence", { body: { present }, ...(signal ? { signal } : {}) });
+  }
+
+  /** The CLI release this machine runs and the latest it knows, for the devices (#1050). */
+  async release(body: MachineRelease, signal?: AbortSignal): Promise<void> {
+    await this.call("PUT", "/release", { body, ...(signal ? { signal } : {}) });
   }
 
   async postItem(item: SealedItem, signal?: AbortSignal): Promise<void> {

@@ -75,8 +75,8 @@
   keeps the pairing.
 - **The pairing link** `https://starbridge.run/pair#CODE`, which `pair` prints and a device shows
   as a QR code, is also an App Link (#611): a phone's camera hands links to apps, not to a browser
-  that would first ask to become a device itself. A machine's QR code is a `starbridge://pair`
-  link instead (#795), which the app opens on any server. The app
+  that would first ask to become a device itself. A machine's QR code is text only the app's
+  scanner reads instead (#795, #1099). The app
   opens Add a device with the code looked up, once the phone is in the account; a phone signed in
   but not in the account yet joins with it instead, as another device's "Scan with the new phone"
   code asks. Without the app,
@@ -211,3 +211,21 @@
   running `.exe` but lets it be renamed, so `update` moves it aside to `starbridge.exe.old` and
   the next update removes that; `uninstall` deletes the binary from a detached cmd.exe two seconds
   after it exits (#552).
+- **Saying a release is out** (#1050). Before it, users learned of a new CLI only from the
+  server's 426 once a release was forced. A nudge, not a silent update, since an update
+  replaces the binary that hooks run mid-session and rewrites files in other tools. Once a day
+  the local agent reads GitHub's `releases/latest` (no drafts or pre-releases), unauthenticated
+  with the ETag of its last answer, since a 304 costs nothing from the 60 requests an hour an
+  address gets, and a 10 s timeout; a failure changes nothing and is tried an hour later. It
+  keeps the answer in `latest.json`, so commands read it without the network. `setup`, `pair`,
+  `config`, `--version` and help, run in a terminal, end with one line on stderr when it is
+  newer, naming `starbridge update` or brew's or npm's command; hooks, `ask`, `wait` and every
+  other command an agent runs never print it, nor does any command whose stderr is not a
+  terminal. `status` shows both versions. The machine also tells the server its release and the
+  latest it read (`PUT /release`), and Devices shows "Update available" under a machine that is
+  behind, with no notification. Self-hosted machines read GitHub too, not their server:
+  `update` installs from GitHub's releases whatever the server, the server's own version says
+  nothing about the CLI's, and a server would need a GitHub client and a route to relay what
+  every machine can read itself. `config update-check off` stops the check and the line, and the
+  machine then reports no latest; `STARBRIDGE_NO_UPDATE_CHECK=1` does the same wherever it is
+  set, which for the agent means its service's environment.

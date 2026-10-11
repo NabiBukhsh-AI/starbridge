@@ -2,8 +2,9 @@ name: release
 
 # A v1.2.3 or v1.2.3-rc.4 tag publishes a GitHub Release with the signed APK and App Bundle, the CLI binaries,
 # install.sh, install.ps1, the macOS app once vars.DESKTOP_RELEASE is true, and their checksums, signed with minisign, then updates the Homebrew tap (not for -rc)
-# and npm, once the APK passed the Android smoke test. Run by hand, it builds the same files as workflow
-# artifacts and releases nothing. CONTRIBUTING.md, "Release", says how to cut one: an rc first, then the final.
+# and npm, once the APK passed the Android smoke test, then sends the App Bundle to Google Play. Run by hand on a
+# branch, it builds the same files as workflow artifacts and releases nothing; promote.yml runs it on a final's tag.
+# CONTRIBUTING.md, "Release", says how to cut one: an rc first, then its promotion to the final.
 on:
   push:
     tags: ["v*"]
@@ -56,6 +57,34 @@ jobs:
         env:
           VERSION: ${{ steps.v.outputs.version }}
         run: bun cli/scripts/version.ts --final "$VERSION"
+      # The page and server deploy from main ahead of any tag; a release waits until starbridge.run,
+      # which the testers' and Play reviewers' apps talk to, runs what it ships. The deploy rebuilds
+      # the demo server from the same commit. A final ships its rc's commit plus the stamp.
+      - if: startsWith(github.ref, 'refs/tags/v')
+        name: starbridge.run runs this release's commit
+        timeout-minutes: 45
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.v.outputs.version }}
+        run: |
+          case $VERSION in
+            *-rc.*) want=$(git rev-parse HEAD) ;;
+            *) want=$(git rev-parse "$(git tag -l "v$VERSION-rc.*" --sort=-v:refname | head -n1)^{commit}") ;;
+          esac
+          # A failed poll waits like any other: the step's timeout is the limit.
+          while :; do
+            got=$(curl -fsS --retry 5 --retry-all-errors -D - -o /dev/null https://starbridge.run/healthz |
+              tr -d '\r' | awk -F': ' 'tolower($1) == "x-starbridge-revision" { print $2 }') || got=
+            case $got in *[!0-9a-f]*) got= ;; esac
+            if [ ${#got} -eq 40 ]; then
+              # Not gh: some self-hosted runners lack it (dell2-2).
+              status=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
+                "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/compare/$want...$got?per_page=1" | jq -r .status) || status=
+              case $status in identical | ahead) echo "starbridge.run runs $got"; break ;; esac
+            fi
+            echo "starbridge.run runs ${got:-no commit id}, not $want or later; waiting for the deploy"
+            sleep 30
+          done
 
   android:
     needs: version
@@ -293,7 +322,8 @@ jobs:
           gh release create "v$VERSION" out/* --repo "$GITHUB_REPOSITORY" --title "v$VERSION" --notes-file notes.md \
             $(case $VERSION in *-rc.*) echo --prerelease ;; esac)
 
-  # The App Bundle to Play's Alpha track, the testers' track, rcs included (#1024). Run by hand on main,
+  # The App Bundle to Play's Alpha track, the testers' track, rcs included (#1024). A final goes to production
+  # instead once the PLAY_PRODUCTION variable is true (#1070), which Play allows after a 12-tester closed test. Run by hand on main,
   # Play only validates it, so dispatch a version above every code Play has seen. No key exists: Google's
   # workload identity federation trades the job's OIDC token for a short-lived token of the starbridge-play
   # service account, and trusts only this repository's play-release environment, open to main and v*
@@ -340,18 +370,21 @@ jobs:
           create_credentials_file: false
           export_environment_variables: false
       - if: steps.setup.outputs.set
-        name: Upload to Alpha
+        name: Upload to Play
         env:
           PLAY_ACCESS_TOKEN: ${{ steps.auth.outputs.access_token }}
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.version.outputs.version }}
           TAG: ${{ startsWith(github.ref, 'refs/tags/v') }}
+          PRODUCTION: ${{ vars.PLAY_PRODUCTION }}
         run: |
+          track=alpha
+          case $VERSION in *-rc.*) ;; *) [ "$PRODUCTION" = true ] && track=production ;; esac
           if [ "$TAG" = true ]; then
             gh release view "v$VERSION" --repo "$GITHUB_REPOSITORY" --json body --jq .body > notes.md
-            bun cli/scripts/play.ts "out/starbridge-$VERSION.aab" "$VERSION" notes.md
+            bun cli/scripts/play.ts "out/starbridge-$VERSION.aab" "$VERSION" notes.md --track "$track"
           else
-            bun cli/scripts/play.ts "out/starbridge-$VERSION.aab" "$VERSION" dry-run/notes.md --validate
+            bun cli/scripts/play.ts "out/starbridge-$VERSION.aab" "$VERSION" dry-run/notes.md --track "$track" --validate
           fi
 
   homebrew:

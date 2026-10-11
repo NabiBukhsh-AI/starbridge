@@ -188,6 +188,7 @@ async function ask(
   const failed = new AbortController();
   const stop = AbortSignal.any([signal, failed.signal, AbortSignal.timeout(HOLD_MS)]);
   const ids: (string | undefined)[] = [];
+  const at = ctx.now().getTime();
   const results = await Promise.allSettled(
     questions.map(async (q, i) => {
       const sub: Ctx = { ...ctx, signal: stop, err: () => {} };
@@ -199,6 +200,7 @@ async function ask(
         held: true,
         picker: thread,
         waiting: true,
+        askedAt: new Date(at + i),
       };
       try {
         ({ id: ids[i] } = await postDecision(sub, s, resolveSource(input, ctx.env, cwd)));

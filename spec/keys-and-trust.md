@@ -36,9 +36,12 @@
   code and asking `Same code? [Y/n]`, Enter for yes, if the Android app shows the same; the
   browser shows it too, after Approve, for an owner with no app. Tom chose one keypress over
   typing a group, and Enter over `y` (2026-10-08), accepting that an agent running setup, or a
-  stray Enter, can confirm it. The QR code is a `starbridge://pair` link, as Signal's
-  `sgnl://linkdevice` and WhatsApp's in-app scan are, rather than an https one, which a phone
-  without the app would open in a browser and so hand the key to the server (Tom, 2026-10-08).
+  stray Enter, can confirm it. The QR code is text with no scheme, read by the app's own scanner
+  as WhatsApp's in-app scan is (#1099): the check key lets the machine skip the question, so it
+  must reach that scanner alone, and a phone's camera shows the text instead of opening an app
+  with it. An https link would hand the key to the server on a phone without the app (Tom,
+  2026-10-08). Without that scanner, the owner opens the printed link or types the code, and the
+  machine asks.
   Devices shows a machine's code, as "Same code as on the machine?", only while the machine
   can still ask: for `CHECK_CONFIRM_MS` (10 minutes, in `packages/protocol`) from its `add`
   entry, the time `starbridge pair` waits for an answer (#939). After that the code answers no
@@ -156,5 +159,8 @@
   counts below its release) with 426 `client-too-old`, and serves a request without the header,
   so curl and scripts keep working. The CLI then says to run `starbridge update` and exits 1; the
   web shows one "Starbridge was updated" screen with Reload; Android shows an error that names
-  Google Play. Usage counts each member's first release of the day once
+  Google Play. The server and page deploy from main ahead of any tag, so main serves every release
+  from the minimum up and changes the protocol only by adding to it; a minimum rises only to a
+  final that has been the latest release for 14 days, once the update nudge has reached machines
+  and Play testers have moved past its rcs (#1070). Usage counts each member's first release of the day once
   (`active.clients.<name>.<major>.<minor>`), so made-up versions add one row a day.
