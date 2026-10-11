@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import StarbridgeProtocol
 
@@ -24,10 +25,12 @@ struct SavedDecision: Codable, Equatable {
     var waitingAt: String?
     var snoozedUntil: String?
     var snoozedAt: String?
+    /** Its images, opened from the item's blobs once, as it is kept (#685); a broken one is left out. */
+    var images: [SavedImage] = []
     let body: Decision
 
     enum CodingKeys: String, CodingKey {
-        case from, text, answeredAt, answer, theirAnswer, answeredBy, settled, reason, waiting, waitingAt, snoozedUntil, snoozedAt
+        case from, text, answeredAt, answer, theirAnswer, answeredBy, settled, reason, waiting, waitingAt, snoozedUntil, snoozedAt, images
     }
 
     init(from: String, text: String, answeredAt: String?) throws {
@@ -51,6 +54,7 @@ struct SavedDecision: Codable, Equatable {
         waitingAt = try c.decodeIfPresent(String.self, forKey: .waitingAt)
         snoozedUntil = try c.decodeIfPresent(String.self, forKey: .snoozedUntil)
         snoozedAt = try c.decodeIfPresent(String.self, forKey: .snoozedAt)
+        images = try c.decodeIfPresent([SavedImage].self, forKey: .images) ?? []
         body = try parsedBody("decision", text)
     }
 
@@ -62,6 +66,53 @@ struct SavedDecision: Codable, Equatable {
         guard isOpen, let until = snoozedUntil.flatMap(Dates.parse) else { return nil }
         if let at = snoozedAt.flatMap(Dates.parse), until <= at { return nil }
         return until > Date() ? until : nil
+    }
+}
+
+/**
+ * An image of a question, opened: the shape its body names, its bytes in a file of their own
+ * beside the saved state, so the state the app rewrites and the notification extension reads
+ * stays small.
+ */
+struct SavedImage: Codable, Equatable {
+    let type: String
+    let width: Int
+    let height: Int
+    let alt: String?
+    /** The file's name in `SavedImage.directory`. */
+    let file: String
+
+    /** Where the images live: an `images` folder beside the saved state, set by the store. */
+    nonisolated(unsafe) static var directory = FileManager.default.temporaryDirectory.appendingPathComponent("images")
+
+    /** Writes `image`'s bytes as the `index`th image of question `decision`; nil when it cannot. */
+    init?(_ image: ShownImage, decision: String, index: Int) {
+        type = image.type
+        width = image.width
+        height = image.height
+        alt = image.alt
+        file = "\(decision).\(index)"
+        do {
+            try FileManager.default.createDirectory(at: Self.directory, withIntermediateDirectories: true)
+            try Data(image.data).write(to: Self.directory.appendingPathComponent(file), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        } catch {
+            return nil
+        }
+    }
+
+    var bytes: Data { (try? Data(contentsOf: Self.directory.appendingPathComponent(file))) ?? Data() }
+    var aspect: CGFloat { height > 0 ? CGFloat(width) / CGFloat(height) : 1 }
+
+    /** A question's images that open from `item`'s blobs, each written to its file. */
+    static func keep(_ item: SealedItem, _ d: Decision) -> [SavedImage] {
+        Images.open(item, images: d.images).enumerated().compactMap { SavedImage($1, decision: d.id, index: $0) }
+    }
+
+    /** Deletes the files of questions no longer kept. */
+    static func prune(keeping decisions: [SavedDecision]) {
+        let kept = Set(decisions.flatMap { $0.images.map(\.file) })
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        for name in names where !kept.contains(name) { try? FileManager.default.removeItem(at: directory.appendingPathComponent(name)) }
     }
 }
 

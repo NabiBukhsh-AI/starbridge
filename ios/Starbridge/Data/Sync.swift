@@ -279,7 +279,8 @@ extension Store {
                     }
                     continue
                 }
-                guard let o = open(listed.item, entries: entries), let d = try? SavedDecision(from: o.from, text: o.text, answeredAt: listed.answeredAt) else { continue }
+                guard let o = open(listed.item, entries: entries), var d = try? SavedDecision(from: o.from, text: o.text, answeredAt: listed.answeredAt) else { continue }
+                d.images = SavedImage.keep(listed.item, d.body)
                 byId[d.id] = settledBy(o.from).map { closed(d, by: $0) } ?? d
             }
             cursor = page.cursor
@@ -293,6 +294,7 @@ extension Store {
         s.cursor = cursor
         s.decisions = Array(byId.values.sorted { $0.body.createdAt < $1.body.createdAt }.suffix(500))
         persist(s)
+        SavedImage.prune(keeping: s.decisions)
     }
 
     /** `d` as its machine's notice closed it, with the agent's reason for a withdrawal (#1008). */
