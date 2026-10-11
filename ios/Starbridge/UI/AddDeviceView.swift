@@ -38,11 +38,15 @@ private struct PairCard: View {
     @State private var scanError: String?
 
     var body: some View {
-        switch store.approval {
-        case let .found(j), let .approving(j): asking(j)
-        case let .showing(code, link): showing(code: code, link: link)
-        default: ways
+        Group {
+            switch store.approval {
+            case let .found(j), let .approving(j): asking(j)
+            case let .showing(code, link): showing(code: code, link: link)
+            default: ways
+            }
         }
+        // The approved code is spent: the card offers the next pairing with an empty field.
+        .onChange(of: store.approval) { _, now in if case .done = now { code = "" } }
     }
 
     /** A request to approve needs the owner, so it carries the accent dot. */
@@ -122,8 +126,6 @@ private struct PairCard: View {
             .buttonStyle(Secondary())
             .disabled(code.trimmingCharacters(in: .whitespaces).isEmpty || store.approval == .checking)
         }
-        // The approved code is spent: the card offers the next pairing with an empty field.
-        .onChange(of: store.approval) { _, now in if case .done = now { code = "" } }
         .sheet(isPresented: $scanning) {
             QRScanner { text in
                 scanning = false
