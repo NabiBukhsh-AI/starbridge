@@ -247,3 +247,8 @@ enum Dates {
         return f.string(from: date)
     }
 }
+
+extension Decision {
+    /** The options, the agent's default first (spec/items.md, #191). */
+    var ordered: [String] { recommended.map { r in [r] + options.filter { $0 != r } } ?? options }
+}

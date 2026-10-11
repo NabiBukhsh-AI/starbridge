@@ -68,8 +68,7 @@ enum Notify {
         if let page = d.answerIn {
             actions.append(NotificationAction(id: "page", title: "Answer in \(page.title ?? URL(string: page.url)?.host() ?? page.url)", foreground: true))
         } else {
-            let ordered = d.recommended.map { r in [r] + d.options.filter { $0 != r } } ?? d.options
-            actions += ordered.prefix(3).map { NotificationAction(id: optionPrefix + $0, title: $0) }
+            actions += d.ordered.prefix(3).map { NotificationAction(id: optionPrefix + $0, title: $0) }
             if d.options.isEmpty || d.replies == true {
                 actions.append(NotificationAction(id: "reply", title: d.options.isEmpty ? "Answer" : "Reply", text: true))
             }
