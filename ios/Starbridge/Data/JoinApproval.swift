@@ -74,7 +74,7 @@ extension Store {
                     let now: JoinView
                     do {
                         now = try await api().join(id: id, after: after, wait: 60)
-                    } catch let e as URLError where e.code != .cancelled {
+                    } catch where Self.transient(error) {
                         // Giving up would lose this iPhone's key, and the server takes one.
                         if (view.expiresAt ?? .distantPast) < Date() { throw Notice(message: "The request expired.") }
                         try await Task.sleep(for: .seconds(5))
@@ -116,11 +116,11 @@ extension Store {
             try await api().approveJoin(id: c.join.id, approval: try Joins.approval(body, keys: c.keys))
             compared = nil
             comparison = .done("\(r.name) joined.")
+            await Notify.removeDelivered(about: c.join.id)
         } catch {
             // The server holds this iPhone's key for the join, so a blip keeps the digits and
             // their keys for another try; the entry appended already is reused.
-            let transient = error is URLError || ((error as? ApiError).map { $0.status >= 500 || $0.status == 429 } ?? false)
-            comparison = transient ? .digits(ask, digits, error: describe(error)) : .failed(describe(error))
+            comparison = Self.transient(error) ? .digits(ask, digits, error: describe(error)) : .failed(describe(error))
         }
     }
 
@@ -131,7 +131,15 @@ extension Store {
         compared = nil
         try? await api().cancelJoin(id: id)
         joinAsks.removeAll { $0.id == id }
+        // The join's push is collapsed under its id: "A device wants to join" goes with it.
+        await Notify.removeDelivered(about: id)
         comparison = .done(differed ? "Refused \(name): the digits differed." : "Refused \(name).")
+    }
+
+    /** A failure worth another try: offline, or the server restarting or limiting. */
+    private static func transient(_ error: Error) -> Bool {
+        if let e = error as? URLError { return e.code != .cancelled }
+        return (error as? ApiError).map { $0.status >= 500 || $0.status == 429 } ?? false
     }
 
     func closeComparison() {
