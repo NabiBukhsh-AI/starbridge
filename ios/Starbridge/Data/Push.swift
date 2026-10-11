@@ -50,7 +50,8 @@ extension Store {
         var s = saved
         switch listed.item.kind {
         case .decision:
-            guard let d = try? SavedDecision(from: o.from, text: o.text, answeredAt: listed.answeredAt), decision(id) == nil else { return }
+            guard var d = try? SavedDecision(from: o.from, text: o.text, answeredAt: listed.answeredAt), decision(id) == nil else { return }
+            d.images = Images.open(listed.item, images: d.body.images).map(SavedImage.init)
             s.decisions.append(d)
         case .permission:
             guard let p = try? SavedPrompt(from: o.from, text: o.text, answeredAt: listed.answeredAt), prompt(id) == nil else { return }

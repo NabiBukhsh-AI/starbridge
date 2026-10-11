@@ -183,5 +183,28 @@ final class InboxTests: XCTestCase {
         XCTAssertEqual(store.decision("d_three")?.answer, "No")
         got = try await answers()
         XCTAssertEqual(got.first { $0.decisionId == "d_three" }?.choice, "No")
+
+        // --- An image, opened as the question is kept; then a snooze, and Back now (#1131) ---
+        let png = Array("not really a png".utf8)
+        let (blob, ref) = Images.seal(png)
+        let pictured = try Envelopes.seal(kind: .decision, body: .object([
+            "v": 1, "id": "d_four", "to": [.string(phone.id)], "createdAt": .string(now()), "question": "Which one?", "context": "",
+            "options": [], "source": source,
+            "images": [["key": .string(ref.key), "hash": .string(ref.hash), "type": "image/png", "width": 20, "height": 10]],
+        ]), signer: machine.id, secretKey: keys.sign.secretKey, recipients: [phone])
+        var withBlob = try XCTUnwrap(pictured.json.object)
+        withBlob["blobs"] = [.string(blob)]
+        try await call(machineToken, "POST", "/items", .object(withBlob))
+        await store.refresh()
+        XCTAssertEqual(store.decision("d_four")?.images.first?.bytes, Data(png))
+        await store.snooze("d_four", until: Date().addingTimeInterval(3600))
+        XCTAssertNil(store.notice)
+        XCTAssertEqual(store.snoozedDecisions.map(\.id), ["d_four"])
+        XCTAssertFalse(store.openDecisions.contains { $0.id == "d_four" })
+        await store.refresh()
+        XCTAssertEqual(store.snoozedDecisions.map(\.id), ["d_four"])
+        await store.snooze("d_four", until: Date())
+        XCTAssertNil(store.notice)
+        XCTAssertTrue(store.openDecisions.contains { $0.id == "d_four" })
     }
 }

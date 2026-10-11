@@ -1,3 +1,4 @@
+import CoreGraphics
 import Foundation
 import StarbridgeProtocol
 
@@ -24,10 +25,12 @@ struct SavedDecision: Codable, Equatable {
     var waitingAt: String?
     var snoozedUntil: String?
     var snoozedAt: String?
+    /** Its images, opened from the item's blobs once, as it is kept (#685); a broken one is left out. */
+    var images: [SavedImage] = []
     let body: Decision
 
     enum CodingKeys: String, CodingKey {
-        case from, text, answeredAt, answer, theirAnswer, answeredBy, settled, reason, waiting, waitingAt, snoozedUntil, snoozedAt
+        case from, text, answeredAt, answer, theirAnswer, answeredBy, settled, reason, waiting, waitingAt, snoozedUntil, snoozedAt, images
     }
 
     init(from: String, text: String, answeredAt: String?) throws {
@@ -51,6 +54,7 @@ struct SavedDecision: Codable, Equatable {
         waitingAt = try c.decodeIfPresent(String.self, forKey: .waitingAt)
         snoozedUntil = try c.decodeIfPresent(String.self, forKey: .snoozedUntil)
         snoozedAt = try c.decodeIfPresent(String.self, forKey: .snoozedAt)
+        images = try c.decodeIfPresent([SavedImage].self, forKey: .images) ?? []
         body = try parsedBody("decision", text)
     }
 
@@ -63,6 +67,26 @@ struct SavedDecision: Codable, Equatable {
         if let at = snoozedAt.flatMap(Dates.parse), until <= at { return nil }
         return until > Date() ? until : nil
     }
+}
+
+/** An image of a question, opened: its bytes base64url, and the shape its body names. */
+struct SavedImage: Codable, Equatable {
+    let type: String
+    let width: Int
+    let height: Int
+    let alt: String?
+    let data: String
+
+    init(_ image: ShownImage) {
+        type = image.type
+        width = image.width
+        height = image.height
+        alt = image.alt
+        data = toB64(image.data)
+    }
+
+    var bytes: Data { Data((try? fromB64(data)) ?? []) }
+    var aspect: CGFloat { height > 0 ? CGFloat(width) / CGFloat(height) : 1 }
 }
 
 /** A machine's permission prompt as this iPhone keeps it. */

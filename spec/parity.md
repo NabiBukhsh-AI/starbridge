@@ -7,14 +7,14 @@ opens an issue for each client the row says should follow.
 
 | Feature | Web | Android | Desktop | iOS |
 |---|---|---|---|---|
-| Inbox order (runs, prompts, waiting, rest; group by machine / waiting) | yes | yes | yes | yes (#1122: one feed; grouping by machine or waiting not yet) |
-| Question card and answer buttons (setting: Always / When the agent waits / Never, under 1100 px) | yes | yes | yes | yes (#1122: buttons always on cards; the setting not yet) |
+| Inbox order (runs, prompts, waiting, rest; group by machine / waiting) | yes | yes | yes | yes (#1131: one feed, by machine or by waiting, remembered on the iPhone) |
+| Question card and answer buttons (setting: Always / When the agent waits / Never, under 1100 px) | yes | yes | yes | yes (#1131: the setting is in the inbox's ⋯ menu until iOS has Settings) |
 | Typed reply (field under the options, Enter sends) | yes | yes | yes | yes (#1122: field in the detail, the arrow sends; Return starts a new line) |
 | Drafts | yes (until the page reloads) | yes (survives rotation and process death) | yes (as web) | yes (#1122: until the app quits) |
-| Snooze | yes | yes | yes | not yet: snoozed questions show under Snoozed (#1122); snoozing from the iPhone not yet |
+| Snooze | yes | yes | yes | yes (#1131: in the detail, times in place under Snooze; the time in the system picker) |
 | Swipe to snooze | no (Android gesture; web has the Snooze control only) | yes (#692) | no (as web) | not yet |
 | History | yes | yes | yes | yes (#1122: answered questions, with how; prompts not listed) |
-| Find | yes (rail box) | yes (Material 3 search view) | yes | not yet |
+| Find | yes (rail box) | yes (Material 3 search view) | yes | yes (#1131: the system search field) |
 | Permission prompts, answer from the device (Allow / Deny) | yes | yes | yes | yes (#1122: Allow, Deny with a note, offered scopes) |
 | Runs (section, progress, dismiss) | yes | yes | yes | yes (#1122) |
 | Quotas tab | yes | yes | yes | not yet |

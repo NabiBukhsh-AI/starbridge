@@ -279,7 +279,8 @@ extension Store {
                     }
                     continue
                 }
-                guard let o = open(listed.item, entries: entries), let d = try? SavedDecision(from: o.from, text: o.text, answeredAt: listed.answeredAt) else { continue }
+                guard let o = open(listed.item, entries: entries), var d = try? SavedDecision(from: o.from, text: o.text, answeredAt: listed.answeredAt) else { continue }
+                d.images = Images.open(listed.item, images: d.body.images).map(SavedImage.init)
                 byId[d.id] = settledBy(o.from).map { closed(d, by: $0) } ?? d
             }
             cursor = page.cursor
