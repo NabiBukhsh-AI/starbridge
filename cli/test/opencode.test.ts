@@ -99,12 +99,12 @@ test("a question a card cannot offer as taps lists its options and takes a typed
   expect(q.context?.startsWith(long)).toBe(true);
 });
 
-test("a long question's asking sentence is the title and the rest leads the context", () => {
+test("a long question's asking sentence is the title and the whole question leads the context", () => {
   const findings = "The CI logs say the split won't speed up builds: tests recompile file by file.";
   const ask = "Close #504 or keep the split?";
   const q = questionInput({ question: `${findings} ${ask} Both are cheap.`, options: DB.options });
   expect(q.question).toBe(ask);
-  expect(q.context).toStartWith(`${findings}\nBoth are cheap.\n\n- `);
+  expect(q.context).toStartWith(`${findings} ${ask} Both are cheap.\n\n- `);
   // No sentence asks within 70 characters: the question stays whole, as before.
   const whole = `Which one, given ${"x".repeat(60)}?`;
   expect(questionInput({ question: whole })).toEqual({ question: whole, context: "" });

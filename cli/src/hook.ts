@@ -506,32 +506,22 @@ const clip = (text: string, max: number) =>
 const TITLE_CHARS = 70;
 
 /**
- * A question past a card title's length, split into its last sentence that asks within
- * TITLE_CHARS, and the rest, which leads the context (#1085). Agents put their findings in the
- * question, since the harness's ask tool has no context field. Undefined when no sentence fits.
+ * The title for a question past a card title's length: its last sentence that asks within
+ * TITLE_CHARS (#1085). Agents put their findings in the question, since the harness's ask tool
+ * has no context field. Undefined when no sentence fits.
  */
-export function splitQuestion(text: string): { title: string; rest: string } | undefined {
+export function questionTitle(text: string): string | undefined {
   if (text.length <= TITLE_CHARS) return undefined;
   // Where each sentence ends: a line break, or a space after . ? ! and a closing quote or bracket.
-  const breaks = [...text.matchAll(/\s*\n\s*|(?<=[.?!]["'”)\]]?)\s+/g)].map((m) => ({
-    at: m.index,
-    next: m.index + m[0].length,
-  }));
+  const breaks = [...text.matchAll(/\s*\n\s*|(?<=[.?!]["'”)\]]?)\s+/g)];
   let start = 0;
-  let found: { title: string; rest: string } | undefined;
-  for (const { at, next } of [...breaks, { at: text.length, next: text.length }]) {
-    const sentence = text.slice(start, at).trim();
-    if (sentence.endsWith("?") && sentence.length <= TITLE_CHARS)
-      found = {
-        title: sentence,
-        rest: [text.slice(0, start), text.slice(at)]
-          .map((t) => t.trim())
-          .filter(Boolean)
-          .join("\n"),
-      };
-    start = next;
+  let title: string | undefined;
+  for (const m of [...breaks, undefined]) {
+    const sentence = text.slice(start, m?.index ?? text.length).trim();
+    if (sentence.endsWith("?") && sentence.length <= TITLE_CHARS) title = sentence;
+    if (m) start = m.index + m[0].length;
   }
-  return found;
+  return title;
 }
 
 /**
@@ -541,7 +531,7 @@ export function splitQuestion(text: string): { title: string; rest: string } | u
  * in the context and takes a typed reply.
  */
 export function questionInput(q: OpencodeQuestion): AskInput {
-  const split = splitQuestion(q.question);
+  const title = questionTitle(q.question);
   const labels = (q.options ?? []).map((o) => o.label);
   const taps =
     labels.length >= 2 &&
@@ -549,7 +539,7 @@ export function questionInput(q: OpencodeQuestion): AskInput {
     new Set(labels).size === labels.length &&
     labels.every((l) => l.length > 0 && l.length <= OPTION_CHARS);
   const lines = [
-    ...(split ? [split.rest, ""] : q.question.length > QUESTION_CHARS ? [q.question, ""] : []),
+    ...(title || q.question.length > QUESTION_CHARS ? [q.question, ""] : []),
     ...(q.options ?? []).map((o) =>
       o.description ? `- ${o.label}: ${o.description}` : `- ${o.label}`,
     ),
@@ -557,7 +547,7 @@ export function questionInput(q: OpencodeQuestion): AskInput {
   ];
   const recommended = labels.find((l) => /\(recommended\)\s*$/i.test(l));
   return {
-    question: split?.title ?? clip(q.question, QUESTION_CHARS),
+    question: title ?? clip(q.question, QUESTION_CHARS),
     context: clip(lines.join("\n").trim(), CONTEXT_CHARS),
     ...(taps ? { options: labels, ...(recommended ? { recommended } : {}) } : {}),
   };

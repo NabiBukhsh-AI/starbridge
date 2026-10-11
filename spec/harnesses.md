@@ -106,11 +106,12 @@ line, the safe side: at worst a prompt repeats an answer the agent already read.
   title, and with no context field agents put their findings in it, so the hook cut it at 300
   characters and repeated it in the context. Findings go in the agent's message before the call
   and in the options' descriptions. Agents still write long ones: of 314 questions on the dev
-  box, 61% passed 70 characters and 12% passed 300. So the hook splits a question past 70
-  characters on any harness (#1085): its last sentence that asks within 70 characters becomes the
-  title and the rest leads the context, so nothing is cut or repeated. That split 125 of the 191
-  long ones. A question with no such sentence stays whole, cut at 300 as before. The hook
-  refuses no question: a refusal also closes the terminal picker and costs the agent a retry.
+  box, 61% passed 70 characters and 12% passed 300. So for a question past 70 characters, from
+  the question tool of any harness, the hook titles the card with its last sentence that asks
+  within 70 characters, and the whole question leads the context, read as written (#1085, Tom's
+  pick). That titled 125 of the 191 long ones. A question with no such sentence stays the title,
+  cut at 300 as before. The hook refuses no question: a refusal also closes the terminal picker
+  and costs the agent a retry.
 - A question answers cold: its options answer it, and its context runs two to five lines, the fact
   that forces the choice, then one line per option saying what it changes. Links and images only
   when they help; one question per card. The first option is
