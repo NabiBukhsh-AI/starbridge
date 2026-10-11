@@ -12,7 +12,7 @@ struct StarbridgeApp: App {
                 .onOpenURL { url in
                     Task {
                         // A machine's pairing link from a CLI before #1099, which the camera hands to the app.
-                        if url.scheme == "starbridge", url.host() == "pair" { await delegate.store.openPairLink(url) }
+                        if url.scheme == "starbridge", url.host() == "pair" { delegate.store.openPairLink(url) }
                         // A sign-in finished in Safari rather than in the app's sign-in sheet.
                         else { await delegate.store.receiveSignIn(url) }
                     }
