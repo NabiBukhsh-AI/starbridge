@@ -273,13 +273,6 @@ for (const viaAgent of [true, false]) {
   const how = viaAgent ? "through the agent" : "without an agent";
 
   test(`${how}: a stalled server never holds the hook past its deadline or SIGTERM`, async () => {
-    (globalThis as { tr?: boolean }).tr = true;
-    let last = performance.now();
-    const lag = setInterval(() => {
-      const now = performance.now();
-      if (now - last > 150) __t("loop lag", Math.round(now - last));
-      last = now;
-    }, 50);
     for (const path of ["/directory", "/items"])
       for (const cancel of ["sigterm", "deadline"] as const) {
         const ctx = await machine(viaAgent);
@@ -294,14 +287,31 @@ for (const viaAgent of [true, false]) {
         await until(() => !server.stalls.includes(path));
         if (cancel === "sigterm") abort.abort();
         expect(await out).toBe(0);
-        __t("iteration", viaAgent, path, cancel, Date.now() - started);
         expect(ctx.lines).toEqual([]);
         expect(Date.now() - started).toBeLessThan(cancel === "deadline" ? 4_000 : 1_500);
       }
-    (globalThis as { tr?: boolean }).tr = false;
-    clearInterval(lag);
   });
 }
+
+test("through the agent, a hold the agent answers late still ends the hook at its deadline (#1073)", async () => {
+  const ctx = await machine();
+  // The agent counts a hold from when it gets the request: here it never answers one at all.
+  type Hold = (id: string, end: number, signal: AbortSignal) => Promise<unknown>;
+  const proto = Permissions.prototype as unknown as { hold: Hold };
+  const hold = proto.hold;
+  proto.hold = (_id, _end, signal) =>
+    new Promise((resolve) => signal.addEventListener("abort", () => resolve({})));
+  try {
+    const started = Date.now();
+    expect(await hookPermission(ctx, request(), { agent: "claude-code", wait: "1s" })).toBe(0);
+    expect(Date.now() - started).toBeLessThan(2_000);
+  } finally {
+    proto.hold = hold;
+  }
+  expect(ctx.lines).toEqual([]);
+  await until(async () => (await server.opened("settled")).length === 1);
+  expect((await server.opened("settled"))[0]).toMatchObject({ outcome: "timeout" });
+});
 
 test("without an agent, Stop settles every waiting prompt of the session even when a report fails", async () => {
   const ctx = await machine(false);
@@ -910,7 +920,3 @@ test("a picker card whose hook died unsettled stops holding the open mark after 
   expect(promptsMark(st, Date.parse(asked.askedAt) + 1000)).toBe("open");
   expect(promptsMark(st, Date.parse(asked.askedAt) + 86_400_001)).toBe("");
 });
-
-const __t = (...a: unknown[]) =>
-  (globalThis as { tr?: boolean }).tr &&
-  console.error("TRACE1073", Math.round(performance.now()), ...a);

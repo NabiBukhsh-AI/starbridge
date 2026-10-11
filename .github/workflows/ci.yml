@@ -329,11 +329,9 @@ jobs:
           bun build src/main.ts --compile --target=bun-windows-x64 --outfile dist/starbridge.exe
           ./dist/starbridge.exe --version
           ./dist/starbridge.exe --help
-      - name: Trace 1073
-        timeout-minutes: 17
-        shell: bash
-        run: |
-          for i in $(seq 1 60); do bun test test/permissions.test.ts -t "through the agent: a stalled" 2>&1 | grep -E "TRACE1073|pass|fail" || true; done
+      - name: The whole CLI suite
+        timeout-minutes: 12
+        run: bun scripts/test-each.ts
 
   # The CLI on macOS (#877): the launchd service and the screen readers run only there. Unlike
   # Windows, the whole suite must pass. Each test file runs alone and is killed when it hangs, so

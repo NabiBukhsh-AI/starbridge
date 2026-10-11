@@ -154,12 +154,10 @@ export async function hookPermission(
     );
     if (output !== undefined) ctx.out(JSON.stringify(output));
   } catch (e) {
-    __t("hook caught", (e as Error).name, (e as Error).message);
     ctx.err(`starbridge: permission prompt not sent: ${(e as Error).message}`);
   } finally {
     started?.stop();
     watch.stop();
-    __t("hook end");
   }
   return 0;
 }
@@ -207,12 +205,15 @@ async function viaAgent(
       const left = deadline - ctx.now().getTime();
       if (left <= 0) break;
       const wait = Math.max(1, Math.min(MAX_HOLD_SECONDS, Math.ceil(left / 1000)));
+      // The agent counts the hold from when the request reaches it, which a slow agent or
+      // connection delays: the deadline cuts it, so it never holds the hook past (#1073).
+      const cut = AbortSignal.timeout(left);
       const r = await agent.call<PermissionWait>(
         "POST",
         `${path}/wait`,
         { wait, ...(ask.handOver ? { handOver: true } : {}) },
         wait * 1000 + SLACK_MS,
-        ctx.signal,
+        ctx.signal ? AbortSignal.any([ctx.signal, cut]) : cut,
       );
       if (r.output !== undefined) return r.output;
       if (r.settled) return undefined;
@@ -222,7 +223,8 @@ async function viaAgent(
     // Claude Code sends SIGTERM when the keyboard answers Esc or No; a Yes starts the call (#866).
     // Codex kills the hook when the turn is interrupted, and the agent settles the prompt then.
     if (!(e instanceof Interrupted)) throw e;
-    await agent.call("POST", `${path}/settle`, { outcome: "keyboard" }, 5_000);
+    const outcome = ctx.signal?.aborted ? "keyboard" : "timeout";
+    await agent.call("POST", `${path}/settle`, { outcome }, 5_000);
   }
   return undefined;
 }
@@ -820,7 +822,3 @@ async function hold(
     .join("\n\n");
   return { message, ack: async () => {} };
 }
-
-const __t = (...a: unknown[]) =>
-  (globalThis as { tr?: boolean }).tr &&
-  console.error("TRACE1073", Math.round(performance.now()), ...a);

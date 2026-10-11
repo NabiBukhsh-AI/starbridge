@@ -86,7 +86,6 @@ export class Permissions implements Feature {
           throw new HttpError(400, "bad-request", "source needs project and session");
         if (b.handOver === true && this.present()) return { present: true };
         const waitMs = typeof b.waitMs === "number" ? b.waitMs : 0;
-        __t("agent post start", waitMs);
         const id = await postPermission(
           this.ctx,
           session(this.ctx),
@@ -94,11 +93,7 @@ export class Permissions implements Feature {
           { agent: agent.data, source: source as unknown as PermissionSourceInput, waitMs },
           // The hook gives up at its deadline, or when the keyboard answers and it hangs up.
           AbortSignal.any([req.signal, AbortSignal.timeout(Math.max(1000, waitMs))]),
-        ).catch((e) => {
-          __t("agent post failed", (e as Error).name, (e as Error).message);
-          throw e;
-        });
-        __t("agent post done", id);
+        );
         return { id };
       },
     },
@@ -118,11 +113,7 @@ export class Permissions implements Feature {
           );
         this.holds.set(id, (this.holds.get(id) ?? 0) + 1);
         try {
-          __t("hold start", wait);
-          return await this.hold(id, end, req.signal, b.handOver === true).then((r) => {
-            __t("hold end", JSON.stringify(r), end - Date.now());
-            return r;
-          });
+          return await this.hold(id, end, req.signal, b.handOver === true);
         } finally {
           const left = (this.holds.get(id) ?? 1) - 1;
           if (left > 0) this.holds.set(id, left);
@@ -223,7 +214,3 @@ export class Permissions implements Feature {
     into.permissions = { enabled: permissionsEnabled(this.ctx), waiting };
   }
 }
-
-const __t = (...a: unknown[]) =>
-  (globalThis as { tr?: boolean }).tr &&
-  console.error("TRACE1073", Math.round(performance.now()), ...a);
