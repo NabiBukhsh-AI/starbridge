@@ -14,7 +14,10 @@ export const reports = new EventTarget();
 
 /** What this device reports: the desktop app its own switch, a browser its push state. */
 export function reported(push: PushState): NotifyState | undefined {
-  if (desktop) return getPref("desktopNotify") ? "on" : "off";
+  if (desktop) {
+    if (!getPref("desktopNotify")) return "off";
+    return desktop.notificationsBlocked?.() ? "blocked" : "on";
+  }
   return { on: "on", denied: "blocked", off: "off", install: "off", unsupported: undefined }[
     push
   ] as NotifyState | undefined;

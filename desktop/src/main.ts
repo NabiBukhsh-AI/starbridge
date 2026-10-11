@@ -43,6 +43,12 @@ const SETTINGS = join(app.getPath("userData"), "settings.json");
 const ANSWER_MS = 30_000;
 /** How long a quitting app waits for the page to say the owner left. */
 const QUIT_MS = 2_000;
+/**
+ * Starbridge's page in System Settings → Notifications (#1069), by electron-builder.yml's appId;
+ * a development run, which is Electron's own app, lands on the Notifications list instead.
+ */
+const NOTIFICATION_SETTINGS =
+  "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=dev.starbridge.desktop";
 
 let settings: Settings;
 let origin: string;
@@ -161,6 +167,15 @@ async function ready(): Promise<void> {
   });
   screen = new Screen(powerMonitor, tellScreen);
   setInterval(() => screen?.check(), SCREEN_CHECK_MS);
+  ipcMain.on("blocked?", (e) => {
+    e.returnValue = e.sender === win?.webContents ? blocked : null;
+  });
+  ipcMain.on("notification-settings", (e) => {
+    if (!fromPage(e) || process.platform !== "darwin") return;
+    shell.openExternal(NOTIFICATION_SETTINGS);
+    // Unknown again until the next notification: the owner may allow them there.
+    setBlocked(false);
+  });
   ipcMain.on("shown?", (e) => {
     e.returnValue = e.sender === win?.webContents ? win.isVisible() && !win.isMinimized() : null;
   });
@@ -470,10 +485,26 @@ function notify(entry: Entry): Shown {
   n.on("reply", (d) => {
     if (d.reply.trim()) answer({ id: entry.id, text: d.reply });
   });
-  // Refused, as before the owner allows notifications: the page's next update tries again.
-  n.on("failed", () => notifier.forget(entry.id));
+  // Refused, as while macOS blocks them: the page's next update tries again.
+  n.on("failed", () => {
+    setBlocked(true);
+    notifier.forget(entry.id);
+  });
+  n.on("show", () => setBlocked(false));
   n.show();
   return n;
+}
+
+/**
+ * Whether macOS refused the last notification (#1069). Electron has no way to read whether macOS
+ * allows them, but macOS refuses each one while it blocks the app, and Electron says so.
+ */
+let blocked = false;
+
+function setBlocked(b: boolean): void {
+  if (b === blocked) return;
+  blocked = b;
+  if (win && fromServer(win.webContents.getURL())) win.webContents.send("blocked", b);
 }
 
 /**
@@ -549,6 +580,10 @@ function notSent(id: string, why: string): void {
     open(id);
   });
   n.on("close", () => notices.delete(n));
+  n.on("failed", () => {
+    notices.delete(n);
+    setBlocked(true);
+  });
   n.show();
 }
 

@@ -1482,6 +1482,14 @@ a browser; the app adds a menu bar light and notifications, so a web release nee
   question shown while macOS still asks reaches only the window. So the app asks once the page
   has a session, after one line saying why, and a notification macOS refused shows again with
   the page's next update (every 15 s), so it appears once the owner allows them.
+- **Blocked by macOS** (#1069). Electron 44 cannot read whether macOS allows the app's
+  notifications, but macOS refuses each one while it blocks them, and Electron reports it. After
+  a refusal, Settings → Notifications shows the switch off with "Blocked by macOS: allow
+  Starbridge in System Settings → Notifications", and turning it on opens that page
+  (`x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=<bundle id>`). A
+  refusal within 5 s of turning the switch on opens it too, since the switch's first
+  notifications are what find the block. Opening it forgets the refusal until the next
+  notification, which then shows or flips the switch back. Devices reports such a Mac as blocked.
 - **The menu bar.** The mark in one colour, as macOS draws menu bar icons; while anything needs
   the owner, its climber turns amber, the one amber light, with no count: the window says what
   (owner's pick from mockups, 2026-10-09). A click shows the window; a right-click opens the menu:

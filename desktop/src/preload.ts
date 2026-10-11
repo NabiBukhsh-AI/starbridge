@@ -31,6 +31,12 @@ if (location.origin === arg("origin")) {
     ipcRenderer.send("answered", { id: a.id, error });
   });
   ipcRenderer.on("open", (_e, id: string) => onOpen?.(id));
+  let blocked = ipcRenderer.sendSync("blocked?") === true;
+  let onBlocked: (() => void) | null = null;
+  ipcRenderer.on("blocked", (_e, b: unknown) => {
+    blocked = b === true;
+    onBlocked?.();
+  });
   let shown = ipcRenderer.sendSync("shown?") !== false;
   let onShown: (() => void) | null = null;
   ipcRenderer.on("shown", (_e, s: unknown) => {
@@ -89,6 +95,14 @@ if (location.origin === arg("origin")) {
     onShown: (f: (() => void) | null) => {
       onShown = f;
     },
+    /** Whether macOS refused the last notification, as it does while it blocks the app's. */
+    notificationsBlocked: () => blocked,
+    /** Called when that changes. */
+    onNotificationsBlocked: (f: (() => void) | null) => {
+      onBlocked = f;
+    },
+    /** Opens System Settings → Notifications → Starbridge. */
+    openNotificationSettings: () => ipcRenderer.send("notification-settings"),
     /** Opens an item whose notification was clicked. */
     onOpen: (f: (id: string) => void) => {
       onOpen = f;

@@ -43,6 +43,10 @@ The page finds `window.starbridgeDesktop` only on the configured server's origin
   `onScreen(f)`: `f()` runs every 10 s and when it changes; the app waits for its promise before
   it quits.
 - `shown()`: whether the window is on screen; `onShown(f)`: `f()` runs when it shows or hides.
+- `notificationsBlocked()`: whether macOS refused the last notification, as it does while it
+  blocks the app's; `onNotificationsBlocked(f)`: `f()` runs when that changes.
+  `openNotificationSettings()` opens System Settings → Notifications → Starbridge and forgets
+  the refusal until the next notification (#1069).
   The page's `document.visibilityState` stays "visible" in the app, which never throttles it.
 
 The main process checks that each message comes from the window's top frame on that origin, and

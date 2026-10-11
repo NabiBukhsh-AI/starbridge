@@ -44,6 +44,11 @@ export type DesktopBridge = {
   /** Absent in older apps. */
   shown?(): boolean;
   onShown?(f: (() => void) | null): void;
+  /** Whether macOS refused the last notification (#1069); absent in older apps. */
+  notificationsBlocked?(): boolean;
+  onNotificationsBlocked?(f: (() => void) | null): void;
+  /** Opens System Settings → Notifications → Starbridge. */
+  openNotificationSettings?(): void;
   onAnswer(f: (a: DesktopAnswer) => Promise<void>): void;
   onOpen(f: (id: string) => void): void;
 };
