@@ -102,18 +102,21 @@ line, the safe side: at worst a prompt repeats an answer the agent already read.
   that block them. Everything else the agent decides. It asks in the terminal only when
   `starbridge` fails (#121). A quick question may use the harness's own ask tool where it races
   the devices (#848), which the harness's rule names; a decision read cold, or needing links or
-  images, stays a card (#911). Claude Code's rule holds `AskUserQuestion`'s question to the card's
-  rules (#1084): it becomes the title, and with no context field agents put their findings in it,
-  so the hook cut it at 300 characters and repeated it in the context. Findings go in the agent's
-  message before the call and in the options' descriptions. Splitting the question in the hook,
-  or refusing a long one, waits until the rule alone proves not enough (#1085).
+  images, stays a card (#911). That question becomes the card's title, and with no context field
+  agents put their findings in it, so the hook cut it at 300 characters and repeated it in the
+  context (#1084). Agents still write long ones: of 314 questions on the dev box, 61% passed 70
+  characters and 12% passed 300. So for a question past 70 characters, from the question tool of
+  any harness, the hook titles the card with its last sentence that asks within 70 characters,
+  and the whole question leads the context, read as written (#1085, Tom's pick). That titled 125
+  of the 191 long ones. A question with no such sentence stays the title, cut at 300 as before.
+  The hook refuses no question: a refusal also closes the terminal picker and costs the agent a
+  retry. The rule of each harness with an ask tool says to end its question with such a sentence.
 - One skill, a rule per harness (#1063). Every harness reads the same `SKILL.md`, which names no
   harness: an agent in one never reads another's lines, the eval tests one text, and the file
   stays plain agentskills.io for any harness that reads it. What differs by harness reaches the
   agent in one of two places. What it must know before its first call goes in its session-start
-  rule: `plugin/rules/template.md` with only that harness's ask tool and how to write its
-  question (none for Cursor, whose `askQuestion` fires no hooks), rendered by
-  `bun cli/scripts/rules.ts` into the committed `plugin/hooks/rule.md` (Claude Code's plugin) and
+  rule: `plugin/rules/template.md` with only that harness's ask tool (none for Cursor, whose
+  `askQuestion` fires no hooks), rendered by `bun cli/scripts/rules.ts` into the committed `plugin/hooks/rule.md` (Claude Code's plugin) and
   `plugin/rules/<harness>.md`, which setup, the Pi package and the opencode plugin read; a test
   checks that they match the template and that none names another harness. The rest comes from
   the CLI's output when it applies, at no standing cost: `ask` prints how this session gets the

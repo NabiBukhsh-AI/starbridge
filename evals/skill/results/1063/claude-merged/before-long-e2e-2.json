@@ -1,0 +1,65 @@
+{
+  "agent": "claude",
+  "model": "claude-haiku-5-5",
+  "arm": "before",
+  "scenario": "long-e2e",
+  "rep": 2,
+  "turns": [
+    {
+      "commands": [
+        "grep -n -A6 '^e2e' Makefile; git status --short; git diff --stat",
+        "starbridge run --title 'acme notes e2e' --reason 'takes over your screen and keyboard for about ten minutes' -- make e2e"
+      ],
+      "final": "The e2e suite passed: all 4 onboarding flow tests ran and passed, exit code 0.\n\nThe run took over your screen and keyboard for its duration, so I wrapped it in `starbridge run` and it reported to you as required. Nothing is waiting on you.",
+      "session": "24e41d0d-4039-43b3-bc04-6882b38fcbdb",
+      "tokens": 45651,
+      "costUsd": 0.00400769,
+      "exit": 0,
+      "seconds": 14.668,
+      "delivery": [],
+      "background": [
+        "starbridge run --title 'acme notes e2e' --reason 'takes over your screen and keyboard for about ten minutes' -- make e2e"
+      ]
+    }
+  ],
+  "decisions": [],
+  "laterDecisions": [],
+  "runs": [
+    {
+      "v": 1,
+      "id": "r_eKz-qtlWxUm8-H_Z",
+      "to": [
+        "phone"
+      ],
+      "title": "acme notes e2e",
+      "reason": "takes over your screen and keyboard for about ten minutes",
+      "source": {
+        "machine": "devbox",
+        "machineKind": "server",
+        "project": "proj",
+        "session": "24e41d0d-4039-43b3-bc04-6882b38fcbdb"
+      },
+      "startedAt": "2026-10-11T09:20:34Z",
+      "at": "2026-10-11T09:20:38.259Z",
+      "progress": {
+        "done": 4,
+        "total": 4,
+        "unit": "step"
+      },
+      "exit": {
+        "code": 0,
+        "at": "2026-10-11T09:20:38Z"
+      },
+      "dir": {
+        "length": 2,
+        "head": "sFmCAOc_cPCoibBgH6sbb6TkG_-BHbbV7JLcSw2e1Ao"
+      }
+    }
+  ],
+  "gh": [],
+  "waiting": [],
+  "permissions": [],
+  "settled": [],
+  "peakContext": 22788,
+  "usedTokens": 108262
+}

@@ -1,0 +1,122 @@
+{
+  "agent": "claude",
+  "model": "claude-haiku-5-5",
+  "arm": "after",
+  "scenario": "design-pick",
+  "rep": 1,
+  "turns": [
+    {
+      "commands": [
+        "git branch -a && git status --short && ls -la shots/ 2>/dev/null; git log --oneline --all | head -20",
+        "git diff --stat main settings-compact && echo --- && git diff --stat main settings-roomy",
+        "starbridge ask \\\n  --question 'Which settings screen should ship to main?' \\\n  --context 'Both variants pass the tests, but neither branch has commits yet, so a merge would add nothing.\n**Compact:** merge settings-compact (screenshot 1).\n**Roomy:** merge settings-roomy (screenshot 2).' \\\n  --option 'Compact' --option 'Roomy' \\\n  --image \"$PWD/shots/compact.png\" --image \"$PWD/shots/roomy.png\"",
+        "starbridge wait d_8j89lJWQkoh2UnzL --timeout 5m; echo \"exit=$?\""
+      ],
+      "final": "I didn't ship anything. You picked **Compact**, but `settings-compact` has no commits beyond `main`, so `git merge settings-compact` returned \"Already up to date.\" `main` is still at `2087863`.\n\nThe same is true of `settings-roomy`: it points at the same commit as `main`. The working tree is clean, so the variant code isn't committed on either branch. It may be in another checkout or was never committed.\n\nNext steps:\n- Commit the Compact work to `settings-compact` (or tell me where it lives), and I'll merge it into `main`.\n- I haven't committed or changed anything. I haven't pushed either.\n\nI also posted the choice as a Starbridge card and waited for your answer, so the card is closed.",
+      "session": "fba581f9-68b5-4dfd-b9d2-66e9470ce3cd",
+      "tokens": 152545,
+      "costUsd": 0.0053205200000000005,
+      "exit": 0,
+      "seconds": 34.256,
+      "delivery": [
+        "Nothing brings the answer into this session: when only the answer is left, run `starbridge wait d_8j89lJWQkoh2UnzL --timeout 5m` (again on exit 2)."
+      ]
+    },
+    {
+      "commands": [
+        "git rev-parse main settings-compact settings-roomy && git merge settings-compact; echo \"exit=$?\"; git log --oneline -1"
+      ],
+      "final": "I didn't ship anything. You picked **Compact**, but `settings-compact` has no commits beyond `main`, so `git merge settings-compact` returned \"Already up to date.\" `main` is still at `2087863`.\n\nThe same is true of `settings-roomy`: it points at the same commit as `main`. The working tree is clean, so the variant code isn't committed on either branch. It may be in another checkout or was never committed.\n\nNext steps:\n- Commit the Compact work to `settings-compact` (or tell me where it lives), and I'll merge it into `main`.\n- I haven't committed or changed anything. I haven't pushed either.\n\nI also posted the choice as a Starbridge card and waited for your answer, so the card is closed.",
+      "session": "fba581f9-68b5-4dfd-b9d2-66e9470ce3cd",
+      "tokens": 152545,
+      "costUsd": 0.0053205200000000005,
+      "exit": 0,
+      "seconds": 34.256,
+      "delivery": [
+        "Nothing brings the answer into this session: when only the answer is left, run `starbridge wait d_8j89lJWQkoh2UnzL --timeout 5m` (again on exit 2)."
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "v": 1,
+      "id": "d_8j89lJWQkoh2UnzL",
+      "to": [
+        "phone"
+      ],
+      "createdAt": "2026-10-11T09:21:09Z",
+      "question": "Which settings screen should ship to main?",
+      "context": "Both variants pass the tests, but neither branch has commits yet, so a merge would add nothing.\n**Compact:** merge settings-compact (screenshot 1).\n**Roomy:** merge settings-roomy (screenshot 2).",
+      "options": [
+        "Compact",
+        "Roomy"
+      ],
+      "recommended": "Compact",
+      "agent": "claude-code",
+      "source": {
+        "machine": "devbox",
+        "machineKind": "server",
+        "project": "proj",
+        "session": "fba581f9-68b5-4dfd-b9d2-66e9470ce3cd"
+      },
+      "images": [
+        {
+          "type": "image/png",
+          "width": 360,
+          "height": 640
+        },
+        {
+          "type": "image/png",
+          "width": 360,
+          "height": 640
+        }
+      ],
+      "replies": true,
+      "dir": {
+        "length": 2,
+        "head": "YKX-mHfQiZyWVMpMMP6LAirpfUO0cNtexKxYDTlwhPs"
+      }
+    }
+  ],
+  "laterDecisions": [],
+  "runs": [],
+  "gh": [],
+  "answered": "Answer to d_8j89lJWQkoh2UnzL (Which settings screen should ship to main?): Compact",
+  "waiting": [
+    {
+      "v": 1,
+      "id": "w_sxCRoCyaVmnr8Kbj",
+      "decisionId": "d_8j89lJWQkoh2UnzL",
+      "to": [
+        "phone"
+      ],
+      "at": "2026-10-11T09:21:10Z",
+      "state": "waiting",
+      "dir": {
+        "length": 2,
+        "head": "YKX-mHfQiZyWVMpMMP6LAirpfUO0cNtexKxYDTlwhPs"
+      }
+    }
+  ],
+  "permissions": [],
+  "settled": [
+    {
+      "v": 1,
+      "id": "s_3i2J2qOR5bn0JIWq",
+      "itemId": "d_8j89lJWQkoh2UnzL",
+      "to": [
+        "phone"
+      ],
+      "at": "2026-10-11T09:21:25Z",
+      "outcome": "device",
+      "device": "phone",
+      "choice": "Compact",
+      "dir": {
+        "length": 2,
+        "head": "YKX-mHfQiZyWVMpMMP6LAirpfUO0cNtexKxYDTlwhPs"
+      }
+    }
+  ],
+  "peakContext": 23691,
+  "usedTokens": 152545
+}

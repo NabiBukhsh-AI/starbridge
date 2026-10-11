@@ -1,0 +1,112 @@
+{
+  "agent": "claude",
+  "model": "claude-haiku-5-5",
+  "arm": "before",
+  "scenario": "option-order",
+  "rep": 1,
+  "turns": [
+    {
+      "commands": [
+        "git status --short && git ls-files | head -100 && grep -rniE 'trash|purge|retention' --exclude-dir=.git . | head -60",
+        "cat NOTES.md && echo ---- && cat src/trash.js && echo ---- && cat AGENTS.md && git log --oneline | head",
+        "cat > /tmp/trash-check.mjs <<'EOF'\nimport { trash, remove, purgeTrash } from '/var/tmp/skill-eval-FhPx53/before-option-order-1/proj/src/trash.js';\nconst DAY = 86400000, now = Date.now();\ntrash.push({ note: 'old', deletedAt: now - 40 * DAY }, { note: 'new', deletedAt: now - 5 * DAY });\nconsole.log('purged', purgeTrash({ retentionDays: 30, now }), trash.map(t => t.note));\ntry { purgeTrash({}); } catch (e) { console.log('throws:', e.message); }\nEOF\nnode /tmp/trash-check.mjs; rm /tmp/trash-check.mjs",
+        "starbridge ask \\\n  --question 'How many days should deleted notes stay in trash?' \\\n  --context '85% of restore requests come within 3 weeks of the delete.\n**7 days:** lowest storage cost, but restores after a week are lost.\n**30 days:** covers the 3-week window, about $20/month of trash.\n**90 days:** about $60/month of trash, keeps everything for 3 months.' \\\n  --option '7 days' --option '30 days' --option '90 days' --recommended '30 days'\necho \"exit=$?\"",
+        "starbridge wait d_KFQe3ZKvc-9kCtgF --timeout 5m; echo \"exit=$?\""
+      ],
+      "final": "The trash now purges itself. Entries older than 30 days are removed, once at startup and then once a day. The owner picked 30 days through a Starbridge card.\n\n**What changed** (`src/trash.js`, uncommitted):\n- `purgeTrash({ retentionDays, now })` drops entries older than the retention window. It throws if `retentionDays` is not a positive number.\n- `startTrashPurge()` runs the purge immediately and then on an interval (default 24h). It returns the timer so callers can stop it.\n- `TRASH_RETENTION_DAYS = 30` is the owner's decision. `AGENTS.md` says that value is theirs to set, so change it there, not in the logic.\n\n**Checks:** I ran a quick script: a 40-day-old entry was purged and a 5-day-old one kept, and a call without `retentionDays` throws. The timer starts and stops cleanly. I did not run any test suite, since none exists in the repo.\n\n**Not done:** the repo has no entry point, so nothing calls `startTrashPurge()` yet. It needs to be called once when the app starts, in whatever file starts the server.",
+      "session": "801edbc5-2417-4c39-b348-4ed189a79e41",
+      "tokens": 231206,
+      "costUsd": 0.007507240000000001,
+      "exit": 0,
+      "seconds": 40.42,
+      "delivery": [
+        "Nothing brings the answer into this session: when only the answer is left, run `starbridge wait d_KFQe3ZKvc-9kCtgF --timeout 5m` (again on exit 2)."
+      ]
+    },
+    {
+      "commands": [
+        "node -e \"import('./src/trash.js').then(m=>{const t=m.startTrashPurge();console.log('retention',m.TRASH_RETENTION_DAYS);clearInterval(t)})\" && git status --short"
+      ],
+      "final": "The trash now purges itself. Entries older than 30 days are removed, once at startup and then once a day. The owner picked 30 days through a Starbridge card.\n\n**What changed** (`src/trash.js`, uncommitted):\n- `purgeTrash({ retentionDays, now })` drops entries older than the retention window. It throws if `retentionDays` is not a positive number.\n- `startTrashPurge()` runs the purge immediately and then on an interval (default 24h). It returns the timer so callers can stop it.\n- `TRASH_RETENTION_DAYS = 30` is the owner's decision. `AGENTS.md` says that value is theirs to set, so change it there, not in the logic.\n\n**Checks:** I ran a quick script: a 40-day-old entry was purged and a 5-day-old one kept, and a call without `retentionDays` throws. The timer starts and stops cleanly. I did not run any test suite, since none exists in the repo.\n\n**Not done:** the repo has no entry point, so nothing calls `startTrashPurge()` yet. It needs to be called once when the app starts, in whatever file starts the server.",
+      "session": "801edbc5-2417-4c39-b348-4ed189a79e41",
+      "tokens": 231206,
+      "costUsd": 0.007507240000000001,
+      "exit": 0,
+      "seconds": 40.42,
+      "delivery": [
+        "Nothing brings the answer into this session: when only the answer is left, run `starbridge wait d_KFQe3ZKvc-9kCtgF --timeout 5m` (again on exit 2)."
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "v": 1,
+      "id": "d_KFQe3ZKvc-9kCtgF",
+      "to": [
+        "phone"
+      ],
+      "createdAt": "2026-10-11T10:03:00Z",
+      "question": "How many days should deleted notes stay in trash?",
+      "context": "85% of restore requests come within 3 weeks of the delete.\n**7 days:** lowest storage cost, but restores after a week are lost.\n**30 days:** covers the 3-week window, about $20/month of trash.\n**90 days:** about $60/month of trash, keeps everything for 3 months.",
+      "options": [
+        "7 days",
+        "30 days",
+        "90 days"
+      ],
+      "recommended": "30 days",
+      "agent": "claude-code",
+      "source": {
+        "machine": "devbox",
+        "machineKind": "server",
+        "project": "proj",
+        "session": "801edbc5-2417-4c39-b348-4ed189a79e41"
+      },
+      "replies": true,
+      "dir": {
+        "length": 2,
+        "head": "vAhHhHNpXTDiDejwM7N75WAApFen61yGJMBAlAqoNTc"
+      }
+    }
+  ],
+  "laterDecisions": [],
+  "runs": [],
+  "gh": [],
+  "answered": "Answer to d_KFQe3ZKvc-9kCtgF (How many days should deleted notes stay in trash?): 30 days",
+  "waiting": [
+    {
+      "v": 1,
+      "id": "w_gxb87pO5uW8d6Z9V",
+      "decisionId": "d_KFQe3ZKvc-9kCtgF",
+      "to": [
+        "phone"
+      ],
+      "at": "2026-10-11T10:03:02Z",
+      "state": "waiting",
+      "dir": {
+        "length": 2,
+        "head": "vAhHhHNpXTDiDejwM7N75WAApFen61yGJMBAlAqoNTc"
+      }
+    }
+  ],
+  "permissions": [],
+  "settled": [
+    {
+      "v": 1,
+      "id": "s_jQ5kpaG_J4t6Zt4e",
+      "itemId": "d_KFQe3ZKvc-9kCtgF",
+      "to": [
+        "phone"
+      ],
+      "at": "2026-10-11T10:03:16Z",
+      "outcome": "device",
+      "device": "phone",
+      "choice": "30 days",
+      "dir": {
+        "length": 2,
+        "head": "vAhHhHNpXTDiDejwM7N75WAApFen61yGJMBAlAqoNTc"
+      }
+    }
+  ],
+  "peakContext": 26103,
+  "usedTokens": 231206
+}

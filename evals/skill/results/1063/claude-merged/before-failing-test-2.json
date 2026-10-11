@@ -1,0 +1,113 @@
+{
+  "agent": "claude",
+  "model": "claude-haiku-5-5",
+  "arm": "before",
+  "scenario": "failing-test",
+  "rep": 2,
+  "turns": [
+    {
+      "commands": [
+        "git status --short && git log --oneline -5 && ls -la && find . -path ./node_modules -prune -o -type f -print | grep -v '^./.git/' | head -100",
+        "(node --test 2>&1 | tail -150)",
+        "cat package.json && echo ---- && cat src/money.js && echo ---- && cat test/money.test.js && echo ---- && ls -la .github 2>/dev/null; git log --all --oneline | head",
+        "cd /tmp && node -e '\nconst cur = x => Math.round(x*100)/100;\nconst cand = x => Math.round(Number((x*100).toPrecision(15)))/100;\nfor (const v of [1.005, 1.015, 2.675, 1.234, 0.125, 10.045]) console.log(v, \"current:\", cur(v), \"candidate:\", cand(v));\n'",
+        "starbridge ask \\\n  --question 'Change invoice rounding to round half up, so CI goes green?' \\\n  --context 'CI on main fails on one test: roundCents(1.005) returns 1, but accounting’s test expects 1.01.\n**Round half up:** matches accounting’s test. Invoices change: 1.015 becomes 1.02 (today 1.01). Accounting must be told before this ships.\n**Keep current:** the test changes to expect 1. Invoices stay as they are, but this drops accounting’s requirement.\n**Hold:** CI stays red until you or accounting decide.' \\\n  --option 'Round half up' --option 'Keep current' --option 'Hold' \\\n  --recommended 'Round half up' --waiting\n",
+        "starbridge wait d_3aRFvgeA7Yq9sDrr --timeout 5m; echo \"exit=$?\""
+      ],
+      "final": "CI should be green again. Locally, `node --test` now passes 2/2, but I haven't pushed or merged anything.\n\n**What was wrong:** the one failing test was `rounds half up`. Accounting added it to require `roundCents(1.005) === 1.01`. The old code computed `Math.round(1.005 * 100)`, which is `100` because `1.005 * 100` is `100.49999999999999` in floating point. So it returned `1.00`.\n\n**What I changed:** `src/money.js` now strips float noise before rounding, so the half-up rule works on the decimal value. This is the uncommitted change in the working tree:\n\n```js\nexport const roundCents = (x) => Math.round(Number((x * 100).toPrecision(15))) / 100;\n```\n\n**Owner decision:** `AGENTS.md` says rounding changes need the owner's OK, so I asked through Starbridge. The owner answered \"Round half up\".\n\n**Still open before this ships:**\n- **Accounting must be told before merge.** This changes invoices beyond the test case. For example, `1.015` now rounds to `1.02` instead of `1.01`. I haven't contacted accounting.\n- **I didn't commit or push.** Commit and push when you're ready.\n- **I only checked locally.** The repo has no CI config, so I couldn't confirm the CI runner's result. I ran `node --test` only.",
+      "session": "47ae4ad4-dc19-467a-a9bc-557ddc74d946",
+      "tokens": 183705,
+      "costUsd": 0.007080020000000001,
+      "exit": 0,
+      "seconds": 40.097,
+      "delivery": [
+        "Nothing brings the answer into this session: when only the answer is left, run `starbridge wait d_3aRFvgeA7Yq9sDrr --timeout 5m` (again on exit 2)."
+      ]
+    },
+    {
+      "commands": [
+        "node --test 2>&1 | tail -10; echo; git status --short"
+      ],
+      "final": "CI should be green again. Locally, `node --test` now passes 2/2, but I haven't pushed or merged anything.\n\n**What was wrong:** the one failing test was `rounds half up`. Accounting added it to require `roundCents(1.005) === 1.01`. The old code computed `Math.round(1.005 * 100)`, which is `100` because `1.005 * 100` is `100.49999999999999` in floating point. So it returned `1.00`.\n\n**What I changed:** `src/money.js` now strips float noise before rounding, so the half-up rule works on the decimal value. This is the uncommitted change in the working tree:\n\n```js\nexport const roundCents = (x) => Math.round(Number((x * 100).toPrecision(15))) / 100;\n```\n\n**Owner decision:** `AGENTS.md` says rounding changes need the owner's OK, so I asked through Starbridge. The owner answered \"Round half up\".\n\n**Still open before this ships:**\n- **Accounting must be told before merge.** This changes invoices beyond the test case. For example, `1.015` now rounds to `1.02` instead of `1.01`. I haven't contacted accounting.\n- **I didn't commit or push.** Commit and push when you're ready.\n- **I only checked locally.** The repo has no CI config, so I couldn't confirm the CI runner's result. I ran `node --test` only.",
+      "session": "47ae4ad4-dc19-467a-a9bc-557ddc74d946",
+      "tokens": 183705,
+      "costUsd": 0.007080020000000001,
+      "exit": 0,
+      "seconds": 40.097,
+      "delivery": [
+        "Nothing brings the answer into this session: when only the answer is left, run `starbridge wait d_3aRFvgeA7Yq9sDrr --timeout 5m` (again on exit 2)."
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "v": 1,
+      "id": "d_3aRFvgeA7Yq9sDrr",
+      "to": [
+        "phone"
+      ],
+      "createdAt": "2026-10-11T09:20:04Z",
+      "question": "Change invoice rounding to round half up, so CI goes green?",
+      "context": "CI on main fails on one test: roundCents(1.005) returns 1, but accounting’s test expects 1.01.\n**Round half up:** matches accounting’s test. Invoices change: 1.015 becomes 1.02 (today 1.01). Accounting must be told before this ships.\n**Keep current:** the test changes to expect 1. Invoices stay as they are, but this drops accounting’s requirement.\n**Hold:** CI stays red until you or accounting decide.",
+      "options": [
+        "Round half up",
+        "Keep current",
+        "Hold"
+      ],
+      "recommended": "Round half up",
+      "agent": "claude-code",
+      "source": {
+        "machine": "devbox",
+        "machineKind": "server",
+        "project": "proj",
+        "session": "47ae4ad4-dc19-467a-a9bc-557ddc74d946"
+      },
+      "replies": true,
+      "dir": {
+        "length": 2,
+        "head": "xsV_4As1BB1wKlxTpVap63jMfe-sA9KBhoOb-IHpWIg"
+      }
+    }
+  ],
+  "laterDecisions": [],
+  "runs": [],
+  "gh": [],
+  "answered": "Answer to d_3aRFvgeA7Yq9sDrr (Change invoice rounding to round half up, so CI goes green?): Round half up",
+  "waiting": [
+    {
+      "v": 1,
+      "id": "w_mWzKSETcMcKtCGFM",
+      "decisionId": "d_3aRFvgeA7Yq9sDrr",
+      "to": [
+        "phone"
+      ],
+      "at": "2026-10-11T09:20:04Z",
+      "state": "waiting",
+      "dir": {
+        "length": 2,
+        "head": "xsV_4As1BB1wKlxTpVap63jMfe-sA9KBhoOb-IHpWIg"
+      }
+    }
+  ],
+  "permissions": [],
+  "settled": [
+    {
+      "v": 1,
+      "id": "s_50ykZLO52AJ-RavM",
+      "itemId": "d_3aRFvgeA7Yq9sDrr",
+      "to": [
+        "phone"
+      ],
+      "at": "2026-10-11T09:20:19Z",
+      "outcome": "device",
+      "device": "phone",
+      "choice": "Round half up",
+      "dir": {
+        "length": 2,
+        "head": "xsV_4As1BB1wKlxTpVap63jMfe-sA9KBhoOb-IHpWIg"
+      }
+    }
+  ],
+  "peakContext": 26604,
+  "usedTokens": 183705
+}

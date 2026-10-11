@@ -31,22 +31,12 @@ export const QUESTION_TOOL: Record<Agent, string | undefined> = {
   antigravity: "ask_question",
 };
 
-/**
- * What the agent must know to write that tool's question well, when the tool differs from a card
- * (#1084): AskUserQuestion's question becomes the card's title and it has no context field.
- */
-export const QUESTION_TOOL_NOTE: Partial<Record<Agent, string>> = {
-  "claude-code":
-    "Its question becomes the card's title, so write it as the skill says for one, in one sentence of at most 70 characters. It has no context field, so put your findings in your message before the call, and what each pick does in its option's description.",
-};
-
 export function renderRule(template: string, agent: Agent): string {
   const tool = QUESTION_TOOL[agent];
-  const note = QUESTION_TOOL_NOTE[agent];
   return template.replace(
     "{question tool}",
     tool
-      ? ` A quick question may use ${tool} instead, since it reaches my devices too.${note ? ` ${note}` : ""}`
+      ? ` A quick question may use ${tool} instead, since it reaches my devices too. End its question with a sentence that asks, in 70 characters at most, which titles the card; the whole question starts the card's context.`
       : "",
   );
 }

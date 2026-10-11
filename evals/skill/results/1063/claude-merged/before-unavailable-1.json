@@ -1,0 +1,28 @@
+{
+  "agent": "claude",
+  "model": "claude-haiku-5-5",
+  "arm": "before",
+  "scenario": "unavailable",
+  "rep": 1,
+  "turns": [
+    {
+      "commands": [
+        "ls -la && cat NAMES.md 2>/dev/null; echo ---; cat package.json 2>/dev/null; echo ---; git status --short; echo ---; npm whoami 2>&1; echo ---; npm view notekit name version 2>&1 | head -5; npm view jotter name version 2>&1 | head -5",
+        "starbridge ask \\\n  --question 'Publish to npm as notekit or jotter?' \\\n  --context 'npm already lists a notekit at 0.0.0, so NAMES.md \"free\" may be wrong.\n**notekit:** matches the repo. Public after publish, and it cannot be undone after 72 hours.\n**jotter:** shorter, but a dead app already uses that name.\n**Hold off:** publish nothing until the notekit owner is checked.' \\\n  --option 'notekit' --option 'jotter' --option 'Hold off' --recommended 'Hold off'"
+      ],
+      "final": "I did not publish. Starbridge failed (this machine is not paired), so I'm asking here instead.\n\n**Blocked:** the npm name is not settled, and publishing is public and can't be undone after 72 hours (AGENTS.md says it's your call).\n\nWhat I found:\n- `package.json` is still named `TBD`.\n- NAMES.md says `notekit` is free on npm, but `npm view notekit` returns a package at version 0.0.0, so that may be wrong. Someone may already own it.\n- `jotter` exists at 0.0.3, and NAMES.md says a dead app uses that name.\n- npm is not logged in on this machine.\n\nWhich should I do?\n1. **Publish as `notekit`**, after checking who owns the existing 0.0.0 package.\n2. **Publish as `jotter`**, after checking that its 0.0.3 package is safe to take over.\n3. **Hold off** (my recommendation): publish nothing until the name conflict is resolved.\n\nWhichever you pick, I'll still need you to log in to npm (`npm adduser`) and set the real name in `package.json`. To get the card on your phone, run `starbridge pair` and then I can post it.",
+      "session": "f492ad04-bf9c-4857-9568-4a0db6ff59f1",
+      "tokens": 84823,
+      "costUsd": 0.00435773,
+      "exit": 0,
+      "seconds": 15.367,
+      "delivery": []
+    }
+  ],
+  "decisions": [],
+  "laterDecisions": [],
+  "runs": [],
+  "gh": [],
+  "peakContext": 23274,
+  "usedTokens": 84823
+}

@@ -1,0 +1,63 @@
+{
+  "agent": "claude",
+  "model": "claude-haiku-5-5",
+  "arm": "after",
+  "scenario": "long-e2e",
+  "rep": 2,
+  "turns": [
+    {
+      "commands": [
+        "grep -n -A4 '^e2e' Makefile; git status --short; git diff --stat",
+        "cat scripts/e2e.sh; echo ---; ls src/onboarding.txt && git log --oneline -3 -- src/onboarding.txt; echo ---; git status --short --untracked-files=all",
+        "starbridge run --title 'acme notes e2e' --reason 'make e2e takes over your screen and keyboard for about ten minutes' -- make e2e; echo \"exit=$?\""
+      ],
+      "final": "The e2e suite passed: `make e2e` exited 0 with \"4 passed\". I ran it wrapped in `starbridge run`, because AGENTS.md says it takes over your screen and keyboard.\n\nTwo things you should know:\n\n- **The suite doesn't test much.** `scripts/e2e.sh` is a stub. It prints four \"onboarding flow\" lines with one-second sleeps and then echoes \"4 passed\". It never launches the app or checks any screen, so this pass says nothing about whether your copy change broke anything.\n- **I couldn't find your edit.** `git status` is clean, and `src/onboarding.txt` has only the initial commit (`5abdc97`). Either the change is already committed, or it was never saved to this checkout. If it's not in this checkout, it won't be in the run.\n\nIf you want a real check, the e2e script needs to drive the simulator and assert on the onboarding text. I can write that, or run `make test` for the headless unit tests.",
+      "session": "88079ef6-02db-4e04-ac90-31c3390ae9c0",
+      "tokens": 84906,
+      "costUsd": 0.0037822400000000005,
+      "exit": 0,
+      "seconds": 14.299,
+      "delivery": []
+    }
+  ],
+  "decisions": [],
+  "laterDecisions": [],
+  "runs": [
+    {
+      "v": 1,
+      "id": "r_1ELJ-34x6C_ASBeH",
+      "to": [
+        "phone"
+      ],
+      "title": "acme notes e2e",
+      "reason": "make e2e takes over your screen and keyboard for about ten minutes",
+      "source": {
+        "machine": "devbox",
+        "machineKind": "server",
+        "project": "proj",
+        "session": "88079ef6-02db-4e04-ac90-31c3390ae9c0"
+      },
+      "startedAt": "2026-10-11T09:20:49Z",
+      "at": "2026-10-11T09:20:53.275Z",
+      "progress": {
+        "done": 4,
+        "total": 4,
+        "unit": "step"
+      },
+      "exit": {
+        "code": 0,
+        "at": "2026-10-11T09:20:53Z"
+      },
+      "dir": {
+        "length": 2,
+        "head": "xSeBtixQ-3e2bgY-Brz1yRm5DkKiJgydWBxmCIPaaoc"
+      }
+    }
+  ],
+  "gh": [],
+  "waiting": [],
+  "permissions": [],
+  "settled": [],
+  "peakContext": 22242,
+  "usedTokens": 84906
+}

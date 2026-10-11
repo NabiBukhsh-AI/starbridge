@@ -1,0 +1,24 @@
+{
+  "agent": "claude",
+  "model": "claude-haiku-5-5",
+  "arm": "after",
+  "scenario": "native-ask",
+  "rep": 2,
+  "turns": [
+    {
+      "commands": [],
+      "askUser": [],
+      "final": "",
+      "session": "3c20b028-f207-468b-896a-30fcd87ed12c",
+      "exit": 0,
+      "seconds": 721.272
+    }
+  ],
+  "decisions": [],
+  "laterDecisions": [],
+  "runs": [],
+  "gh": [],
+  "waiting": [],
+  "permissions": [],
+  "settled": []
+}

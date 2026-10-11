@@ -1,0 +1,61 @@
+{
+  "agent": "claude",
+  "model": "claude-haiku-5-5",
+  "arm": "after",
+  "scenario": "long-e2e",
+  "rep": 1,
+  "turns": [
+    {
+      "commands": [
+        "starbridge run --title 'acme notes e2e' --reason 'takes over your screen and keyboard for about ten minutes' -- make e2e"
+      ],
+      "final": "The e2e suite passed: all 4 onboarding flow tests (`make e2e`, 4 passed). I ran it through `starbridge run` because it takes over the screen and keyboard. I didn't change any files and didn't post a card, since nothing is waiting on you.",
+      "session": "a3b23582-84a8-4619-b62a-1eef9aba712d",
+      "tokens": 61006,
+      "costUsd": 0.0029045300000000002,
+      "exit": 0,
+      "seconds": 10.666,
+      "delivery": []
+    }
+  ],
+  "decisions": [],
+  "laterDecisions": [],
+  "runs": [
+    {
+      "v": 1,
+      "id": "r_zYfz3ClPIM_XUyH2",
+      "to": [
+        "phone"
+      ],
+      "title": "acme notes e2e",
+      "reason": "takes over your screen and keyboard for about ten minutes",
+      "source": {
+        "machine": "devbox",
+        "machineKind": "server",
+        "project": "proj",
+        "session": "a3b23582-84a8-4619-b62a-1eef9aba712d"
+      },
+      "startedAt": "2026-10-11T09:20:38Z",
+      "at": "2026-10-11T09:20:42.699Z",
+      "progress": {
+        "done": 4,
+        "total": 4,
+        "unit": "step"
+      },
+      "exit": {
+        "code": 0,
+        "at": "2026-10-11T09:20:42Z"
+      },
+      "dir": {
+        "length": 2,
+        "head": "_H5BPJrvdc6hiMqHQWYOOmt5p_METuxI2efWgjT7jCM"
+      }
+    }
+  ],
+  "gh": [],
+  "waiting": [],
+  "permissions": [],
+  "settled": [],
+  "peakContext": 21272,
+  "usedTokens": 61006
+}

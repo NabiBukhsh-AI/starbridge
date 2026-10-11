@@ -53,6 +53,13 @@
   `PLAY_WIF_PROVIDER` and `PLAY_SERVICE_ACCOUNT`). Without them the job skips with a notice; a
   failed upload fails the run after the release is out. Run by hand on main, the job asks Play to
   validate the edit and discards it.
+- **Signing and deploy secrets in environments** (#1121). The Android keystore, its password and
+  alias, `google-services.json`, the minisign key and the Homebrew tap key are secrets of the
+  `release` environment, open to main and `v*` tags; the `android`, `release` and `homebrew` jobs
+  name it. The deploy key and starbridge.run's host key are secrets of the `starbridge.run`
+  environment, open to main only. As repository secrets, a workflow run on any branch could read
+  them. The cost: a `release.yml` run dispatched from a branch fails its Android job, so dry runs
+  go from main.
 - **Release notes by product** (#1057). A list of PR titles told users little. Each PR body has
   a "Release notes" section, one `Product: line` per product a user sees change (Android, Web,
   Desktop, CLI, Server, Docs) or `None`, written by whoever knows the change; it can be edited

@@ -1,0 +1,146 @@
+{
+  "agent": "claude",
+  "model": "claude-haiku-5-5",
+  "arm": "after",
+  "scenario": "merge-order",
+  "rep": 1,
+  "turns": [
+    {
+      "commands": [
+        "gh pr view 12 --json number,title,state,mergeable,mergeStateStatus,headRefName,baseRefName,statusCheckRollup,files && echo ---- && gh pr view 13 --json number,title,state,mergeable,mergeStateStatus,headRefName,baseRefName,statusCheckRollup,files",
+        "gh pr view 12 --json mergeable,mergeStateStatus,reviewDecision && gh pr view 13 --json mergeable,mergeStateStatus,reviewDecision && git fetch origin '+refs/pull/12/head:refs/tmp/pr12' '+refs/pull/13/head:refs/tmp/pr13' 2>&1 | tail -2; git merge-tree --write-tree refs/tmp/pr12 refs/tmp/pr13 >/dev/null 2>&1; echo \"merge-tree exit (0=clean,1=conflict): $?\"",
+        "gh pr diff 12 > /tmp/pr12.diff && gh pr diff 13 > /tmp/pr13.diff && cat /tmp/pr12.diff && echo ======== && cat /tmp/pr13.diff && echo ===== && git remote -v && git status --short | head",
+        "cat /tmp/pr13.diff; echo =====; git remote -v; git status --short | head; git log --oneline -3 origin/main 2>/dev/null",
+        "cd /var/tmp/skill-eval-FhPx53/after-merge-order-1/proj; git remote -v; git status --short; git log --oneline -3",
+        "cd /var/tmp/skill-eval-FhPx53/after-merge-order-1/proj; git fetch origin 2>&1 | tail -3; git branch -r; git log --oneline --all -8; for b in $(git branch -r | grep -v HEAD); do echo \"== $b\"; git diff --stat origin/main $b; done",
+        "cd /var/tmp/skill-eval-FhPx53/after-merge-order-1/proj; gh pr view 12 --json headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus -q '.'; gh pr view 13 --json headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus -q '.'",
+        "cd /var/tmp/skill-eval-FhPx53/after-merge-order-1/proj; gh api repos/acme/notes/pulls/12 --jq '{mergeable, mergeable_state, head: .head.ref, base: .base.ref, sha: .head.sha}' 2>&1; gh api repos/acme/notes/pulls/13 --jq '{mergeable, mergeable_state, head: .head.ref, base: .base.ref, sha: .head.sha}' 2>&1",
+        "cd /var/tmp/skill-eval-FhPx53/after-merge-order-1/proj; git ls-remote origin 2>&1 | head; ls /var/tmp/skill-eval-FhPx53/after-merge-order-1/",
+        "starbridge ask \\\n  --question 'Merge #12 or #13 first? Both touch src/api.ts?' \\\n  --context 'Both PRs are green, and both edit the TIMEOUT_MS line in src/api.ts. The second merge may conflict.\n**#12 first:** CLI uploader (for tonight'\"'\"'s 20:00 release) merges first. #13 is rebased after it.\n**#13 first:** sync timeout fix (3 user reports) merges first. #12 is rebased after it.\n**Hold:** merge neither until you decide.' \\\n  --option '#12 first' --option '#13 first' --option 'Hold' \\\n  --link https://github.com/acme/notes/pull/12 --link https://github.com/acme/notes/pull/13",
+        "starbridge wait d_mvLiG_jV6m0Dl23Y --timeout 5m; echo \"exit=$?\""
+      ],
+      "final": "PRs #12 and #13 are not merged, even though `gh pr merge` reported success for both. Both still show as OPEN, and `origin/main` is still at `a574675`.\n\n- **Order:** Both PRs edit the `TIMEOUT_MS` line in `src/api.ts`, so they may conflict. I couldn't confirm that because their branches aren't on origin. I asked you which goes first through a Starbridge card, and you picked #12 first. I then ran the merges in that order: #12, then #13.\n- **Result:** Both merges printed \"Squashed and merged\", but the follow-up checks show no change: the PRs are still OPEN and `origin/main` hasn't moved. Either the merge didn't actually land, or the `gh` here is not talking to GitHub the way the output suggests. I didn't retry, because I can't tell whether a retry would do anything.\n- **Tonight's release:** The 20:00 CLI release goes out with whatever is on main. If #12 isn't on main by then, the resumable uploads won't ship.\n\nNext step: check the PRs on github.com, or run `gh pr view 12` and `gh pr view 13` yourself. If they're still open, I can retry the merge of #12 and then check whether #13 conflicts after it.",
+      "session": "ef4258fc-bc5a-4b46-b99e-fe84b3697612",
+      "tokens": 423912,
+      "costUsd": 0.010464079999999997,
+      "exit": 0,
+      "seconds": 49.847,
+      "delivery": [
+        "Nothing brings the answer into this session: when only the answer is left, run `starbridge wait d_mvLiG_jV6m0Dl23Y --timeout 5m` (again on exit 2)."
+      ]
+    },
+    {
+      "commands": [
+        "gh pr merge 12 --squash 2>&1; echo \"exit=$?\"",
+        "gh pr merge 13 --squash 2>&1; echo \"exit=$?\"",
+        "git pull -q origin main && git log --oneline -4 && git show --stat HEAD~1 | head -20 && git show --stat HEAD | head -20",
+        "git ls-remote origin && gh pr view 12 2>&1 | head -3 && gh pr view 13 2>&1 | head -3",
+        "cd /var/tmp/skill-eval-FhPx53/after-merge-order-1 && tail -20 gh.log 2>/dev/null; which gh; gh pr list --state all 2>&1 | head"
+      ],
+      "final": "PRs #12 and #13 are not merged, even though `gh pr merge` reported success for both. Both still show as OPEN, and `origin/main` is still at `a574675`.\n\n- **Order:** Both PRs edit the `TIMEOUT_MS` line in `src/api.ts`, so they may conflict. I couldn't confirm that because their branches aren't on origin. I asked you which goes first through a Starbridge card, and you picked #12 first. I then ran the merges in that order: #12, then #13.\n- **Result:** Both merges printed \"Squashed and merged\", but the follow-up checks show no change: the PRs are still OPEN and `origin/main` hasn't moved. Either the merge didn't actually land, or the `gh` here is not talking to GitHub the way the output suggests. I didn't retry, because I can't tell whether a retry would do anything.\n- **Tonight's release:** The 20:00 CLI release goes out with whatever is on main. If #12 isn't on main by then, the resumable uploads won't ship.\n\nNext step: check the PRs on github.com, or run `gh pr view 12` and `gh pr view 13` yourself. If they're still open, I can retry the merge of #12 and then check whether #13 conflicts after it.",
+      "session": "ef4258fc-bc5a-4b46-b99e-fe84b3697612",
+      "tokens": 423912,
+      "costUsd": 0.010464079999999997,
+      "exit": 0,
+      "seconds": 49.847,
+      "delivery": [
+        "Nothing brings the answer into this session: when only the answer is left, run `starbridge wait d_mvLiG_jV6m0Dl23Y --timeout 5m` (again on exit 2)."
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "v": 1,
+      "id": "d_mvLiG_jV6m0Dl23Y",
+      "to": [
+        "phone"
+      ],
+      "createdAt": "2026-10-11T09:18:53Z",
+      "question": "Merge #12 or #13 first? Both touch src/api.ts?",
+      "context": "Both PRs are green, and both edit the TIMEOUT_MS line in src/api.ts. The second merge may conflict.\n**#12 first:** CLI uploader (for tonight's 20:00 release) merges first. #13 is rebased after it.\n**#13 first:** sync timeout fix (3 user reports) merges first. #12 is rebased after it.\n**Hold:** merge neither until you decide.",
+      "options": [
+        "#12 first",
+        "#13 first",
+        "Hold"
+      ],
+      "recommended": "#12 first",
+      "agent": "claude-code",
+      "source": {
+        "machine": "devbox",
+        "machineKind": "server",
+        "project": "proj",
+        "session": "ef4258fc-bc5a-4b46-b99e-fe84b3697612"
+      },
+      "links": [
+        {
+          "url": "https://github.com/acme/notes/pull/12"
+        },
+        {
+          "url": "https://github.com/acme/notes/pull/13"
+        }
+      ],
+      "replies": true,
+      "dir": {
+        "length": 2,
+        "head": "LeuzEpIHyB9-qEtlhhM4PidtiO9pwX-rGne2QsCmHAc"
+      }
+    }
+  ],
+  "laterDecisions": [],
+  "runs": [],
+  "gh": [
+    "gh pr view 12 --json number,title,state,mergeable,mergeStateStatus,headRefName,baseRefName,statusCheckRollup,files",
+    "gh pr view 13 --json number,title,state,mergeable,mergeStateStatus,headRefName,baseRefName,statusCheckRollup,files",
+    "gh pr view 12 --json mergeable,mergeStateStatus,reviewDecision",
+    "gh pr view 13 --json mergeable,mergeStateStatus,reviewDecision",
+    "gh pr diff 12",
+    "gh pr diff 13",
+    "gh pr view 12 --json headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus -q .",
+    "gh pr view 13 --json headRefName,headRefOid,baseRefName,mergeable,mergeStateStatus -q .",
+    "gh api repos/acme/notes/pulls/12 --jq {mergeable, mergeable_state, head: .head.ref, base: .base.ref, sha: .head.sha}",
+    "gh api repos/acme/notes/pulls/13 --jq {mergeable, mergeable_state, head: .head.ref, base: .base.ref, sha: .head.sha}",
+    "gh pr merge 12 --squash",
+    "gh pr merge 13 --squash",
+    "gh pr view 12",
+    "gh pr view 13",
+    "gh pr list --state all"
+  ],
+  "answered": "Answer to d_mvLiG_jV6m0Dl23Y (Merge #12 or #13 first? Both touch src/api.ts?): #12 first",
+  "waiting": [
+    {
+      "v": 1,
+      "id": "w_fX3LPpsmY8RmFjfH",
+      "decisionId": "d_mvLiG_jV6m0Dl23Y",
+      "to": [
+        "phone"
+      ],
+      "at": "2026-10-11T09:18:55Z",
+      "state": "waiting",
+      "dir": {
+        "length": 2,
+        "head": "LeuzEpIHyB9-qEtlhhM4PidtiO9pwX-rGne2QsCmHAc"
+      }
+    }
+  ],
+  "permissions": [],
+  "settled": [
+    {
+      "v": 1,
+      "id": "s_k1skvr9cP5J84D47",
+      "itemId": "d_mvLiG_jV6m0Dl23Y",
+      "to": [
+        "phone"
+      ],
+      "at": "2026-10-11T09:19:08Z",
+      "outcome": "device",
+      "device": "phone",
+      "choice": "#12 first",
+      "dir": {
+        "length": 2,
+        "head": "LeuzEpIHyB9-qEtlhhM4PidtiO9pwX-rGne2QsCmHAc"
+      }
+    }
+  ],
+  "peakContext": 28614,
+  "usedTokens": 423912
+}

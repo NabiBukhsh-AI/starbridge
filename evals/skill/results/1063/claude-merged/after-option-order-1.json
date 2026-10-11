@@ -1,0 +1,158 @@
+{
+  "agent": "claude",
+  "model": "claude-haiku-5-5",
+  "arm": "after",
+  "scenario": "option-order",
+  "rep": 1,
+  "turns": [
+    {
+      "commands": [
+        "git ls-files && echo --- && grep -rniE 'trash|purge|retention|deleted_at|soft.?delet' --exclude-dir=.git . | head -100",
+        "cat NOTES.md && echo --- && cat src/trash.js && echo --- && cat AGENTS.md",
+        "starbridge ask \\\n  --question 'How long should deleted notes stay in the trash?' \\\n  --context 'The trash has no expiry, and the storage bill doubled.\n**7 days:** cheapest. Misses restores after a week; support sees 85% of requests within 3 weeks.\n**30 days:** about $20/month more than 7 days. Covers 85% of restore requests within 3 weeks. Recommended.\n**90 days:** about $40/month more than 30 days. Covers nearly all restores, longest storage.' \\\n  --option '7 days' --option '30 days' --option '90 days' --recommended '30 days'",
+        "starbridge settle d_jYnXPNM8Wlv6EUJU --outcome withdrawn --reason 'Corrected the 30-day storage cost figure' && starbridge ask \\\n  --question 'How long should deleted notes stay in the trash?' \\\n  --context 'The trash has no expiry, and the storage bill doubled.\n**7 days:** about $5/month of trash storage. Misses restores that come after a week; 85% of requests arrive within 3 weeks.\n**30 days:** about $20/month of trash storage, $15 more than 7 days. Covers 85% of restore requests. Recommended.\n**90 days:** about $60/month of trash storage, $40 more than 30 days. Covers nearly all restores.' \\\n  --option '7 days' --option '30 days' --option '90 days' --recommended '30 days'",
+        "node -e \"\nimport('./src/trash.js').then(({trash, purgeExpired}) => {\n  const day = 86400000, now = Date.now();\n  trash.push({note:'old', deletedAt: now - 40*day}, {note:'new', deletedAt: now - 2*day});\n  const n = purgeExpired(30*day, now);\n  console.log('purged', n, 'left', trash.map(t => t.note));\n  try { purgeExpired(0) } catch (e) { console.log('guard:', e.message) }\n});\"",
+        "starbridge wait d_EvXEaMCzvB9IWhCi --timeout 5m"
+      ],
+      "final": "The trash now purges entries older than 30 days, as the owner chose. Purging isn't running yet, because the repo has no entry point to start it.\n\n- **What changed:** `src/trash.js` has three additions:\n  - `purgeExpired(retentionMs)` removes entries older than the window and returns how many it removed. It rejects a non-positive window.\n  - `startTrashPurge(retentionMs, intervalMs)` runs the purge hourly by default and returns a function that stops it.\n  - `TRASH_RETENTION_MS` is set to 30 days.\n- **Verification:** a quick Node check purged a 40-day-old entry and kept a 2-day-old one, and the guard rejected `0`. I did not add a test file, since the repo has none.\n- **Still open:** nothing calls `startTrashPurge`. Call it once where the app starts, for example `startTrashPurge(TRASH_RETENTION_MS)`. I didn't add that call because I couldn't find the app's startup code.\n- **Retention decision:** I posted it as a Starbridge card, and the owner answered 30 days. I first posted the card with a wrong 30-day cost, withdrew it, and reposted it with the corrected figure (about $15/month more than 7 days). The owner's answer was given on the corrected card.",
+      "session": "f904cb9a-9d79-422d-9fcb-4335dff10520",
+      "tokens": 255201,
+      "costUsd": 0.0078117299999999985,
+      "exit": 0,
+      "seconds": 31.967,
+      "delivery": [
+        "Nothing brings the answer into this session: when only the answer is left, run `starbridge wait d_jYnXPNM8Wlv6EUJU --timeout 5m` (again on exit 2).",
+        "Nothing brings the answer into this session: when only the answer is left, run `starbridge wait d_EvXEaMCzvB9IWhCi --timeout 5m` (again on exit 2)."
+      ]
+    },
+    {
+      "commands": [
+        "node -e \"import('./src/trash.js').then(m => console.log(m.TRASH_RETENTION_MS, typeof m.startTrashPurge))\" && git status --short"
+      ],
+      "final": "The trash now purges entries older than 30 days, as the owner chose. Purging isn't running yet, because the repo has no entry point to start it.\n\n- **What changed:** `src/trash.js` has three additions:\n  - `purgeExpired(retentionMs)` removes entries older than the window and returns how many it removed. It rejects a non-positive window.\n  - `startTrashPurge(retentionMs, intervalMs)` runs the purge hourly by default and returns a function that stops it.\n  - `TRASH_RETENTION_MS` is set to 30 days.\n- **Verification:** a quick Node check purged a 40-day-old entry and kept a 2-day-old one, and the guard rejected `0`. I did not add a test file, since the repo has none.\n- **Still open:** nothing calls `startTrashPurge`. Call it once where the app starts, for example `startTrashPurge(TRASH_RETENTION_MS)`. I didn't add that call because I couldn't find the app's startup code.\n- **Retention decision:** I posted it as a Starbridge card, and the owner answered 30 days. I first posted the card with a wrong 30-day cost, withdrew it, and reposted it with the corrected figure (about $15/month more than 7 days). The owner's answer was given on the corrected card.",
+      "session": "f904cb9a-9d79-422d-9fcb-4335dff10520",
+      "tokens": 255201,
+      "costUsd": 0.0078117299999999985,
+      "exit": 0,
+      "seconds": 31.967,
+      "delivery": [
+        "Nothing brings the answer into this session: when only the answer is left, run `starbridge wait d_jYnXPNM8Wlv6EUJU --timeout 5m` (again on exit 2).",
+        "Nothing brings the answer into this session: when only the answer is left, run `starbridge wait d_EvXEaMCzvB9IWhCi --timeout 5m` (again on exit 2)."
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "v": 1,
+      "id": "d_jYnXPNM8Wlv6EUJU",
+      "to": [
+        "phone"
+      ],
+      "createdAt": "2026-10-11T10:04:06Z",
+      "question": "How long should deleted notes stay in the trash?",
+      "context": "The trash has no expiry, and the storage bill doubled.\n**7 days:** cheapest. Misses restores after a week; support sees 85% of requests within 3 weeks.\n**30 days:** about $20/month more than 7 days. Covers 85% of restore requests within 3 weeks. Recommended.\n**90 days:** about $40/month more than 30 days. Covers nearly all restores, longest storage.",
+      "options": [
+        "7 days",
+        "30 days",
+        "90 days"
+      ],
+      "recommended": "30 days",
+      "agent": "claude-code",
+      "source": {
+        "machine": "devbox",
+        "machineKind": "server",
+        "project": "proj",
+        "session": "f904cb9a-9d79-422d-9fcb-4335dff10520"
+      },
+      "replies": true,
+      "dir": {
+        "length": 2,
+        "head": "hLYpPQzuWuoDOxC-btOGV4eUVdm1TraBc1429JjTw3w"
+      }
+    },
+    {
+      "v": 1,
+      "id": "d_EvXEaMCzvB9IWhCi",
+      "to": [
+        "phone"
+      ],
+      "createdAt": "2026-10-11T10:04:11Z",
+      "question": "How long should deleted notes stay in the trash?",
+      "context": "The trash has no expiry, and the storage bill doubled.\n**7 days:** about $5/month of trash storage. Misses restores that come after a week; 85% of requests arrive within 3 weeks.\n**30 days:** about $20/month of trash storage, $15 more than 7 days. Covers 85% of restore requests. Recommended.\n**90 days:** about $60/month of trash storage, $40 more than 30 days. Covers nearly all restores.",
+      "options": [
+        "7 days",
+        "30 days",
+        "90 days"
+      ],
+      "recommended": "30 days",
+      "agent": "claude-code",
+      "source": {
+        "machine": "devbox",
+        "machineKind": "server",
+        "project": "proj",
+        "session": "f904cb9a-9d79-422d-9fcb-4335dff10520"
+      },
+      "replies": true,
+      "dir": {
+        "length": 2,
+        "head": "hLYpPQzuWuoDOxC-btOGV4eUVdm1TraBc1429JjTw3w"
+      }
+    }
+  ],
+  "laterDecisions": [],
+  "runs": [],
+  "gh": [],
+  "answered": "Answer to d_EvXEaMCzvB9IWhCi (How long should deleted notes stay in the trash?): 30 days",
+  "waiting": [
+    {
+      "v": 1,
+      "id": "w_iyXZcb0PtnX6LEoz",
+      "decisionId": "d_EvXEaMCzvB9IWhCi",
+      "to": [
+        "phone"
+      ],
+      "at": "2026-10-11T10:04:17Z",
+      "state": "waiting",
+      "dir": {
+        "length": 2,
+        "head": "hLYpPQzuWuoDOxC-btOGV4eUVdm1TraBc1429JjTw3w"
+      }
+    }
+  ],
+  "permissions": [],
+  "settled": [
+    {
+      "v": 1,
+      "id": "s_XiLdg3irdFsRHc9f",
+      "itemId": "d_jYnXPNM8Wlv6EUJU",
+      "to": [
+        "phone"
+      ],
+      "at": "2026-10-11T10:04:11Z",
+      "outcome": "withdrawn",
+      "dir": {
+        "length": 2,
+        "head": "hLYpPQzuWuoDOxC-btOGV4eUVdm1TraBc1429JjTw3w"
+      },
+      "reason": "Corrected the 30-day storage cost figure"
+    },
+    {
+      "v": 1,
+      "id": "s_QiEkFvOiZ7TkxKL8",
+      "itemId": "d_EvXEaMCzvB9IWhCi",
+      "to": [
+        "phone"
+      ],
+      "at": "2026-10-11T10:04:22Z",
+      "outcome": "device",
+      "device": "phone",
+      "choice": "30 days",
+      "dir": {
+        "length": 2,
+        "head": "hLYpPQzuWuoDOxC-btOGV4eUVdm1TraBc1429JjTw3w"
+      }
+    }
+  ],
+  "peakContext": 26091,
+  "usedTokens": 255201
+}
