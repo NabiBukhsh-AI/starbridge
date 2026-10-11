@@ -392,6 +392,8 @@ class ServerStore(
         notifyStates.value = emptyMap()
         deviceClients.value = emptyMap()
         machinesBehind.value = emptySet()
+        // The next account's hold shows once its own read succeeds, as on the web (#1192).
+        pushHold.value = null
         joinJob?.cancel()
         showJob?.cancel()
         watchJob?.cancel()
