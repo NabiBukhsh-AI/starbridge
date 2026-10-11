@@ -404,8 +404,9 @@ async function racePicker(
     deadline,
     failed.signal,
   ]);
+  const at = ctx.now().getTime();
   const results = await Promise.allSettled(
-    questions.map(async (q) => {
+    questions.map(async (q, i) => {
       const sub: Ctx = { ...ctx, signal, err: () => {} };
       const input: AskInput = {
         ...questionInput({ ...q, multiple: q.multiSelect }),
@@ -415,6 +416,7 @@ async function racePicker(
         held: true,
         picker: sessionId,
         waiting: true,
+        askedAt: new Date(at + i),
       };
       let id: string;
       try {
@@ -568,6 +570,7 @@ export async function hookQuestion(
     const failed = new AbortController();
     const signal = ctx.signal ? AbortSignal.any([ctx.signal, failed.signal]) : failed.signal;
     const ids: (string | undefined)[] = [];
+    const at = ctx.now().getTime();
     const results = await Promise.allSettled(
       hook.questions.map(async (q, i) => {
         const lines: string[] = [];
@@ -578,6 +581,7 @@ export async function hookQuestion(
           session: hook.session_id,
           project: projectName(hook.cwd || process.cwd()),
           held: true,
+          askedAt: new Date(at + i),
         };
         const how = { wait: true, json: true };
         try {

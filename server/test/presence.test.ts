@@ -324,13 +324,30 @@ test("presence ends when its source says so or stops beating, and the hold time 
   await post(devbox, decision());
   expect(pushed()[0]?.[0]).toEqual([phone.id, web.id]);
 
-  await s.call("PUT", "/v1/settings", { token: phone.token, body: { pushHold: 120 } });
+  await s.call("PUT", "/v1/settings", { token: phone.token, body: { pushHold: 60 } });
   sent = [];
   const d = decision();
   await post(devbox, d);
-  expect(Date.parse((await heldUntil(phone, d.id)) as string) - Date.now()).toBeGreaterThan(
-    119_000,
-  );
+  expect(Date.parse((await heldUntil(phone, d.id)) as string) - Date.now()).toBeGreaterThan(59_000);
+});
+
+test("a hold on leave waits while the owner is present and pushes as soon as they leave", async () => {
+  await s.call("PUT", "/v1/settings", { token: phone.token, body: { pushHold: -1 } });
+  await present(web);
+  const d = decision();
+  await post(devbox, d);
+  sent = [];
+  release(60_000);
+  expect(sent).toEqual([]);
+  await present(web, false);
+  release(1_000);
+  expect(pushed()).toEqual([[[phone.id], "decision", d.id]]);
+});
+
+test("2 min, set by a client from before #1060, reads as 1 min, a choice still offered", async () => {
+  await s.call("PUT", "/v1/settings", { token: phone.token, body: { pushHold: 120 } });
+  const read = await s.call("GET", "/v1/settings", { token: web.token });
+  expect(read.json).toEqual({ pushHold: 60 });
 });
 
 test("presence takes one bit from members only, and settings only from devices", async () => {
@@ -352,4 +369,6 @@ test("presence takes one bit from members only, and settings only from devices",
     body: { pushHold: 301 },
   });
   expect(tooLong.status).toBe(400);
+  const below = await s.call("PUT", "/v1/settings", { token: phone.token, body: { pushHold: -2 } });
+  expect(below.status).toBe(400);
 });

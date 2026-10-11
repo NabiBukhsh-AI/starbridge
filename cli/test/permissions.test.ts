@@ -789,6 +789,8 @@ test("a device answers Claude Code's picker, permissions on or off, and the sess
     agent: "claude-code",
     source: { session: SESSION, project: "starbridge" },
   });
+  // Posted in parallel, the cards keep the call's order in every inbox (#1079).
+  expect(Date.parse(sizes?.createdAt as string) - Date.parse(color?.createdAt as string)).toBe(1);
   expect(readFileSync(join(ctx.store.dir, PROMPTS_OPEN), "utf8")).toBe("open");
   await server.answer(color?.id as string, { choice: "Blue" });
   await server.answer(sizes?.id as string, { text: "S, L" });

@@ -65,6 +65,11 @@ export interface AskInput {
   held?: boolean;
   /** Asked for Claude Code's open `AskUserQuestion` picker in this session (#848). */
   picker?: string;
+  /**
+   * When one of several questions from one tool call was asked: the call's time plus its index in
+   * milliseconds, so every inbox lists them together in the call's order (#1079).
+   */
+  askedAt?: Date;
   project?: string;
   session?: string;
   sessionTitle?: string;
@@ -212,7 +217,8 @@ export function buildDecision(input: AskInput, ctx: Ctx, machine: string, to: st
     v: 1 as const,
     id: `d_${randomBytes(12).toString("base64url")}`,
     to,
-    createdAt: iso(ctx.now()),
+    // `--input` JSON can carry no Date: only the hooks set it.
+    createdAt: input.askedAt instanceof Date ? input.askedAt.toISOString() : iso(ctx.now()),
     question: input.question,
     context: input.context ?? "",
     options,

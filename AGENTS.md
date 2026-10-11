@@ -3,9 +3,26 @@
 Starbridge lets one person supervise their coding agents from an Android app
 and a web page with the same features: questions that agents ask and the owner
 answers with one tap, pushed back into the waiting session; runs; permission
-prompts; and AI plan quota windows read from CodexBar. `SPEC.md` holds the
-product decisions and their reasons, by area; `PROTOCOL.md` the wire format;
-`DESIGN.md` the look. Read the parts your change touches.
+prompts; and AI plan quota windows read from CodexBar. `SPEC.md` indexes the
+product decisions and their reasons, one file per area under `spec/`;
+`PROTOCOL.md` holds the wire format and `DESIGN.md` the look.
+
+## What to read
+
+Read the spec files for what your change touches, whole, rather than
+grepping one big file:
+
+| You change | Read |
+|---|---|
+| a new feature or a principle | `spec/product.md` |
+| `server` | `spec/server.md`, and `spec/push.md` or `spec/sign-in.md` when it touches them |
+| `web` | `spec/clients.md`, `spec/web.md`, `spec/items.md` |
+| `android` | `spec/clients.md`, `spec/android.md`, `spec/items.md`, `spec/push.md` |
+| `desktop` | `spec/clients.md`, `spec/desktop.md` |
+| a feature a user sees in one client | `spec/parity.md` too |
+| `cli`, `mod`, `plugin` | `spec/machines.md`, `spec/harnesses.md`, `spec/platform-facts.md` |
+| `packages/protocol`, keys, pairing | `spec/keys-and-trust.md`, `PROTOCOL.md` |
+| `deploy`, `.github`, a release | `spec/releases.md`, `spec/hosted.md` |
 
 ## Layout
 
@@ -27,8 +44,13 @@ command and its local agent), `plugin` and
   (Android, Web, Desktop, CLI, Server, Docs), or `None`. The release groups them by product.
 - Before a PR is ready, run the checks in
   [CONTRIBUTING.md, "Develop"](CONTRIBUTING.md#develop).
-- When a change makes or changes a product decision, update its section of
-  `SPEC.md`: the rule, why, and the issue. Replace what it supersedes.
+- A Settings row you add or rename follows DESIGN.md's rule on Settings
+  copy: a title that stands alone, a subtitle only when it must.
+- When a change makes or changes a product decision, update its file under
+  `spec/`: the rule, why in a clause, and the issue. Replace what it
+  supersedes. A feature added to or changed in one client updates its row in
+  `spec/parity.md`, and the PR opens an issue for each client the row says
+  should follow.
 
 ## Personal setup
 

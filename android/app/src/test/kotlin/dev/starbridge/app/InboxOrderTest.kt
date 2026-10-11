@@ -9,7 +9,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.time.Instant
 
-// SPEC, Clients: prompts, then questions whose agent waits, then the rest, each oldest first, as on the web.
+// spec/clients.md: prompts, then questions whose agent waits, then the rest, each oldest first, as on the web.
 class InboxOrderTest {
     private val t0 = Instant.parse("2026-10-05T10:00:00Z")
     private val now = t0.plusSeconds(60)
@@ -25,6 +25,13 @@ class InboxOrderTest {
     fun questionsWaitingFirstThenEachOldestFirst() {
         val decisions = listOf(question("infra3", 20), question("infra1", 0), question("waits", 30, waiting = true), question("infra2", 10))
         assertEquals(listOf("waits", "infra1", "infra2", "infra3"), openQuestions(decisions).map { it.id })
+    }
+
+    @Test
+    fun oneCallsQuestionsInTheCallsOrder() {
+        // #1079: the CLI stamps them a millisecond apart.
+        val decisions = (0L..3L).reversed().map { Decision("q$it", "q$it", "", emptyList(), null, source, t0.plusMillis(it)) }
+        assertEquals(listOf("q0", "q1", "q2", "q3"), openQuestions(decisions).map { it.id })
     }
 
     @Test

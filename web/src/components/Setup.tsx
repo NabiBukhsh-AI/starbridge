@@ -6,7 +6,7 @@ import s from "./Setup.module.css";
 import ui from "./ui.module.css";
 
 // First-device setup: the recovery key is shown here once and never again
-// (SPEC.md, "Keys and trust").
+// (spec/keys-and-trust.md).
 export function Setup({
   device,
   recoveryKey,

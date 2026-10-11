@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { headers } from "next/headers";
+import { BUILD } from "@/lib/build";
 import { DESCRIPTION } from "@/lib/landing";
 import { THEME_SCRIPT, ZOD_SCRIPT } from "@/lib/themeScript";
 import { mono, sans } from "@/styles/fonts";
@@ -33,6 +34,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
       <head>
+        <meta name="starbridge-build" content={BUILD} />
         {/* The Colours setting, before the first paint (lib/prefs.ts). */}
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: a fixed script from our own module */}
         <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />

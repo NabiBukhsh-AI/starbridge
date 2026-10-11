@@ -23,7 +23,13 @@ export interface Settings {
   place: Place;
   /** Whether macOS was asked to allow notifications, which happens once, after sign-in. */
   notificationsAsked: boolean;
+  /** The page's last background colour, which the window shows until the page paints. */
+  background?: string;
 }
+
+/** A colour the page reports as its background: `#rrggbb` only. */
+export const parseBackground = (x: unknown): string | null =>
+  typeof x === "string" && /^#[0-9a-f]{6}$/i.test(x) ? x.toLowerCase() : null;
 
 export const DEFAULT_SHORTCUT = "Control+Alt+S";
 
@@ -45,6 +51,7 @@ export function readSettings(file: string): Settings {
       typeof saved.notificationsAsked === "boolean"
         ? saved.notificationsAsked
         : notified.length > 0,
+    background: parseBackground(saved.background) ?? undefined,
   };
 }
 
