@@ -1,16 +1,18 @@
 name: CodeQL Swift
 
-# Code scanning for the iOS app's Swift, on GitHub's macOS runner: only when ios/ changes, and
-# weekly on main for queries that changed meanwhile. The other languages are in codeql.yml.
+# Code scanning for the Swift of the iOS app and the desktop widgets, on GitHub's macOS runner: only
+# when they change, and weekly on main for queries that changed meanwhile. The other languages are in codeql.yml.
 on:
   push:
     branches: [main]
     paths:
       - "ios/**"
+      - "desktop/widgets/**"
       - ".github/workflows/codeql-swift.yml"
   pull_request:
     paths:
       - "ios/**"
+      - "desktop/widgets/**"
       - ".github/workflows/codeql-swift.yml"
   schedule:
     - cron: "17 4 * * 1"
@@ -37,6 +39,8 @@ jobs:
         with:
           languages: swift
           build-mode: autobuild
+      # As default setup did: CodeQL's Swift autobuilder finds the packages and projects to build.
+      - uses: github/codeql-action/autobuild@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
       - uses: github/codeql-action/analyze@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:
           category: /language:swift
