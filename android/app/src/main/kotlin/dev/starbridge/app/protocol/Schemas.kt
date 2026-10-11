@@ -561,6 +561,7 @@ data class Settled(
         schema((outcome == "device") == (device != null), "device is set exactly when outcome is device")
         choice?.let { len(it, 0, 100, "choice") }
         text?.let { len(it, 0, 4000, "text") }
+        behavior?.let { schema(it == "allow" || it == "deny", "behavior") }
         reason?.let {
             len(it, 1, SETTLED_REASON_MAX, "reason")
             schema('\n' !in it && '\r' !in it, "reason")
