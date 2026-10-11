@@ -449,8 +449,8 @@ describe.skipIf(!pwsh || !(hasMinisign || WINDOWS))("install.ps1", () => {
     writeFileSync(join(dir, "bin", "starbridge.exe"), "old");
     const r = await installPs(release.url, release.pubkey);
     expect(r.out).toContain(`Installed starbridge 9.9.9 to ${r.bin}`);
-    // The install folder was on the PATH: the user's PATH stays as it was.
-    expect(r.out).not.toContain("to your PATH");
+    // On Windows the install folder was on the PATH: the user's PATH stays as it was.
+    if (WINDOWS) expect(r.out).not.toContain("to your PATH");
     expect(r.code).toBe(0);
     expect(readFileSync(r.bin, "utf8")).toContain("starbridge 9.9.9");
     expect(existsSync(`${r.bin}.old`)).toBe(false);
