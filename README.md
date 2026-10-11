@@ -27,6 +27,9 @@ Launch week: [known issues](https://github.com/T0mSIlver/starbridge/issues?q=is%
   or add the repository to [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/T0mSIlver/starbridge)
   to get updates. The APK is signed with the same key as the Google Play build, so a Play install
   later updates it in place.
+- **macOS:** the desktop app from [GitHub Releases](https://github.com/T0mSIlver/starbridge/releases/latest),
+  the `arm64` DMG for Apple silicon or the `x64` one for Intel. It is signed and notarized, adds a
+  menu bar light and a notification per question with its options as buttons, and updates itself.
 - **Google Play:** in closed testing, and looking for testers. Join
   [the group](https://groups.google.com/g/starbridge-testers), then
   [opt in](https://play.google.com/apps/testing/dev.starbridge.app).
