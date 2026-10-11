@@ -1,0 +1,71 @@
+import Foundation
+import Security
+
+/** What only this iPhone may know: the session and its private keys. */
+struct Secrets: Codable, Equatable {
+    var session: String?
+    /** The PKCE verifier of the sign-in in progress. */
+    var signInVerifier: String?
+    var boxPk: String?
+    var boxSk: String?
+    var signPk: String?
+    var signSk: String?
+    /** The claim secret of a join by code, which fetches its result. */
+    var claim: String?
+    /** The ephemeral key pair of a join by digits. */
+    var joinPk: String?
+    var joinSk: String?
+}
+
+/** Stores [Secrets] somewhere only this app reads. */
+protocol Vault {
+    func load() throws -> Secrets
+    func save(_ secrets: Secrets) throws
+}
+
+struct VaultError: Error, CustomStringConvertible {
+    let status: OSStatus
+    var description: String { "keychain: \(SecCopyErrorMessageString(status, nil) as String? ?? "status \(status)")" }
+}
+
+/**
+ * The secrets as one keychain item, readable after the first unlock since boot and never moved
+ * to another device by a backup, so a notification can answer from the lock screen as on Android.
+ */
+struct KeychainVault: Vault {
+    var service = "dev.starbridge.ios"
+    var account = "secrets"
+
+    private var query: [String: Any] {
+        [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
+    }
+
+    func load() throws -> Secrets {
+        var q = query
+        q[kSecReturnData as String] = true
+        q[kSecMatchLimit as String] = kSecMatchLimitOne
+        var out: CFTypeRef?
+        let status = SecItemCopyMatching(q as CFDictionary, &out)
+        if status == errSecItemNotFound { return Secrets() }
+        guard status == errSecSuccess, let data = out as? Data else { throw VaultError(status: status) }
+        return try JSONDecoder().decode(Secrets.self, from: data)
+    }
+
+    func save(_ secrets: Secrets) throws {
+        if secrets == Secrets() {
+            let status = SecItemDelete(query as CFDictionary)
+            guard status == errSecSuccess || status == errSecItemNotFound else { throw VaultError(status: status) }
+            return
+        }
+        let data = try JSONEncoder().encode(secrets)
+        let attributes: [String: Any] = [
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly,
+        ]
+        var status = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
+        if status == errSecItemNotFound {
+            status = SecItemAdd(query.merging(attributes) { $1 } as CFDictionary, nil)
+        }
+        guard status == errSecSuccess else { throw VaultError(status: status) }
+    }
+}

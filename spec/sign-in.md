@@ -25,6 +25,10 @@
   `starbridge://auth`. Chrome asks "Continue to Starbridge?" before following a `starbridge://`
   redirect that no tap started; after a tap it does not. Self-hosted servers keep
   `starbridge://auth`, since the APK can bind only starbridge.run.
+- iPhone (#1105): the same PKCE sign-in through `ASWebAuthenticationSession`, which shares
+  Safari's GitHub sign-in and ends on `starbridge://auth`. On starbridge.run the browser therefore
+  stops on `/app/auth`, and the owner taps Open Starbridge once: catching the https callback
+  needs an associated domain, so a signed build (#1115).
 - `assetlinks.json` lists only the release key, which Play App Signing also uses. A debug
   keystore's password is public, and an app signed with it would verify as the App Link handler
   (#569). Dogfood builds sign with the release key instead, opted into by a gitignored

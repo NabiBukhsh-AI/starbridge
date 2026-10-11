@@ -370,9 +370,11 @@ easing: "cubic-bezier(0.05, 0.7, 0.1, 1)"
 # Starbridge design
 
 The frontmatter above is the design system. `web/scripts/tokens.ts` turns it
-into `web/src/styles/tokens.css` and `type.css`, and into
-`android/app/src/main/kotlin/dev/starbridge/app/ui/theme/Tokens.kt`, so both
-clients share colours, type and spacing. Change a value here, then run
+into `web/src/styles/tokens.css` and `type.css`, into
+`android/app/src/main/kotlin/dev/starbridge/app/ui/theme/Tokens.kt` and into
+`ios/Starbridge/Theme/Tokens.swift`, so every client shares colours, type and
+spacing. The iPhone sets the type roles in SF Pro rather than Google Sans Flex,
+whose case (the face of Google's own apps) holds only on Android. Change a value here, then run
 `bun web/scripts/tokens.ts`; `--check` fails when an output is stale.
 
 ## The look

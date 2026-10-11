@@ -1,0 +1,4 @@
+# XcodeGen writes it from project.yml.
+/Starbridge.xcodeproj/
+/build/
+/Starbridge/Info.plist
