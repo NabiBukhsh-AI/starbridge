@@ -224,7 +224,7 @@ export function QuestionDetail({
           waiting={!!since}
           size="comfy"
         />
-        <h2 className="t-heading">{d.question}</h2>
+        <h2 className={`t-heading ${s.question}`}>{d.question}</h2>
         {snoozed && (
           <p className={`t-small ${s.snoozed}`}>
             <Icon name="snooze" size={16} />
