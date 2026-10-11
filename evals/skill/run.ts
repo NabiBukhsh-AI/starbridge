@@ -2,7 +2,8 @@
  * Runs real agents through the scripted situations in scenarios.ts, once with the skill and rule
  * of `--before` (a git ref) and once with this checkout's, and records what each posted.
  *
- *   bun evals/skill/run.ts [--agent claude|codex|pi|opencode] [--model claude-haiku-5-5] [--reps 2] [--jobs 4]
+ *   bun evals/skill/run.ts [--agent claude|codex|pi|opencode|cursor|antigravity] [--model claude-haiku-5-5]
+ *                          [--reps 2] [--jobs 4]
  *                          [--only merge-order,...] [--arms before,after] [--before origin/main]
  *                          [--out evals/skill/results/<agent>]
  *
@@ -12,7 +13,9 @@
  * output. Nothing is written to the owner's own config. Claude Code loads the plugin with
  * `--plugin-dir`; Codex gets the skill in `$CODEX_HOME/skills` and the SessionStart rule in
  * `$CODEX_HOME/AGENTS.md`, opencode the same in its XDG config folder; Pi loads the Starbridge Pi
- * extension and skill with `-e` and `--skill`.
+ * extension and skill with `-e` and `--skill`. Cursor and Antigravity get what `starbridge setup`
+ * writes for them, built from the version under test: Cursor the skill in `~/.cursor/skills` and
+ * the hooks in `~/.cursor/hooks.json`, Antigravity the plugin in `~/.gemini/config/plugins`.
  *
  * Models: Claude Code defaults to claude-haiku-5-5, Codex to its own default and Pi to
  * zai/glm-5.3-flash (`provider/id`, with the providers of `~/.pi/agent`). Haiku 5.5 costs more
@@ -36,7 +39,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { LiveServer } from "../../server/test-support/index.ts";
-import { claudeToken, codexKey, tmpOutsideHome } from "./login.ts";
+import { claudeToken, codexKey, cursorLogin, geminiKey, tmpOutsideHome } from "./login.ts";
 import { type Scenario, scenarios } from "./scenarios.ts";
 
 const { values: opt } = parseArgs({
@@ -54,7 +57,7 @@ const { values: opt } = parseArgs({
   },
 });
 
-const agent = opt.agent as "claude" | "codex" | "pi" | "opencode";
+const agent = opt.agent as "claude" | "codex" | "pi" | "opencode" | "cursor" | "antigravity";
 const model =
   opt.model ??
   {
@@ -62,6 +65,8 @@ const model =
     codex: undefined,
     pi: "zai/glm-5.3-flash",
     opencode: "zai-coding-plan/glm-5.3-flash",
+    cursor: undefined,
+    antigravity: undefined,
   }[agent];
 const repo = join(import.meta.dir, "..", "..");
 const out = opt.out ?? join(import.meta.dir, "results", agent);
@@ -83,7 +88,7 @@ const which = (cmd: string) => {
   if (r.status !== 0) throw new Error(`${cmd} not on PATH`);
   return r.stdout.trim();
 };
-const agentBin = which(agent);
+const agentBin = which({ cursor: "cursor-agent", antigravity: "agy" }[agent as string] ?? agent);
 
 // The two versions under test, `plugin` (and `mod`, the Pi extension, for Pi) at `--before` and
 // this checkout's.
@@ -94,7 +99,7 @@ for (const arm of (opt.arms as string).split(",")) {
   mkdirSync(dir, { recursive: true });
   if (arm === "after") {
     cpSync(join(repo, "plugin"), join(dir, "plugin"), { recursive: true });
-    for (const d of [".claude-plugin", "hooks", "opencode", "pi"])
+    for (const d of [".claude-plugin", "hooks", "opencode", "pi", "antigravity"])
       cpSync(join(repo, "mod", d), join(dir, "mod", d), { recursive: true });
   }
   else {
@@ -230,6 +235,29 @@ async function turn(
       "-p",
       prompt,
     ];
+  } else if (agent === "cursor") {
+    // `--force` runs every command unasked, as Codex's bypass; `--trust` skips the folder's
+    // trust question.
+    args = [
+      "-p",
+      "--force",
+      "--trust",
+      "--output-format",
+      "stream-json",
+      ...(model ? ["--model", model] : []),
+      ...(resume ? ["--resume", resume] : []),
+      prompt,
+    ];
+  } else if (agent === "antigravity") {
+    args = [
+      "-p",
+      prompt,
+      "--dangerously-skip-permissions",
+      "--output-format",
+      "stream-json",
+      ...(model ? ["--model", model] : []),
+      ...(resume ? ["--conversation", resume] : []),
+    ];
   } else if (agent === "opencode") {
     // `opencode run` rejects every permission prompt; `--auto` allows them, as Codex's bypass.
     args = [
@@ -319,6 +347,17 @@ async function turn(
         const u = m.usage ?? {};
         tokens = (tokens ?? 0) + (u.input ?? 0) + (u.output ?? 0) + (u.cacheRead ?? 0) + (u.cacheWrite ?? 0);
         costUsd = (costUsd ?? 0) + (u.cost?.total ?? 0);
+      }
+    } else if (agent === "cursor") {
+      session ??= e.session_id;
+      const shell = e.tool_call?.shellToolCall;
+      if (e.type === "tool_call" && e.subtype === "completed" && shell) {
+        commands.push(shell.args?.command ?? "");
+        delivery.push(...deliveryLines(JSON.stringify(shell.result ?? "")));
+      }
+      if (e.type === "result") {
+        final = e.result ?? "";
+        if (e.is_error) final = `(error) ${final}`;
       }
     } else if (agent === "opencode") {
       session ??= e.sessionID;
@@ -740,7 +779,40 @@ async function one(s: Scenario, arm: string, rep: number): Promise<RunRecord> {
   const plugin = join(armDir, "plugin");
   const login: Record<string, string> = {};
   if (agent === "claude") login.CLAUDE_CODE_OAUTH_TOKEN = claudeToken();
-  else if (agent === "pi") {
+  else if (agent === "cursor") {
+    Object.assign(login, cursorLogin());
+    // What setup writes (cli/src/setup/cursor.ts): the skill, and the hooks running the plugin's
+    // scripts, which add the rule and register the conversation.
+    cpSync(join(plugin, "skills/starbridge"), join(home, ".cursor/skills/starbridge"), { recursive: true });
+    const hooks = join(plugin, "hooks");
+    const session = `sh "${hooks}/cli.sh" hook session --agent cursor`;
+    writeFileSync(
+      join(home, ".cursor/hooks.json"),
+      JSON.stringify({
+        version: 1,
+        hooks: {
+          sessionStart: [
+            { command: `sh "${hooks}/session-start.sh" cursor`, timeout: 5 },
+            { command: session, timeout: 10 },
+          ],
+          stop: [{ command: session, timeout: 660, loop_limit: null }],
+          sessionEnd: [{ command: session, timeout: 10 }],
+        },
+      }),
+    );
+  } else if (agent === "antigravity") {
+    login.GEMINI_API_KEY = geminiKey();
+    // What setup writes (cli/src/setup/harnesses.ts): the plugin, its always_on rule and the skill.
+    const dir = join(home, ".gemini/config/plugins/starbridge");
+    cpSync(join(armDir, "mod/antigravity"), dir, { recursive: true });
+    copyFileSync(join(plugin, "hooks/cli.sh"), join(dir, "cli.sh"));
+    mkdirSync(join(dir, "rules"));
+    writeFileSync(
+      join(dir, "rules/starbridge.md"),
+      `---\ntrigger: always_on\n---\n\n${readFileSync(join(plugin, "hooks/rule.md"), "utf8")}`,
+    );
+    cpSync(join(plugin, "skills/starbridge"), join(dir, "skills/starbridge"), { recursive: true });
+  } else if (agent === "pi") {
     // Only the providers and their API keys: Pi's auth.json may hold OAuth logins that refresh.
     copyFileSync(join(homedir(), ".pi/agent/models.json"), join(cfg, "models.json"));
   } else {
@@ -1022,6 +1094,8 @@ for (const s of scenarios.filter(
   (x) =>
     (!only || only.has(x.name)) &&
     (agent === "claude" || !x.interactive) &&
+    // Live sessions exist for Claude Code and opencode only.
+    (!x.live || agent === "claude" || agent === "opencode") &&
     (!x.agents || x.agents.includes(agent)),
 ))
   for (const arm of Object.keys(arms))
@@ -1029,8 +1103,10 @@ for (const s of scenarios.filter(
 
 let next = 0;
 let done = 0;
+// Cursor's own login refreshes in place: one run at a time reads it.
+const parallel = agent === "cursor" && "CURSOR_CONFIG_DIR" in cursorLogin() ? 1 : Number(opt.jobs);
 await Promise.all(
-  Array.from({ length: Number(opt.jobs) }, async () => {
+  Array.from({ length: parallel }, async () => {
     while (next < jobs.length) {
       const job = jobs[next++] as () => Promise<RunRecord>;
       const r = await job();
