@@ -152,7 +152,8 @@
 - **Local state carries its format** (#473), and a file a client cannot read is kept, never
   silently replaced. The CLI writes `v: 1` into `machine.json`, `directory.json` (`{v, entries}`),
   `agent.json` and `state.json`; a file without `v` is format 1, and one that is not JSON, not an
-  object or newer stops the command with its path and what to do. Android writes `v` into
+  object or newer stops the command with its path and what to do; `latest.json`, only a cache of
+  GitHub's answer, moves aside instead, as Android's files do (#1174). Android writes `v` into
   `state.bin` and `secrets.bin` and a format byte ahead of the Keystore blob; the two describe one
   device, so when either cannot be read both move to `<name>.unreadable-<time>` and the app starts
   signed out and says so. Quota settings write their defaults, so a later default never changes a
