@@ -2,7 +2,7 @@ import Foundation
 import StarbridgeProtocol
 
 /** A body kept as its signed text, parsed once when read back. */
-private func body<T: ItemBody>(_ kind: String, _ text: String) throws -> T {
+private func parsedBody<T: ItemBody>(_ kind: String, _ text: String) throws -> T {
     guard let b = try parseBody(kind, text).item as? T else { throw ProtocolError(.wrongKind, kind) }
     return b
 }
@@ -34,7 +34,7 @@ struct SavedDecision: Codable, Equatable {
         self.from = from
         self.text = text
         self.answeredAt = answeredAt
-        body = try Starbridge.body("decision", text)
+        body = try parsedBody("decision", text)
     }
 
     init(from decoder: Decoder) throws {
@@ -51,7 +51,7 @@ struct SavedDecision: Codable, Equatable {
         waitingAt = try c.decodeIfPresent(String.self, forKey: .waitingAt)
         snoozedUntil = try c.decodeIfPresent(String.self, forKey: .snoozedUntil)
         snoozedAt = try c.decodeIfPresent(String.self, forKey: .snoozedAt)
-        body = try Starbridge.body("decision", text)
+        body = try parsedBody("decision", text)
     }
 
     var id: String { body.id }
@@ -80,7 +80,7 @@ struct SavedPrompt: Codable, Equatable {
         self.from = from
         self.text = text
         self.answeredAt = answeredAt
-        body = try Starbridge.body("permission", text)
+        body = try parsedBody("permission", text)
     }
 
     init(from decoder: Decoder) throws {
@@ -89,7 +89,7 @@ struct SavedPrompt: Codable, Equatable {
         text = try c.decode(String.self, forKey: .text)
         answeredAt = try c.decodeIfPresent(String.self, forKey: .answeredAt)
         answer = try c.decodeIfPresent(String.self, forKey: .answer)
-        body = try Starbridge.body("permission", text)
+        body = try parsedBody("permission", text)
     }
 
     var id: String { body.id }
@@ -134,14 +134,14 @@ struct SavedRun: Codable, Equatable {
     init(from: String, text: String) throws {
         self.from = from
         self.text = text
-        body = try Starbridge.body("run", text)
+        body = try parsedBody("run", text)
     }
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         from = try c.decode(String.self, forKey: .from)
         text = try c.decode(String.self, forKey: .text)
-        body = try Starbridge.body("run", text)
+        body = try parsedBody("run", text)
     }
 
     var id: String { body.id }

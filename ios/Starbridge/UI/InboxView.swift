@@ -2,7 +2,7 @@ import StarbridgeProtocol
 import SwiftUI
 
 /** What a sheet over the inbox shows. */
-enum Opened: Identifiable, Hashable {
+enum Sheet: Identifiable, Hashable {
     case decision(String)
     case prompt(String)
 
@@ -17,7 +17,7 @@ enum Opened: Identifiable, Hashable {
 struct InboxView: View {
     let store: Store
     @Environment(\.scenePhase) private var scenePhase
-    @State private var opened: Opened?
+    @State private var opened: Sheet?
     @State private var snoozedOpen = false
     @State private var historyOpen = false
 
@@ -81,7 +81,15 @@ struct InboxView: View {
             .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
         }
-        .task { store.startPolling() }
+        .task {
+            store.startPolling()
+            await store.enableNotifications()
+        }
+        .onChange(of: store.openRequest, initial: true) { _, request in
+            guard let request else { return }
+            opened = request
+            store.openRequest = nil
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { store.startPolling() } else { store.stopPolling() }
         }

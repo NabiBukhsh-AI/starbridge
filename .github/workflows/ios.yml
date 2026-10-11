@@ -79,6 +79,13 @@ jobs:
           PORT=18731 DB_PATH="$RUNNER_TEMP/starbridge.db" OWNER_TOKEN=ci-owner-token bun run src/main.ts > "$RUNNER_TEMP/server.log" 2>&1 &
           for _ in $(seq 30); do curl -fs localhost:18731/healthz && exit 0; sleep 1; done
           cat "$RUNNER_TEMP/server.log"; exit 1
+      # The newest Xcode the runner has, not the image's default: closer to the Mac mini's, where
+      # the app is developed, and TestFlight uploads need Xcode 26 or later.
+      - name: Newest Xcode
+        run: |
+          ls -d /Applications/Xcode*.app
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | grep -iv beta | sort -V | tail -1)"
+          xcodebuild -version
       - name: XcodeGen 2.44.1
         run: |
           curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" https://github.com/yonaskolb/XcodeGen/releases/download/2.44.1/xcodegen.zip

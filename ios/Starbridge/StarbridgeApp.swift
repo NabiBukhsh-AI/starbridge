@@ -2,15 +2,15 @@ import SwiftUI
 
 @main
 struct StarbridgeApp: App {
-    @State private var store = Store(deviceName: UIDevice.current.name)
+    @UIApplicationDelegateAdaptor private var delegate: AppDelegate
 
     var body: some Scene {
         WindowGroup {
-            Root(store: store)
+            Root(store: delegate.store)
                 .background(Tokens.Colors.bg.color.ignoresSafeArea())
                 .tint(Tokens.Colors.fg.color)
                 // A sign-in finished in Safari rather than in the app's sign-in sheet.
-                .onOpenURL { url in Task { await store.receiveSignIn(url) } }
+                .onOpenURL { url in Task { await delegate.store.receiveSignIn(url) } }
         }
     }
 }

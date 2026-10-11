@@ -52,6 +52,8 @@ struct Saved: Codable, Equatable {
     var dismissedRuns: [String: String] = [:]
     var outbox: [QueuedAnswer] = []
     var heads: [SavedHead] = []
+    /** This iPhone's APNs subscription, dropped at sign-out. */
+    var pushId: String?
 
     init(server: String) { self.server = server }
 
@@ -77,6 +79,7 @@ struct Saved: Codable, Equatable {
         dismissedRuns = try c.decodeIfPresent([String: String].self, forKey: .dismissedRuns) ?? [:]
         outbox = (try c.decodeIfPresent([Lossy<QueuedAnswer>].self, forKey: .outbox) ?? []).compactMap(\.value)
         heads = try c.decodeIfPresent([SavedHead].self, forKey: .heads) ?? []
+        pushId = try c.decodeIfPresent(String.self, forKey: .pushId)
     }
 
     var pin: Pin? {
@@ -88,13 +91,26 @@ struct Saved: Codable, Equatable {
     }
 }
 
-/** [Saved] as a JSON file in Application Support, out of iCloud backups. */
+/** The app group the app shares with its notification service extension. */
+let APP_GROUP = "group.dev.starbridge.ios"
+
+/**
+ * [Saved] as a JSON file, out of iCloud backups: in the app group's container, which the
+ * notification service extension reads, else in Application Support.
+ */
 struct Disk {
     let url: URL
 
     static let standard: Disk = {
-        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return Disk(url: dir.appendingPathComponent("saved.json"))
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("saved.json")
+        guard let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: APP_GROUP)?.appendingPathComponent("saved.json") else {
+            return Disk(url: support)
+        }
+        // Builds before the app group kept the file in Application Support: it moves once.
+        if !FileManager.default.fileExists(atPath: group.path), FileManager.default.fileExists(atPath: support.path) {
+            try? FileManager.default.moveItem(at: support, to: group)
+        }
+        return Disk(url: group)
     }()
 
     func load() -> Saved? {

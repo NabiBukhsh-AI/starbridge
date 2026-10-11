@@ -20,8 +20,8 @@ final class Offline: URLProtocol, @unchecked Sendable {
 /**
  * The iPhone app as the account's first device, with a machine this test plays on a real
  * self-hosted server: the machine asks a question, a permission prompt and a run; the app lists
- * them and answers, once online and once through the outbox (#329). The account is deleted
- * afterwards, so the other tests find it empty (README.md, "Test").
+ * them and answers, once online, once through the outbox (#329), and once from a notification.
+ * The account is deleted afterwards, so the other tests find it empty (README.md, "Test").
  */
 @MainActor
 final class InboxTests: XCTestCase {
@@ -175,5 +175,13 @@ final class InboxTests: XCTestCase {
         XCTAssertEqual(store.decision("d_two")?.answer, "Not yet")
         got = try await answers()
         XCTAssertEqual(got.first { $0.decisionId == "d_two" }?.text, "Not yet")
+
+        // --- From a notification's button, before the inbox read the question (#1137) ---
+        try await ask("d_three")
+        XCTAssertNil(store.decision("d_three"))
+        await store.answerFromNotification("d_three", choice: "No", text: nil)
+        XCTAssertEqual(store.decision("d_three")?.answer, "No")
+        got = try await answers()
+        XCTAssertEqual(got.first { $0.decisionId == "d_three" }?.choice, "No")
     }
 }
