@@ -10,6 +10,7 @@ import type { Ctx } from "./context";
 import { updateCheckOn } from "./latest";
 import { resolveCommand } from "./platform";
 import { compareVersions, type InstallKind } from "./release";
+import { PLACES } from "./setup/service";
 
 export const RETRY_MS = 24 * 3_600_000;
 /** How long after the agent first sees a release it may wait, at random, before installing it. */
@@ -78,7 +79,7 @@ export function inFlight(st: State, now: Date, runs: number): string | undefined
 /**
  * Starts `<binary> update` with its output in `update.log`, outside the agent's service: the
  * update's `setup --refresh` restarts the service, and the manager would stop a child with it.
- * Under systemd that means a transient unit of its own, with the agent's environment; elsewhere
+ * Under systemd that means a transient unit of its own, with the agent's places; elsewhere
  * a detached process, which neither launchd nor Task Scheduler stops with the agent. Resolves
  * with why it could not start, or undefined once it has.
  */
@@ -97,7 +98,10 @@ export function launchUpdate(
         "--user",
         "--collect",
         "--quiet",
-        ...Object.keys(ctx.env).flatMap((k) => ["-E", k]),
+        // The user manager's environment, plus what the agent's unit and setup add to it.
+        ...Object.keys(ctx.env)
+          .filter((k) => k === "PATH" || PLACES.includes(k) || k.startsWith("STARBRIDGE_"))
+          .flatMap((k) => ["-E", k]),
       ];
       const child = spawn(
         systemdRun,

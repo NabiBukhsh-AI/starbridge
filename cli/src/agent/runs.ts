@@ -9,8 +9,8 @@ import { postRun, type RunInput } from "../run";
 import { type Feature, HttpError, type Hub } from "./server";
 
 export class Runs implements Feature {
-  /** Each run's last update through this agent: when, and whether it was the exit. */
-  private readonly last = new Map<string, { at: number; exited: boolean }>();
+  /** When each run not yet exited last updated through this agent. */
+  private readonly last = new Map<string, number>();
 
   constructor(private readonly hub: Hub) {}
 
@@ -20,12 +20,8 @@ export class Runs implements Feature {
    */
   inFlight(): number {
     const now = this.hub.ctx.now().getTime();
-    let n = 0;
-    for (const [id, r] of this.last) {
-      if (r.exited || r.at < now - RUN_LOST_MS) this.last.delete(id);
-      else n++;
-    }
-    return n;
+    for (const [id, at] of this.last) if (at < now - RUN_LOST_MS) this.last.delete(id);
+    return this.last.size;
   }
 
   routes = [
@@ -38,8 +34,12 @@ export class Runs implements Feature {
           throw new HttpError(400, "bad-request", "post {run: {id, title, reason, ...}}");
         const input = run as RunInput;
         // Counted before the post: a run whose updates the server refuses still runs here.
-        if (typeof input.id === "string")
-          this.last.set(input.id, { at: this.hub.ctx.now().getTime(), exited: !!input.exit });
+        // Pruned here too, so the map stays small whether or not anything asks.
+        if (typeof input.id === "string") {
+          if (input.exit) this.last.delete(input.id);
+          else this.last.set(input.id, this.hub.ctx.now().getTime());
+          this.inFlight();
+        }
         const posted = await postRun(this.hub.ctx, session(this.hub.ctx), input);
         return { id: posted.id };
       },
