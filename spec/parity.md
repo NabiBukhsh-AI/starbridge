@@ -9,6 +9,7 @@ opens an issue for each client the row says should follow.
 |---|---|---|---|---|
 | Inbox order (runs, prompts, waiting, rest; group by machine / waiting) | yes | yes | yes | yes (#1131: one feed, by machine or by waiting, remembered on the iPhone) |
 | Question card and answer buttons (setting: Always / When the agent waits / Never, under 1100 px) | yes | yes | yes | yes (#1131: the setting is in the inbox's ⋯ menu until iOS has Settings) |
+| Selectable text (the question on its card; question, context, answer, prompt input in the detail) | yes (#1143) | yes (#1143) | yes (as web) | yes (#1143; a long press offers Copy) |
 | Typed reply (field under the options, Enter sends) | yes | yes | yes | yes (#1122: field in the detail, the arrow sends; Return starts a new line) |
 | Drafts | yes (until the page reloads) | yes (survives rotation and process death) | yes (as web) | yes (#1122: until the app quits) |
 | Snooze | yes | yes | yes | yes (#1131: in the detail, times in place under Snooze; the time in the system picker) |

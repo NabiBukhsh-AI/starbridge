@@ -52,7 +52,7 @@ struct DecisionDetail: View {
                         Answering(store: store, decision: d, amber: waiting, options: !picks) { close() }
                         SnoozeControls(store: store, id: id, until: until) { close() }
                     } else {
-                        Text(HistoryText.how(d, store)).type(Tokens.Typography.body).foregroundStyle(Tokens.Colors.fg2.color)
+                        Text(HistoryText.how(d, store)).type(Tokens.Typography.body).foregroundStyle(Tokens.Colors.fg2.color).textSelection(.enabled)
                     }
                     SessionLine(source: d.body.source, agent: d.body.agent)
                 }

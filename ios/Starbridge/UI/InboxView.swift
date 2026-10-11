@@ -344,9 +344,11 @@ private struct DecisionCard: View {
                     Image(systemName: "questionmark.circle")
                         .foregroundStyle(waiting ? Tokens.Colors.accent.color : Tokens.Colors.fg2.color)
                         .accessibilityHidden(true)
+                    // A long press copies it; a tap still opens the question (#1143).
                     Text(decision.body.question)
                         .type(Tokens.Typography.subtitle)
                         .fontWeight(waiting ? .medium : .regular)
+                        .textSelection(.enabled)
                 }
                 if let why = store.notSent[decision.id] {
                     Text("Not sent: \(why)").type(Tokens.Typography.small).foregroundStyle(Tokens.Colors.bad.color)
