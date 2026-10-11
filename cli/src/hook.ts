@@ -623,7 +623,8 @@ export async function hookQuestion(
           }
           return code === 0 && answer ? opencodeAnswer(JSON.parse(answer) as Answer, q) : undefined;
         } catch (e) {
-          ids[i] = lines[0];
+          // A wait after a snooze printed nothing: the id from `ask` stays.
+          ids[i] ??= lines[0];
           failed.abort();
           throw e;
         }
