@@ -68,9 +68,8 @@ npm install -g starbridge
 ```
 
 The script runs `starbridge setup`, which pairs the machine, installs Starbridge in each harness it
-finds and ends by offering to send a test question to your devices. A CLI installed by the script
-then installs each new release by itself; `starbridge config updates off` stops that. After
-Homebrew or npm, run `starbridge setup` yourself, and update through them. [Start](https://starbridge.run/docs#start) goes on to your agent's
+finds and ends by offering to send a test question to your devices. After Homebrew or npm, run
+`starbridge setup` yourself. [Start](https://starbridge.run/docs#start) goes on to your agent's
 first question.
 [One notification per question](https://starbridge.run/docs/notifications) turns off your
 harnesses' own notifications for what Starbridge already sends.
