@@ -14,11 +14,11 @@ final class RecoveryReplaceTests: XCTestCase {
         guard let server = env["STARBRIDGE_TEST_SERVER"], let token = env["STARBRIDGE_TEST_OWNER_TOKEN"] else {
             throw XCTSkip("no STARBRIDGE_TEST_SERVER")
         }
-        let session = try await Api(server: server, session: nil).ownerSignIn(token: token)
+        let session = try await Api(server: server, session: nil).ownerSession(token: token)
         let empty = try await Api(server: server, session: session).directory(from: 0).isEmpty
         try XCTSkipUnless(empty, "the server's account already has devices")
         addTeardownBlock {
-            let s = try? await Api(server: server, session: nil).ownerSignIn(token: token)
+            let s = try? await Api(server: server, session: nil).ownerSession(token: token)
             var request = URLRequest(url: URL(string: server + "/v1/account")!)
             request.httpMethod = "DELETE"
             request.setValue("Bearer \(s ?? "")", forHTTPHeaderField: "Authorization")
@@ -28,7 +28,7 @@ final class RecoveryReplaceTests: XCTestCase {
         addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
         let vault = MemoryVault()
         let store = Store(vault: vault, disk: Disk(url: dir.appendingPathComponent("saved.json")), deviceName: "Test iPhone")
-        await store.signInWithOwnerToken(server: server, token: token)
+        await store.signInWaiting(server: server, token: token)
         await store.setUpFirstDevice()
         guard case let .recoveryKey(first) = store.phase else { return XCTFail("no recovery key: \(store.phase)") }
         await store.confirmRecoveryKey()
@@ -82,7 +82,7 @@ final class RecoveryReplaceTests: XCTestCase {
         func chain() async throws -> Directory { try Directories.verify(try await api.directory(from: 0), account: account) }
         try await api.append(Directories.addEntry(try await chain(), signer: phone.id, signKey: sign, member: laptop, at: store.now()).json)
         // The laptop signs in and binds its own session, since a device appends only entries it signed.
-        let laptopApi = Api(server: server, session: try await Api(server: server, session: nil).ownerSignIn(token: token))
+        let laptopApi = Api(server: server, session: try await Api(server: server, session: nil).ownerSession(token: token))
         let nonce = try await laptopApi.challenge()
         try await laptopApi.bind(member: laptop.id, sig: toB64(Sodium.sign(Pairings.bindMessage(account: account, member: laptop.id, nonce: nonce), secretKey: other.sign.secretKey)))
         let third = RecoveryKeys.keyPair(RecoveryKeys.generateSeed())
