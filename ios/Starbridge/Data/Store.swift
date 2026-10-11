@@ -49,6 +49,14 @@ final class Store {
     var openRequest: Sheet?
     /** Replies typed and not sent, by decision id, while the app runs (#992). */
     var drafts: [String: String] = [:]
+    /** The server listed quota snapshots on the last read, even ones this iPhone cannot open yet. */
+    var quotasListed = false
+    /** Asking the machines for fresh quotas, for the Quotas tab's pull and first look (#661). */
+    var quotasAsking = false
+    /** How Quotas reads, on this iPhone only. */
+    var quotaSettings = QuotaSettings.load() {
+        didSet { quotaSettings.store() }
+    }
 
     /** Decisions this iPhone's answer lost to another device's, until the machine says which won. */
     @ObservationIgnored var lost: Set<String> = []
@@ -700,6 +708,7 @@ final class Store {
         drafts = [:]
         tooOld = nil
         withheldWhy = nil
+        quotasListed = false
         persist(Saved(server: saved.server), Secrets())
         try? FileManager.default.removeItem(at: SavedImage.directory)
     }

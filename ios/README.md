@@ -20,6 +20,9 @@ in the planning repo's `research/ios-app.md`).
 - **The inbox** follows spec/clients.md: runs, then permission prompts, then questions whose agent
   waits, then the rest; Snoozed and History closed at the bottom. With no push yet, the app reads
   the server every 10 s while it is in front.
+- **Quotas** (#1234) follow Android's tab: one card per provider, in the order and with the bars
+  Settings → Quotas sets on this iPhone. APNs carries no quota snapshots, so the app reads
+  `GET /quota` with the inbox.
 - **Answers** are signed, sealed and kept in an outbox before they are posted, as on Android
   (#329): one tapped offline is sent once the server can be reached.
 - **Notifications** (#1137): APNs carries each question as an alert with a placeholder, which the

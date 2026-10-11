@@ -247,6 +247,15 @@ struct Api {
 
     func deleteItem(_ id: String) async throws { _ = try await call("DELETE", "/items/\(id)") }
 
+    /** The latest quota snapshot from each machine. */
+    func quota() async throws -> [Listed] {
+        guard let list = try field(try await call("GET", "/quota").1 ?? .null, "items").array else { throw ProtocolError(.badSchema, "items is not a list") }
+        return list.compactMap { try? listed($0) }
+    }
+
+    /** Asks every machine for a fresh snapshot, holding until they posted one or `wait` seconds pass. */
+    func askQuota(wait: Int) async throws { _ = try await call("POST", "/quota/ask?wait=\(wait)", wait: wait) }
+
     // --- Push ------------------------------------------------------------------
 
     /** Subscribes this iPhone's APNs token (hex) in its environment; re-subscribing a known one works. */
