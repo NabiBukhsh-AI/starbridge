@@ -45,7 +45,12 @@ it (#801). The line under the hero's buttons, with end-to-end encryption, shows 
 
 The web app ships first wherever it can: installed to the home screen on iOS (Web Push works for
 home-screen web apps since iOS 16.4) and as an installed app on desktop browsers. Android is a
-native app. No native iOS app until there is demand and a device to test on.
+native app. A native iPhone app is under way (owner, 2026-10-10): a tester with an iPhone now
+exists, and the home-screen web app cannot put options or a typed reply on a notification, nor
+show widgets. It is SwiftUI with the protocol ported to Swift and checked against the same
+vectors as Android; Kotlin Multiplatform and Compose Multiplatform lost on experimental crypto
+bindings, risk to the Android app, and Material controls on an iPhone. The comparison is in the
+planning repo's research/ios-app.md. Until it ships, iPhones use the home-screen web app.
 
 The desktop app is Electron, loading the configured server's web page (owner, 2026-10-08). The
 page stays the device: it signs in, pairs and keeps its keys as in a browser, so every web release

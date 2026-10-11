@@ -5,8 +5,18 @@ set -eu
 host=${STARBRIDGE_HOST:-deploy@starbridge.run}
 key=$HOME/.ssh/starbridge_ed25519
 src=$HOME/.config/starbridge/secrets
-all="github-oauth-client-secret fcm-service-account.json vapid-public-key vapid-private-key stats-password-hash"
-files=${*:-$all}
+all="github-oauth-client-secret fcm-service-account.json vapid-public-key vapid-private-key stats-password-hash apns-key.p8 apns-key-id"
+# The APNs key is optional until the iPhone app ships: with no names given, a missing one is skipped.
+optional="apns-key.p8 apns-key-id"
+if [ $# -eq 0 ]; then
+  files=
+  for f in $all; do
+    case " $optional " in *" $f "*) [ -f "$src/$f" ] || continue ;; esac
+    files="$files $f"
+  done
+else
+  files=$*
+fi
 for f in $files; do
   case " $all " in *" $f "*) ;; *) echo "not a secret to push: $f" >&2; exit 1 ;; esac
 done
