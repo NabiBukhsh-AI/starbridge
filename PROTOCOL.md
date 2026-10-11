@@ -58,7 +58,9 @@ Besides the web app's trust in its server:
 
 ## Formats
 
-- Binary values are base64url without padding. Times are ISO 8601.
+- Binary values are base64url without padding. Times are ISO 8601 with seconds and an offset
+  (`Z` or `±HH:MM`, hours to 23) on a real date. A string's length limit counts code points, as
+  zod does, not UTF-16 units: an emoji is one (#1082).
 - **Signed envelope** `{v, kind, signer, body, sig}`: `body` is JSON text kept exactly as signed;
   `sig` is Ed25519 over `"starbridge/v1/<kind>" NUL signer NUL body`. Verifiers check the
   signature before they parse `body`.
@@ -260,10 +262,12 @@ characters in four groups. That body holds the machine's keys and name, and thro
 whole chain before it. The Android app and the web page show each active machine's code under
 Devices, computed from the chain they verified.
 
-The machine's QR code carries a check key, 80 bits as 16 Crockford base32 characters, in a link
-no browser opens: `starbridge://pair?server=<server>&k=<key>#<code>` (`appPairingLink`,
-`newCheckKey`, `checkKeyFromLink`). Only the Android app handles `starbridge:` links, so the key
-never reaches a page the server writes. The printed link and code leave it out. An Android app that read the key adds `check` to its approval:
+The machine's QR code carries a check key, 80 bits as 16 Crockford base32 characters, in text
+with no scheme: `starbridge-pair?server=<server>&k=<key>#<code>` (`machineQrText`, `newCheckKey`,
+`checkKeyFromLink`). A phone's camera shows it as text rather than handing it to an app, so the
+key reaches only the Android app's own scanner, never a page the server writes or another app that
+claims a link. The printed link and code leave it out. CLIs before it put the same query and code
+in a `starbridge://pair` link (`appPairingLink`), which the app still reads. An Android app that read the key adds `check` to its approval:
 `crypto_auth` over the same bytes `checkCode` hashes, keyed by
 `BLAKE2b-256("starbridge/v1/check-key" NUL key)` (`checkProof`). The machine then, after it
 verified the chain:

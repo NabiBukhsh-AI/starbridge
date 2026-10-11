@@ -2,7 +2,7 @@
 
 The macOS app: the server's web page in a window, an amber light in the menu bar while something
 needs you, and a notification per question that you answer with its buttons or a typed reply. The
-page stays the device, as in a browser; the app adds what a browser cannot. SPEC.md, "Desktop", has the rules.
+page stays the device, as in a browser; the app adds what a browser cannot. spec/desktop.md has the rules.
 
 ## Develop
 
@@ -50,10 +50,10 @@ checks every field again.
 
 ## The widget
 
-`widgets/` holds the Needs you widget (#1031): `NeedsYou.swift`, the WidgetKit extension, and
-`reload.swift`, the helper the app runs to write `widgets.json` into the App Group container and
-ask WidgetKit to redraw (`src/widgets.ts`). `scripts/widgets.cjs`, electron-builder's afterPack
-hook, builds both with `swiftc` (Xcode's macOS SDK, no Xcode project), copies them into the app
+`widgets/` holds the Needs you widget (#1031), a Swift package: `NeedsYou`, the WidgetKit
+extension, and `Reload`, the helper the app runs to write `widgets.json` into the App Group
+container and ask WidgetKit to redraw (`src/widgets.ts`). `scripts/widgets.cjs`, electron-builder's
+afterPack hook, builds both with `widgets/build.sh` (`swift build`, Xcode's macOS SDK), copies them into the app
 and signs them with their own entitlements; `scripts/check-widgets.sh` checks a packaged app.
 The App Group needs the Team ID, so only a Developer ID build shows a count. A new widget build
 registers once the app sits in /Applications and has run; `pluginkit -m -p
@@ -101,7 +101,7 @@ can use:
 
 - the `desktop` workflow's `signed build` job, on `main` or run by hand, once the repository
   variable `DESKTOP_SIGNING` is `true`: a DMG to try;
-- the release, once `DESKTOP_RELEASE` is `true` (SPEC.md, "The desktop app's release").
+- the release, once `DESKTOP_RELEASE` is `true` (spec/releases.md, "The desktop app's release").
 
 The environment's secrets: `MAC_CERTIFICATE` (the Developer ID Application certificate and key,
 a base64 `.p12`), `MAC_CERTIFICATE_PASSWORD`, and an App Store Connect API key for notarization:

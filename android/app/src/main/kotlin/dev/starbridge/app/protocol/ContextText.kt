@@ -21,10 +21,13 @@ private const val WS = "\\t\\n\\u000B\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028
 private val INLINE = Regex(
     "`([^`\\n]+)`|\\[([^\\]\\n]+)\\]\\((https?://[^$WS)]+)\\)|\\*\\*(?=[^$WS])([^\\n]*?[^$WS])\\*\\*|(https?://[^$WS<>]+)",
 )
+// JavaScript's `.`: anything but its four line terminators; Java's also stops at U+0085.
+private const val DOT = "[^\\n\\r\\u2028\\u2029]"
+private fun isJsSpace(c: Char) = c in "\t\n\u000B\u000C\r \u00A0\u1680\u2028\u2029\u202F\u205F\u3000\uFEFF" || c in '\u2000'..'\u200A'
 private val URL_TAIL = Regex("[.,;:!?'\")\\]]+$")
-private val BULLET = Regex("^[-*•][$WS]+(.*)$")
-private val NUMBER = Regex("^([0-9]{1,3})[.)][$WS]+(.*)$")
-private val HEADING = Regex("^#{1,6}[$WS]+(.*)$")
+private val BULLET = Regex("^[-*•][$WS]+($DOT*)$")
+private val NUMBER = Regex("^([0-9]{1,3})[.)][$WS]+($DOT*)$")
+private val HEADING = Regex("^#{1,6}[$WS]+($DOT*)$")
 
 private fun inline(text: String, bold: Boolean = false): List<Span> {
     val spans = mutableListOf<Span>()
@@ -66,12 +69,12 @@ fun parseContext(text: String): List<Block> {
     val blocks = mutableListOf<Block>()
     var code: MutableList<String>? = null
     fun close() {
-        val body = code?.joinToString("\n")?.trimEnd().orEmpty()
+        val body = code?.joinToString("\n")?.trimEnd(::isJsSpace).orEmpty()
         if (body.isNotEmpty()) blocks += Block.Code(body)
         code = null
     }
     for (raw in text.replace(Regex("\r\n?"), "\n").split("\n")) {
-        if (raw.trimStart().startsWith("```")) {
+        if (raw.trimStart(::isJsSpace).startsWith("```")) {
             if (code != null) close() else code = mutableListOf()
             continue
         }
@@ -79,7 +82,8 @@ fun parseContext(text: String): List<Block> {
             it += raw
             continue
         }
-        val line = raw.trim()
+        // JavaScript's trim, not Kotlin's: they disagree on U+FEFF and U+001C to U+001F.
+        val line = raw.trim(::isJsSpace)
         if (line.isEmpty()) continue
         val b = BULLET.find(line)
         val n = NUMBER.find(line)
