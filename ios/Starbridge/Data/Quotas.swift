@@ -394,6 +394,8 @@ extension Store {
         let wanted = quotas.flatMap { QuotaNotice.of($0) }.filter {
             alerts.wants(provider: $0.provider, window: $0.window, kind: $0.kind, threshold: $0.threshold, minutes: $0.minutes)
         }
+        // Blocked, nothing counts as shown: the owner may turn notifications on before the reset.
+        guard !wanted.isEmpty, await Notify.quotaAllowed() else { return }
         for n in wanted where QuotaShown.first(n.key) { await Notify.quota(n) }
     }
 
@@ -434,4 +436,9 @@ extension Notify {
     }
 
     static let quotaPrefix = "q:"
+
+    static func quotaAllowed() async -> Bool {
+        let status = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+        return status == .authorized || status == .provisional
+    }
 }
