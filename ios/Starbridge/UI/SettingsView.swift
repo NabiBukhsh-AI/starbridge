@@ -22,14 +22,47 @@ struct MainTabs: View {
         }
         .task {
             store.startPolling()
+            store.foreground(scenePhase == .active)
             await store.enableNotifications()
         }
+        // Presence (#848): a touch anywhere, or a key typed into a field, counts; never which.
+        .background(TouchHook { store.touched() })
+        .onReceive(NotificationCenter.default.publisher(for: UITextField.textDidChangeNotification)) { _ in store.touched() }
+        .onReceive(NotificationCenter.default.publisher(for: UITextView.textDidChangeNotification)) { _ in store.touched() }
         // A tapped notification opens its item over the inbox.
         .onChange(of: store.openRequest, initial: true) { _, request in
             if request != nil { tab = .inbox }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { store.startPolling() } else { store.stopPolling() }
+            store.foreground(phase == .active)
+        }
+    }
+}
+
+/** Puts a [TouchWatcher] on the window this view lands in, once. */
+private struct TouchHook: UIViewRepresentable {
+    let onTouch: () -> Void
+
+    func makeUIView(context: Context) -> HookView {
+        let view = HookView()
+        view.onTouch = onTouch
+        return view
+    }
+
+    func updateUIView(_ view: HookView, context: Context) { view.onTouch = onTouch }
+
+    final class HookView: UIView {
+        var onTouch: () -> Void = {}
+        private let watcher = TouchWatcher()
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            guard let window, watcher.view !== window else { return }
+            watcher.cancelsTouchesInView = false
+            watcher.delaysTouchesBegan = false
+            watcher.onTouch = { [weak self] in self?.onTouch() }
+            window.addGestureRecognizer(watcher)
         }
     }
 }
@@ -45,6 +78,30 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    Link(destination: URL(string: UIApplication.openNotificationSettingsURLString)!) {
+                        Label("Notification settings", systemImage: "arrow.up.right.square")
+                    }
+                    if let hold = store.pushHold {
+                        VStack(alignment: .leading, spacing: Tokens.Spacing.s2) {
+                            Text("Quiet other devices while you’re at a screen")
+                            Text("Then notify them this long after you leave")
+                                .type(Tokens.Typography.small)
+                                .foregroundStyle(Tokens.Colors.fg2.color)
+                            Picker("Quiet other devices while you’re at a screen", selection: Binding(get: { hold }, set: { new in Task { await store.setPushHold(new) } })) {
+                                ForEach(Beacon.holdChoices, id: \.self) { Text(Beacon.holdLabel($0)).tag($0) }
+                            }
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+                        }
+                        .padding(.vertical, Tokens.Spacing.s1)
+                    }
+                } header: {
+                    Text("Notifications")
+                }
+                .listRowBackground(Tokens.Colors.surface.color)
+                .task { await store.loadPushHold() }
+
                 Section("Answer buttons on cards") {
                     Picker("Answer buttons on cards", selection: $answerButtons) {
                         ForEach(AnswerButtons.allCases, id: \.self) { Text($0.label).tag($0) }

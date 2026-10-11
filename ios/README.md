@@ -30,6 +30,8 @@ in the planning repo's `research/ios-app.md`).
   background; a prompt's Deny answers there, its Allow opens the prompt. The simulator skips
   service extensions for `simctl push`, so `NotificationServiceTests` drives the extension's work
   (`Notify.rewrite`) against the shared keychain and app group instead.
+- **Presence** (#848) follows Android: in front, a touch anywhere in the window or a key typed
+  into a field says the owner is here, and only that bit reaches the server.
 - **Design tokens** are `Starbridge/Theme/Tokens.swift`, written from DESIGN.md by
   `bun web/scripts/tokens.ts`; type is SF Pro, scaled with Dynamic Type.
 
