@@ -23,7 +23,9 @@ final class NotificationServiceTests: XCTestCase {
         let object = try JSONSerialization.jsonObject(with: Data(p.text.utf8))
         content.userInfo = ["aps": ["mutable-content": 1], "p": object]
         let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: nil)
-        return await Notify.rewrite(request) ?? content
+        guard let shown = await Notify.rewrite(Notify.payload(request.content.userInfo)) else { return content }
+        Notify.apply(shown, to: content)
+        return content
     }
 
     func testReplacesThePlaceholderFromTheSharedState() async throws {
