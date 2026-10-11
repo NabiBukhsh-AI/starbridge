@@ -95,7 +95,11 @@ extension Store {
         do {
             try await serial { if self.prompt(id) == nil { try await self.fetch(id) } }
         } catch {}
-        if await answerPrompt(id, allow: false) {
+        let sent = await answerPrompt(id, allow: false)
+        // Answered, expired, gone, or its machine revoked: no deny will ever land, so the notification goes too.
+        let moot = prompt(id).map { !$0.isOpen || directory?.members[$0.from]?.active == false } ?? true
+        if sent || moot {
+            notice = sent ? notice : nil
             await Self.removeDelivered(about: id)
         } else {
             let why = notice ?? "the server did not take it."
