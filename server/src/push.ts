@@ -216,13 +216,15 @@ export class Push {
 
   /**
    * Pushes `payload(member)` to every subscription of each member of `types`, without waiting.
-   * Each account has at most `ACCOUNT_CONCURRENCY` pushes in flight.
+   * Each account has at most `ACCOUNT_CONCURRENCY` pushes in flight. `thread` groups an APNs
+   * alert under another machine than the payload's sender (`apnsRequest`).
    */
   notify(
     account: string,
     members: string[],
     payload: (member: string) => string,
     types: PushType[] = PushType.options,
+    thread?: string,
   ): void {
     if (members.length === 0) return;
     const subs = this.db
@@ -250,7 +252,7 @@ export class Push {
       this.queue(account, s.type, async () => {
         // The push may have waited its turn while the device was revoked or unsubscribed.
         if (!this.stillSubscribed(account, s.id)) return;
-        const r = await this.send(target, body);
+        const r = await this.send(target, body, true, thread);
         this.onSent?.(s.type, r);
         if (r === "gone") this.db.query("DELETE FROM push_subscriptions WHERE id = ?").run(s.id);
       });
@@ -326,7 +328,12 @@ export class Push {
    * Sends one push: directly when this server holds the credentials, else via the relay unless
    * `relay` is false (the relay itself never forwards onward).
    */
-  async send(target: PushTarget, payload: string, relay = true): Promise<PushResult> {
+  async send(
+    target: PushTarget,
+    payload: string,
+    relay = true,
+    thread?: string,
+  ): Promise<PushResult> {
     try {
       switch (target.type) {
         case "fcm":
@@ -343,8 +350,9 @@ export class Push {
               target.endpoint,
               target.environment ?? "production",
               payload,
+              thread,
             );
-          return relay ? await this.viaRelay(target, payload) : "no-route";
+          return relay ? await this.viaRelay(target, payload, thread) : "no-route";
       }
     } catch (e) {
       console.error(`push to ${target.type} failed:`, e);
@@ -363,12 +371,16 @@ export class Push {
     return ((await res.json()) as { publicKey?: string }).publicKey;
   }
 
-  private async viaRelay(target: PushTarget, payload: string): Promise<PushResult> {
+  private async viaRelay(
+    target: PushTarget,
+    payload: string,
+    thread?: string,
+  ): Promise<PushResult> {
     if (!this.config.relayUrl) return "no-route";
     const res = await this.fetchFn(`${this.config.relayUrl}/v1/relay`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...target, payload }),
+      body: JSON.stringify({ ...target, payload, ...(thread ? { thread } : {}) }),
       signal: this.timeout(),
     });
     if (!res.ok) return "failed";
