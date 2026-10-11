@@ -20,7 +20,7 @@ const DESKTOP = resolve(import.meta.dirname, "..");
 // 272–982 ms (median 452, 95th percentile 685), warm medians of 3 opens 7–72 ms (median 29, 95th
 // percentile 49). A whole job can land on a slow runner, every launch about twice as long:
 // 8eb7902a, a version bump, measured 982 ms and 71 ms (#1119). Each budget sits just above the
-// slowest run, so a slowdown that doubles a median still fails.
+// slowest run: a typical run fails once cold start grows 2.2 times, or a warm open 2.8 times.
 export const BUDGETS = {
   /** Process start to the window's first painted frame, median of the launches after the first. */
   coldMs: 1000,
