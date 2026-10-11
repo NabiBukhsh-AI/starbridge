@@ -71,6 +71,8 @@ In the Mac app, questions, permission prompts and runs that end play the macOS n
 sound, a failed answer plays the error sound, and quota alerts are silent. Turn sounds off in System Settings →
 Notifications → Starbridge. macOS plays it at System Settings → Sound → Alert volume,
 on the output under Play sound effects through, which may not be your headphones.
+If macOS blocks Starbridge's notifications, Settings → Notifications says so, and turning on
+Notifications on this device opens System Settings → Notifications → Starbridge.
 
 
 In Settings → Quotas, each quota window has a checkbox per alert:

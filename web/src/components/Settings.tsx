@@ -18,7 +18,7 @@ import { type DesktopPlace, desktop } from "@/lib/desktop";
 import type { RecoveryState } from "@/lib/device";
 import { addedLabels, checkUntil, dayAndTime, shownCheck } from "@/lib/format";
 import { AGENTS_GUIDE } from "@/lib/links";
-import { reports } from "@/lib/notify";
+import { blockedChanges, reports } from "@/lib/notify";
 import { applyTheme, type Prefs, usePref } from "@/lib/prefs";
 import type { PushState } from "@/lib/push";
 import { holdsQuotas, providerOrder, type QuotaSettings } from "@/lib/quotaSettings";
@@ -188,18 +188,50 @@ const LABEL = "Notifications on this device";
 
 function AppNotifyRow() {
   const [on, setOn] = usePref("desktopNotify");
+  const blocked = useDesktopBlocked();
+  // Turned on a moment ago: a refusal that follows opens System Settings, as one known before does.
+  const turnedOn = useRef(0);
+  useEffect(() => {
+    if (blocked && Date.now() - turnedOn.current < TURN_ON_MS)
+      desktop?.openNotificationSettings?.();
+  }, [blocked]);
   return (
-    <Row label={LABEL}>
+    <Row
+      label={LABEL}
+      sub={
+        blocked && (
+          <span className={s.bad}>
+            Blocked by macOS: allow Starbridge in System Settings → Notifications
+          </span>
+        )
+      }
+    >
       <Switch
         label={LABEL}
-        checked={on}
+        checked={on && !blocked}
         onChange={(v) => {
           setOn(v);
+          if (v && blocked) desktop?.openNotificationSettings?.();
+          else if (v) turnedOn.current = Date.now();
           import("@/lib/notify").then((n) => n.report());
         }}
       />
     </Row>
   );
+}
+
+/** How soon after the switch turns on a refusal still counts as its answer. */
+const TURN_ON_MS = 5_000;
+
+/** Whether macOS refused the app's last notification (#1069). */
+function useDesktopBlocked(): boolean {
+  const [blocked, setBlocked] = useState(() => !!desktop?.notificationsBlocked?.());
+  useEffect(() => {
+    const read = () => setBlocked(!!desktop?.notificationsBlocked?.());
+    blockedChanges.addEventListener("change", read);
+    return () => blockedChanges.removeEventListener("change", read);
+  }, []);
+  return blocked;
 }
 
 type BrowserPush = ReturnType<typeof useBrowserPush>;

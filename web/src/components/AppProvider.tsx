@@ -698,6 +698,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!item || item.answeredAt) throw new Error("Already answered.");
       await answerRef.current(item, "choice" in a ? { choice: a.choice } : { text: a.text });
     });
+    // Told app-wide, so Devices learns of a block whatever screen is open.
+    desktop.onNotificationsBlocked?.(() =>
+      import("@/lib/notify").then((n) => {
+        n.blockedChanges.dispatchEvent(new Event("change"));
+        n.report();
+      }),
+    );
     desktop.onOpen((id) => {
       if (location.pathname === "/") openItem(id);
       else location.assign(`/?item=${encodeURIComponent(id)}`);
