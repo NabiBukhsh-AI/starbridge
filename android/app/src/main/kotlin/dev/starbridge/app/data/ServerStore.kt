@@ -558,7 +558,8 @@ class ServerStore(
         try {
             join(code, scanned = true)
         } catch (e: ApiException) {
-            throw if (e.error == "taken") IllegalStateException("Another phone already used this code. Show a new one.") else e
+            // Most often the QR code of a phone or browser that is itself waiting to join (#1117).
+            throw if (e.error == "taken") IllegalStateException("That QR code is another device asking to join. On a device you already use, open Add a device and show a QR code for this phone.") else e
         }
     }
 

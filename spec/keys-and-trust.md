@@ -22,7 +22,11 @@
   6-digit short authentication string with a commitment, as in ZRTP and Matrix SAS), by scanning a
   QR code, or through the link `starbridge pair` prints (#66). Both screens confirm the digits
   (#355): otherwise a server in the middle could forge an approval to the joining device. The CLI
-  never joins by digits.
+  never joins by digits. The digits derive from the approving device's key, so the joining screen
+  shows none until a device already in the account opens the request, and says to open one
+  (#1117). A joining phone can also scan a browser's join QR code, which is another request, not
+  an approval: the server refuses the second request (`taken`), and the phone says to show a QR
+  code from Add a device instead.
 - **A machine's check code** (#795). A pairing code that reaches a browser lets a hostile server
   approve the machine into a chain it controls, which no device in that chain can expose. The
   check code, 80 bits of a hash of the machine's `add` entry, tells the chains apart. It covers the
