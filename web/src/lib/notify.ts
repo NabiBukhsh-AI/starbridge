@@ -12,6 +12,9 @@ export const switchedOff = () => (desktop ? !getPref("desktopNotify") : getPref(
 /** Fires after this device tells the server a new state, so Devices can read them again. */
 export const reports = new EventTarget();
 
+/** Fires when macOS starts or stops refusing the desktop app's notifications (#1069). */
+export const blockedChanges = new EventTarget();
+
 /** What this device reports: the desktop app its own switch, a browser its push state. */
 export function reported(push: PushState): NotifyState | undefined {
   if (desktop) {

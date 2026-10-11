@@ -18,7 +18,7 @@ import { type DesktopPlace, desktop } from "@/lib/desktop";
 import type { RecoveryState } from "@/lib/device";
 import { addedLabels, checkUntil, dayAndTime, shownCheck } from "@/lib/format";
 import { AGENTS_GUIDE } from "@/lib/links";
-import { reports } from "@/lib/notify";
+import { blockedChanges, reports } from "@/lib/notify";
 import { applyTheme, type Prefs, usePref } from "@/lib/prefs";
 import type { PushState } from "@/lib/push";
 import { holdsQuotas, providerOrder, type QuotaSettings } from "@/lib/quotaSettings";
@@ -227,13 +227,9 @@ const TURN_ON_MS = 5_000;
 function useDesktopBlocked(): boolean {
   const [blocked, setBlocked] = useState(() => !!desktop?.notificationsBlocked?.());
   useEffect(() => {
-    const bridge = desktop;
-    if (!bridge?.onNotificationsBlocked) return;
-    bridge.onNotificationsBlocked(() => {
-      setBlocked(!!bridge.notificationsBlocked?.());
-      import("@/lib/notify").then((n) => n.report());
-    });
-    return () => bridge.onNotificationsBlocked?.(null);
+    const read = () => setBlocked(!!desktop?.notificationsBlocked?.());
+    blockedChanges.addEventListener("change", read);
+    return () => blockedChanges.removeEventListener("change", read);
   }, []);
   return blocked;
 }
