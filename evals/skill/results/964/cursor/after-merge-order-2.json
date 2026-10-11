@@ -145,5 +145,14 @@
         "head": "bmYF8dyobpFMGrgPX0Bl_7rB8FIBO1OYHI6FNfBiLoM"
       }
     }
-  ]
+  ],
+  "judge": {
+    "cold": true,
+    "consequences": true,
+    "terminal": false,
+    "links": true,
+    "plain": true,
+    "skim": true,
+    "notes": "The card doesn't say who resolves the src/api.ts conflict after the first merge or how long that takes, which matters for the 20:00 release tradeoff."
+  }
 }

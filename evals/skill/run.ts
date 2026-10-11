@@ -18,7 +18,8 @@
  * the hooks in `~/.cursor/hooks.json`, Antigravity the plugin in `~/.gemini/config/plugins`.
  *
  * Models: Claude Code defaults to claude-haiku-5-5, Codex to its own default and Pi to
- * zai/glm-5.3-flash (`provider/id`, with the providers of `~/.pi/agent`). Haiku 5.5 costs more
+ * zai/glm-5.3-flash (`provider/id`, with the providers of `~/.pi/agent`), Cursor to `auto` (all
+ * its free plan runs) and Antigravity to gemini-3.8-flash-medium. Haiku 5.5 costs more
  * past 100k tokens of context, so each Claude Code run records its largest request and the
  * progress line flags one over that.
  */
@@ -400,6 +401,8 @@ async function turn(
     }
   }
   if (!final && exit !== 0) final = `(exit ${exit}) ${stderr.slice(-2000)}`;
+  // Cursor ends a spent plan's turn before any event, with ActionRequiredError on stderr.
+  if (agent === "cursor" && /ActionRequiredError/.test(stderr)) final = `(error) ${stderr.trim().slice(-500)}`;
   return {
     commands,
     final,

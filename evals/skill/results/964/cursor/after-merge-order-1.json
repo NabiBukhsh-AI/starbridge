@@ -137,5 +137,14 @@
         "head": "UV5riL7vuag6tbhoiUrJ3km5SGPdSM6MwK8AVPQ_Izk"
       }
     }
-  ]
+  ],
+  "judge": {
+    "cold": true,
+    "consequences": true,
+    "terminal": false,
+    "links": true,
+    "plain": true,
+    "skim": true,
+    "notes": "The final message reports completed merges and asks nothing, so it doesn't meet the terminal check, though the card itself is strong."
+  }
 }

@@ -1,0 +1,137 @@
+{
+  "agent": "antigravity",
+  "model": "gemini-3.8-flash-medium",
+  "arm": "after",
+  "scenario": "merge-order",
+  "rep": 1,
+  "turns": [
+    {
+      "commands": [
+        "git status && git branch -a && gh pr list",
+        "gh pr view 12 && gh pr view 13",
+        "gh pr diff 12 && echo \"--- PR 13 ---\" && gh pr diff 13",
+        "starbridge --help",
+        "starbridge decisions --open",
+        "starbridge ask --help",
+        "starbridge",
+        "starbridge | head -n 35",
+        "starbridge | sed -n '35,70p'",
+        "starbridge status",
+        "env | grep -E 'STARBRIDGE|ANTIGRAVITY|CLAUDE|CODEX|PI' || true",
+        "starbridge hello",
+        "ls /home/dev/work/starbridge/.claude/worktrees/exciting-dhawan-e759c7/cli/src/",
+        "grep -n \"async function ask(\" /home/dev/work/starbridge/.claude/worktrees/exciting-dhawan-e759c7/cli/src/decisions.ts",
+        "grep -n -C 5 \"deliveryLine\" /home/dev/work/starbridge/.claude/worktrees/exciting-dhawan-e759c7/cli/src/decisions.ts",
+        "grep -n -C 5 \"recommended\" /home/dev/work/starbridge/.claude/worktrees/exciting-dhawan-e759c7/cli/src/decisions.ts",
+        "find /var/tmp/skill-eval-0TvUvi -maxdepth 3",
+        "starbridge ask --question 'Which PR should merge first, #12 or #13?' --context 'PRs #12 and #13 conflict on src/api.ts.\n**#12 first:** ships resumable uploads for 20:00 CLI release; #13 needs rebase.\n**#13 first:** fixes data loss on slow links; #12 needs rebase before 20:00.' --option '#12 first' --option '#13 first' --recommended '#12 first' --link https://github.com/acme/notes/pull/12 --link https://github.com/acme/notes/pull/13",
+        "starbridge wait d_nktqU1WsneUxRWax --timeout 5m"
+      ],
+      "final": "PRs #12 and #13 conflicted on [`TIMEOUT_MS`](file:///var/tmp/skill-eval-0TvUvi/after-merge-order-1/proj/src/api.ts) in [`src/api.ts`](file:///var/tmp/skill-eval-0TvUvi/after-merge-order-1/proj/src/api.ts).\n\nPer your decision via Starbridge to merge **#12 first**, both PRs have been squash-merged:\n\n1. **PR #12** (`gh pr merge 12 --squash`)\n2. **PR #13** (`gh pr merge 13 --squash`)\n",
+      "session": "e35399c6-9076-4e6a-89a7-b6c465cd24b2",
+      "tokens": 237956,
+      "exit": 0,
+      "seconds": 333.179,
+      "delivery": [
+        "The answer will come back into this session as a new prompt.",
+        "Nothing brings the answer into this session: when only the answer is left, run \\`starbridge wait ${id} --timeout 5m\\` (again on exit 2).`;\r",
+        "Nothing brings the answer into this session: when only the answer is left, run `starbridge wait d_nktqU1WsneUxRWax --timeout 5m` (again on exit 2).\r"
+      ]
+    },
+    {
+      "commands": [
+        "gh pr merge 12 --squash",
+        "git fetch origin && git status",
+        "gh pr list",
+        "ls -la /var/tmp/skill-eval-0TvUvi/after-merge-order-1/gh/",
+        "git log -n 5",
+        "git branch -a && git remote -v",
+        "git --git-dir=/var/tmp/skill-eval-0TvUvi/after-merge-order-1/origin.git branch -a",
+        "find /var/tmp/skill-eval-0TvUvi/arms -type f",
+        "gh pr merge 13 --squash",
+        "starbridge decisions --open"
+      ],
+      "final": "PRs #12 and #13 conflicted on [`TIMEOUT_MS`](file:///var/tmp/skill-eval-0TvUvi/after-merge-order-1/proj/src/api.ts) in [`src/api.ts`](file:///var/tmp/skill-eval-0TvUvi/after-merge-order-1/proj/src/api.ts).\n\nPer your decision via Starbridge to merge **#12 first**, both PRs have been squash-merged:\n\n1. **PR #12** (`gh pr merge 12 --squash`)\n2. **PR #13** (`gh pr merge 13 --squash`)\n",
+      "session": "e35399c6-9076-4e6a-89a7-b6c465cd24b2",
+      "tokens": 237956,
+      "exit": 0,
+      "seconds": 333.179,
+      "delivery": [
+        "The answer will come back into this session as a new prompt.",
+        "Nothing brings the answer into this session: when only the answer is left, run \\`starbridge wait ${id} --timeout 5m\\` (again on exit 2).`;\r",
+        "Nothing brings the answer into this session: when only the answer is left, run `starbridge wait d_nktqU1WsneUxRWax --timeout 5m` (again on exit 2).\r"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "v": 1,
+      "id": "d_nktqU1WsneUxRWax",
+      "to": [
+        "phone"
+      ],
+      "createdAt": "2026-10-11T09:37:39Z",
+      "question": "Which PR should merge first, #12 or #13?",
+      "context": "PRs #12 and #13 conflict on src/api.ts.\n**#12 first:** ships resumable uploads for 20:00 CLI release; #13 needs rebase.\n**#13 first:** fixes data loss on slow links; #12 needs rebase before 20:00.",
+      "options": [
+        "#12 first",
+        "#13 first"
+      ],
+      "recommended": "#12 first",
+      "agent": "antigravity",
+      "source": {
+        "machine": "devbox",
+        "machineKind": "server",
+        "project": "proj",
+        "session": "e35399c6-9076-4e6a-89a7-b6c465cd24b2",
+        "sessionTitle": "Merging Pull Requests 12 and 13"
+      },
+      "links": [
+        {
+          "url": "https://github.com/acme/notes/pull/12"
+        },
+        {
+          "url": "https://github.com/acme/notes/pull/13"
+        }
+      ],
+      "replies": true,
+      "dir": {
+        "length": 2,
+        "head": "RbDYWtHlASTKb2bmpmh3r7rPwfstSviInH2Gec0bNEY"
+      }
+    }
+  ],
+  "laterDecisions": [],
+  "runs": [],
+  "gh": [
+    "gh pr list",
+    "gh pr view 12",
+    "gh pr view 13",
+    "gh pr diff 12",
+    "gh pr diff 13",
+    "gh pr merge 12 --squash",
+    "gh pr list",
+    "gh pr merge 13 --squash"
+  ],
+  "answered": "Answer to d_nktqU1WsneUxRWax (Which PR should merge first, #12 or #13?): #12 first",
+  "waiting": [],
+  "permissions": [],
+  "settled": [
+    {
+      "v": 1,
+      "id": "s_FPfZeMbiKBnfv8gn",
+      "itemId": "d_nktqU1WsneUxRWax",
+      "to": [
+        "phone"
+      ],
+      "at": "2026-10-11T09:38:07Z",
+      "outcome": "device",
+      "device": "phone",
+      "choice": "#12 first",
+      "dir": {
+        "length": 2,
+        "head": "RbDYWtHlASTKb2bmpmh3r7rPwfstSviInH2Gec0bNEY"
+      }
+    }
+  ]
+}

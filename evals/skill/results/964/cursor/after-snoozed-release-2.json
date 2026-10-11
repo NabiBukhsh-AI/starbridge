@@ -71,5 +71,14 @@
     }
   ],
   "permissions": [],
-  "settled": []
+  "settled": [],
+  "judge": {
+    "cold": true,
+    "consequences": true,
+    "terminal": false,
+    "links": null,
+    "plain": true,
+    "skim": true,
+    "notes": "The final message tells the user to run a `starbridge wait` command instead of asking the decision question in the terminal and waiting for a reply."
+  }
 }

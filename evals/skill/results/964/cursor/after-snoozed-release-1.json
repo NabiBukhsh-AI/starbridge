@@ -70,5 +70,14 @@
     }
   ],
   "permissions": [],
-  "settled": []
+  "settled": [],
+  "judge": {
+    "cold": true,
+    "consequences": true,
+    "terminal": false,
+    "links": null,
+    "plain": true,
+    "skim": true,
+    "notes": "The final message only reports the snooze and what the agent will do by default, and never asks the user a question in the terminal."
+  }
 }
