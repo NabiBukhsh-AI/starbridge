@@ -27,7 +27,7 @@ make the approval's MAC, so the page can approve the machine into a chain the se
 lists the machine, and pair a stand-in machine of the same name into the owner's real account.
 The server would then relay between the two and read everything the real machine sends. The
 machine's check code stops this ("Pairing"): approved from a browser, the machine saves the
-pairing only once the owner says the Android app shows the same code beside it, which differs
+pairing only once the owner says the Starbridge app shows the same code beside it, which differs
 for a machine the server paired elsewhere. Compared against the web page instead, it proves
 nothing, since the server writes that page.
 
@@ -278,7 +278,7 @@ verified the chain:
 - with a `check` that verifies over its own `add` entry, saves the pairing;
 - with a `check` that does not, saves nothing: the app wrote another entry;
 - with no `check` (a browser, a typed code, an app that predates it), shows its code and saves
-  the pairing once a person answers that the Android app shows the same. With no terminal, the
+  the pairing once a person answers that the Starbridge app shows the same. With no terminal, the
   answer comes from `starbridge pair --confirm` or `--reject`. A no, or no answer within 10
   minutes, saves nothing.
 

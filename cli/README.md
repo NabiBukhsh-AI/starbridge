@@ -153,14 +153,14 @@ skill tells them when. `starbridge --help` lists every flag.
 starbridge pair
 ```
 
-It prints a code, a link and a QR code. Scan the QR code with the Starbridge Android app, open
+It prints a code, a link and a QR code. Scan the QR code with the Starbridge app (Android or iPhone), open
 the link on your phone or in a browser where you are signed in, or type the code in
 Settings → Devices → Add a device, on your phone or in the web app, which works from a machine
 with no browser. The code expires in 10 minutes.
 
-The QR code is text that only the Android app's scanner reads, and it carries a check key with
+The QR code is text that only the Starbridge app's scanner reads, and it carries a check key with
 which the app confirms the machine's check code by itself. Approved any other way, the machine prints its check
-code and asks whether the Android app shows the same beside it under Devices: press Enter if so, `n` if not.
+code and asks whether the Starbridge app shows the same beside it under Devices: press Enter if so, `n` if not.
 Where setup runs with no terminal, run `starbridge pair --confirm`, or `starbridge pair --reject`
 if the codes differ. A code that differs means a server read your pairing code and paired the
 machine into an account it controls ([PROTOCOL.md](../PROTOCOL.md#pairing)); the machine then
