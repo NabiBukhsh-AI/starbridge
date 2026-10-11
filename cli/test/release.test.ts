@@ -7,6 +7,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
@@ -401,9 +402,11 @@ describe.skipIf(!pwsh || !(hasMinisign || WINDOWS))("install.ps1", () => {
     // As `irm | iex` runs it: in a session whose last native command exited 0.
     const iex = `cmd /c exit 0 2>$null; $global:LASTEXITCODE = 0; Get-Content -Raw '${script}' | Invoke-Expression`;
     const args = opts.iex ? ["-Command", iex] : ["-File", script];
-    // On Windows, the install folder is on the PATH already, so the script leaves the user's alone.
+    // Windows' temp folder may come as a short 8.3 name; the script prints the long one. The
+    // install folder goes on the PATH already, so the script leaves the user's alone.
+    const bin = join(WINDOWS ? realpathSync.native(dir) : dir, "bin");
     const env = WINDOWS
-      ? { ...process.env, PATH: `${join(dir, "bin")};${process.env.PATH ?? ""}` }
+      ? { ...process.env, PATH: `${bin};${process.env.PATH ?? ""}` }
       : { PATH: process.env.PATH ?? "" };
     const minisign =
       opts.minisign ??
@@ -415,7 +418,7 @@ describe.skipIf(!pwsh || !(hasMinisign || WINDOWS))("install.ps1", () => {
         ...env,
         HOME: dir,
         STARBRIDGE_RELEASES_URL: url,
-        STARBRIDGE_INSTALL_DIR: join(dir, "bin"),
+        STARBRIDGE_INSTALL_DIR: bin,
         ...(minisign ? { STARBRIDGE_MINISIGN: minisign } : {}),
         STARBRIDGE_NO_SETUP: "1",
         NO_COLOR: "1",
@@ -431,7 +434,7 @@ describe.skipIf(!pwsh || !(hasMinisign || WINDOWS))("install.ps1", () => {
     ]);
     // PowerShell wraps an error at the console width.
     const text = `${out}${err}`.replace(/\s*\n\s*\|\s*/g, " ");
-    return { code, out: text, bin: join(dir, "bin", "starbridge.exe") };
+    return { code, out: text, bin: join(bin, "starbridge.exe") };
   }
 
   test("installs the signed binary, over a copy that stays running", async () => {
