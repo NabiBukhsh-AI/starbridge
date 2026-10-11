@@ -86,8 +86,10 @@ extension Store {
         presenceTask = Task { [weak self] in
             while let self, !Task.isCancelled {
                 guard phase == .ready else { return }
-                await beacon.tick(inFront: inFront)
-                if !inFront { return }
+                // The update screen replaces the tabs and their touches: say absent, and stop.
+                let shown = inFront && tooOld == nil
+                await beacon.tick(inFront: shown)
+                if !shown { return }
                 try? await Task.sleep(for: .seconds(Beacon.check))
             }
         }
