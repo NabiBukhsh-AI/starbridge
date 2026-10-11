@@ -24,6 +24,8 @@ const QUESTION =
   "do I delete it?";
 const tmp = mkdtempSync(join(tmpdir(), "starbridge-narrow-"));
 const children: ChildProcess[] = [];
+/** Each process's output, printed when the check fails. */
+const logs = new Map<string, () => string>();
 let current: Page | undefined;
 
 /** Starts a process; `waitFor` resolves on the first match in its output so far. */
@@ -36,6 +38,7 @@ function start(name: string, cmd: string, args: string[], env: object) {
   };
   p.stdout.on("data", feed);
   p.stderr.on("data", feed);
+  logs.set(name, () => out);
   const exited = new Promise<number>((r) => p.on("exit", (code) => r(code ?? -1)));
   return {
     exited,
@@ -144,6 +147,7 @@ try {
   await main();
 } catch (e) {
   console.error(e);
+  for (const [name, out] of logs) console.error(`--- ${name}\n${out().slice(-4000)}`);
   process.exitCode = 1;
 } finally {
   for (const p of children) p.kill();
