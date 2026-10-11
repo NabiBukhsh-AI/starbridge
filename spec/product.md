@@ -49,12 +49,14 @@ native app.
 
 A native iPhone app is on its way (owner, 2026-10-10, now that a tester has a device): SwiftUI on
 a Swift port of `packages/protocol`, the same pattern as Android, because answering from a
-notification with buttons and a typed reply is the product and Safari offers neither. Its first
-piece is `ios/StarbridgeProtocol` (#1083): it ports the protocol by hand on swift-sodium, the
-libsodium both other ports call, and passes every vector file, so the three clients agree byte for
-byte; its tests fail when a vector file goes unread. It builds and tests on Linux as well, where
-agents develop it. Until the app ships, the home-screen web app is the iOS path. The plan and the
-approaches weighed are in the planning repo's
+notification with buttons and a typed reply is the product, and the home-screen web app offers
+neither, nor widgets. Kotlin Multiplatform and Compose Multiplatform lost on experimental crypto
+bindings, risk to the Android app, and Material controls on an iPhone. Its first piece is
+`ios/StarbridgeProtocol` (#1083): it ports the protocol by hand on swift-sodium, the libsodium both
+other ports call, and passes every vector file, so the three clients agree byte for byte; its tests
+fail when a vector file goes unread. It builds and tests on Linux as well, where agents develop
+it. Until the app ships, the home-screen web app is the iOS path. The plan and the approaches
+weighed are in the planning repo's
 [research/ios-app.md](https://github.com/T0mSIlver/starbridge-planning/blob/main/research/ios-app.md).
 
 The desktop app is Electron, loading the configured server's web page (owner, 2026-10-08). The
