@@ -242,8 +242,8 @@ other commands, such as local inference, say so in their instruction files
 
 The background service runs `codexbar usage --format json` for each provider you picked and uploads a
 snapshot every 5 minutes. A provider that fails is sent as an error and never stops the others.
-Alerts before a window runs out are off until you turn them on for a provider in each device's
-Settings: "Notify" on the web, the bell in the Android app.
+Each device picks its own quota alerts, per window, in Settings → Quotas
+([Notifications](../docs/notifications.md) lists them).
 
 To upload without the service:
 
@@ -259,9 +259,10 @@ On a desktop or laptop you work at, turn on presence:
 starbridge config presence on
 ```
 
-While this machine's screen is unlocked and had keyboard or mouse input in the last minute,
-notifications on your other devices wait for the time set in Starbridge's Settings (30 s by
-default) and come only if the question is still open, so one you answer here doesn't buzz them.
+While this machine's screen is unlocked and had keyboard or mouse input in the last minute, your
+other devices stay quiet, and for the hold time after you leave (Settings → Notifications → Quiet
+other devices while you’re at a screen, 30 s by default). They notify only if the question is
+still open, so one you answer here doesn't buzz them.
 The question itself shows everywhere at once. The machine reads its lock and idle time itself
 and tells the server only yes or no. It works on macOS, Windows, and Linux under GNOME
 or X11 with `xprintidle`; a machine with no screen sends nothing.
@@ -292,9 +293,8 @@ Starbridge skill without a prompt; the link runs the commands above without one 
 alone, never chained to another command. "Answer here" in Pi brings the prompt back to the
 keyboard. Prompts from its `path` and `external_directory` rules stay at the keyboard.
 
-If you use the Claude app, turn off its "Code updates" notifications, which fire at the end of
-every turn. Keep "Code permission requests" on, unless you turned on Starbridge's permission
-prompts, so that one prompt doesn't notify you twice.
+[One notification per question](../docs/notifications.md) says which of Claude Code's and the
+Claude app's notifications to turn off so that one prompt doesn't notify you twice.
 
 ### The background service
 

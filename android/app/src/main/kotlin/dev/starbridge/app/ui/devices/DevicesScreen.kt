@@ -324,12 +324,12 @@ private val NOTIFY_LABELS = mapOf("on" to "Notifications on", "off" to "Notifica
 
 /**
  * A member's icon (#1019): a server for a machine; a device's app, as it said with its
- * notifications: a phone, a globe for a browser, a laptop for the desktop app. This phone is a
+ * notifications: a phone (Android or iPhone), a globe for a browser, a laptop for the desktop app. This phone is a
  * phone; a device that has not said is a plain device.
  */
 fun memberSym(member: Member, client: String?) = when {
     member.kind == Kind.Machine -> Sym.Server
-    member.current || client == "android" -> Sym.Phone
+    member.current || client == "android" || client == "ios" -> Sym.Phone
     client == "web" -> Sym.Globe
     client == "desktop" -> Sym.Laptop
     else -> Sym.Devices

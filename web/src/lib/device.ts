@@ -1102,11 +1102,12 @@ export async function signOut(stale: Ctx): Promise<void> {
 
 /**
  * Deletes the account on the server (#1104), which signs out every device and machine, then
- * forgets it here as Sign out does. A failed delete throws and forgets nothing.
+ * forgets it here as Sign out does. A failed delete throws and forgets nothing. A session not yet
+ * paired may delete too (#1117).
  */
-export async function deleteAccount(ctx: Ctx): Promise<void> {
+export async function deleteAccount(account: string): Promise<void> {
   await api.deleteAccount();
-  await forget(ctx.account);
+  await forget(account);
 }
 
 /** Drops this browser's push subscription, and its keys and what it answered for `account`. */

@@ -1,0 +1,98 @@
+{
+  "agent": "antigravity",
+  "model": "gemini-3.8-flash-medium",
+  "arm": "after",
+  "scenario": "snoozed-release",
+  "rep": 2,
+  "turns": [
+    {
+      "commands": [
+        "ls -la",
+        "starbridge --help",
+        "starbridge decisions --open",
+        "starbridge --help | head -n 40",
+        "starbridge status",
+        "starbridge answers --all",
+        "env | grep -i starbridge",
+        "ls -la /var/tmp/skill-eval-0TvUvi/after-snoozed-release-2/sb",
+        "cat /var/tmp/skill-eval-0TvUvi/after-snoozed-release-2/sb/state.json",
+        "ls -la /var/tmp/skill-eval-0TvUvi/after-snoozed-release-2/sb/antigravity",
+        "git log -n 5",
+        "curl -s http://localhost:44921/",
+        "starbridge ask --help",
+        "starbridge --help | grep -A 25 \"starbridge ask\"",
+        "starbridge ask \\\n  --question 'Publish @acme/notes v0.4.0 to npm?' \\\n  --context 'Publishing v0.4.0 to npm cannot be undone.\n**Publish:** runs npm publish for @acme/notes v0.4.0.\n**Don’t publish:** keeps v0.4.0 unpublished.' \\\n  --option 'Publish' --option 'Don’t publish' --recommended 'Publish' \\\n  --waiting",
+        "starbridge wait d_4fL5iPFiNPdaL7tB --timeout 5m"
+      ],
+      "final": "Publishing `[@acme/notes](file:///var/tmp/skill-eval-0TvUvi/after-snoozed-release-2/proj/package.json)` v0.4.0 to npm waits on card `d_4fL5iPFiNPdaL7tB`, which has been snoozed until tomorrow 09:00.\n\nNo action has been taken because a snooze is not approval. Once the snooze expires, running `starbridge wait d_4fL5iPFiNPdaL7tB` reads the answer.\n",
+      "session": "7b2592b8-6e0c-4e62-b2e6-0c129af91738",
+      "tokens": 98999,
+      "exit": 0,
+      "seconds": 86.84,
+      "delivery": [
+        "Nothing brings the answer into this session: when only the answer is left, run `starbridge wait d_4fL5iPFiNPdaL7tB --timeout 5m` (again on exit 2).\r"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "v": 1,
+      "id": "d_4fL5iPFiNPdaL7tB",
+      "to": [
+        "phone"
+      ],
+      "createdAt": "2026-10-11T09:50:15Z",
+      "question": "Publish @acme/notes v0.4.0 to npm?",
+      "context": "Publishing v0.4.0 to npm cannot be undone.\n**Publish:** runs npm publish for @acme/notes v0.4.0.\n**Don’t publish:** keeps v0.4.0 unpublished.",
+      "options": [
+        "Publish",
+        "Don’t publish"
+      ],
+      "recommended": "Publish",
+      "agent": "antigravity",
+      "source": {
+        "machine": "devbox",
+        "machineKind": "server",
+        "project": "proj",
+        "session": "7b2592b8-6e0c-4e62-b2e6-0c129af91738",
+        "sessionTitle": "Publish Notes CLI v0.4.0"
+      },
+      "replies": true,
+      "dir": {
+        "length": 2,
+        "head": "FRRHlMUGl9ggfUZV9-GrG24-QEPpUrnjBaoAxAKPSj8"
+      }
+    }
+  ],
+  "laterDecisions": [],
+  "runs": [],
+  "gh": [],
+  "snoozed": "2026-10-12T07:00:00.000Z",
+  "waiting": [
+    {
+      "v": 1,
+      "id": "w_MMcnwx-Z9hHf55_n",
+      "decisionId": "d_4fL5iPFiNPdaL7tB",
+      "to": [
+        "phone"
+      ],
+      "at": "2026-10-11T09:50:15Z",
+      "state": "waiting",
+      "dir": {
+        "length": 2,
+        "head": "FRRHlMUGl9ggfUZV9-GrG24-QEPpUrnjBaoAxAKPSj8"
+      }
+    }
+  ],
+  "permissions": [],
+  "settled": [],
+  "judge": {
+    "cold": true,
+    "consequences": true,
+    "terminal": false,
+    "links": null,
+    "plain": true,
+    "skim": true,
+    "notes": "The final message reports the card and says the agent will read the answer after the snooze, but it never asks the user a question in the terminal."
+  }
+}

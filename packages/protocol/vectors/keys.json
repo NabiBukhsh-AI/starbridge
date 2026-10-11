@@ -72,6 +72,13 @@
     "note": "A 16-byte seed as a recovery key (the seed and 12 bits of BLAKE2b-256 of \"starbridge/v1/recovery-check\", NUL, the seed, in Crockford base32): the signing seed is BLAKE2b-256 of \"starbridge/v1/recovery-seed\", NUL, the seed.",
     "seed": "CQkJCQkJCQkJCQkJCQkJCQ",
     "key": "144G-J289-144G-J289-144G-J289-153S",
-    "signPk": "JznWHYgiTwfyW3QHRuQQMAeZO0KtraqUwaucN6lQ0Yw"
+    "signPk": "JznWHYgiTwfyW3QHRuQQMAeZO0KtraqUwaucN6lQ0Yw",
+    "typed": [
+      "144g-j289-144g-j289-144g-j289-153s",
+      "144GJ289144GJ289144GJ289153S",
+      "144G J289 144G J289 144G J289 153S",
+      "l44G-J289-l44G-J289-l44G-J289-l53S",
+      "144G J289　144G﻿J289-144G-J289-153S"
+    ]
   }
 }

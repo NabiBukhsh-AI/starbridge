@@ -2307,6 +2307,40 @@
       "valid": false
     },
     {
+      "name": "a device's deny on a permission",
+      "body": {
+        "v": 1,
+        "id": "set_1",
+        "itemId": "perm_1",
+        "to": [
+          "phone",
+          "phone2"
+        ],
+        "outcome": "device",
+        "device": "phone",
+        "at": "2026-10-04T10:01:00Z",
+        "behavior": "deny"
+      },
+      "valid": true
+    },
+    {
+      "name": "a behavior that is neither allow nor deny",
+      "body": {
+        "v": 1,
+        "id": "set_1",
+        "itemId": "perm_1",
+        "to": [
+          "phone",
+          "phone2"
+        ],
+        "outcome": "device",
+        "device": "phone",
+        "at": "2026-10-04T10:01:00Z",
+        "behavior": "ask"
+      },
+      "valid": false
+    },
+    {
       "name": "at the keyboard",
       "body": {
         "v": 1,

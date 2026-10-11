@@ -22,7 +22,11 @@
   6-digit short authentication string with a commitment, as in ZRTP and Matrix SAS), by scanning a
   QR code, or through the link `starbridge pair` prints (#66). Both screens confirm the digits
   (#355): otherwise a server in the middle could forge an approval to the joining device. The CLI
-  never joins by digits.
+  never joins by digits. The digits derive from the approving device's key, so the joining screen
+  shows none until a device already in the account opens the request, and says to open one
+  (#1117). A joining phone can also scan a browser's join QR code, which is another request, not
+  an approval: the server refuses the second request (`taken`), and the phone says to show a QR
+  code from Add a device instead.
 - **A machine's check code** (#795). A pairing code that reaches a browser lets a hostile server
   approve the machine into a chain it controls, which no device in that chain can expose. The
   check code, 80 bits of a hash of the machine's `add` entry, tells the chains apart. It covers the
@@ -76,7 +80,10 @@
   machines included (#363, #364). A recovering device holds no pin, so a server could serve it a
   chain cut short of a revocation; revoking everyone means no fork keeps a revoked member. The
   owner then pairs what they still have again. The recovery key never signs a `revoke` or a plain
-  `add`.
+  `add`. A retry after a lost reply keeps the first attempt's keys (#274) only while the chain
+  lacks that member or a `recover` entry added it: a server holding an old device's key could
+  serve a fork where that device added the same member, and skipping the `recover` entry would
+  keep it in (#1132).
 - **Withheld revocations** (#280, #362). A member cannot tell a current directory from one the
   server cut short, so detection is on contact, both ways. Devices sign the directory head they
   hold into each answer (`dir`); a machine refuses every device answer while an active device has
@@ -154,7 +161,7 @@
   choices. IndexedDB's own
   version is the records' format, and sign-out removes every record kind of the account.
 - **Old clients** (#468). Every client names its release in `starbridge-client:
-  <name>/<version>` (`cli`, `android`, `web`, `mod`; MAJOR.MINOR.PATCH). The server refuses
+  <name>/<version>` (`cli`, `android`, `web`, `mod`, `desktop`, `ios`; MAJOR.MINOR.PATCH). The server refuses
   releases below `MINIMUM_RELEASES` in `server/src/clients.ts` (empty at launch; a pre-release
   counts below its release) with 426 `client-too-old`, and serves a request without the header,
   so curl and scripts keep working. The CLI then says to run `starbridge update` and exits 1; the

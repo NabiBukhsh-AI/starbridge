@@ -112,6 +112,17 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
       seed: toB64(recoverySeed),
       key: recoveryKey(recoverySeed),
       signPk: recoveryPk,
+      // JavaScript's \s, which every client strips: U+00A0, U+3000 and U+FEFF are in it (#1145).
+      typed: [
+        recoveryKey(recoverySeed).toLowerCase(),
+        recoveryKey(recoverySeed).replace(/-/g, ""),
+        recoveryKey(recoverySeed).replace(/-/g, " "),
+        recoveryKey(recoverySeed).replace(/0/g, "O").replace(/1/g, "l"),
+        recoveryKey(recoverySeed)
+          .replace("-", "\u00A0")
+          .replace("-", "\u3000")
+          .replace("-", "\uFEFF"),
+      ],
     },
   };
 
@@ -437,6 +448,15 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
             "phone",
             phone.keys.sign.privateKey,
           ),
+        ],
+        expect: { error: "bad-schema" },
+      },
+      {
+        // A null refuses the entry rather than reading as absent (#505, #1146).
+        name: "entry with a null recoverySig",
+        entries: [
+          ...chain.slice(0, -1),
+          { ...chain[chain.length - 1], recoverySig: null } as unknown as SignedEnvelope,
         ],
         expect: { error: "bad-schema" },
       },
@@ -873,6 +893,27 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
       recipient: "phone",
       expect: { error: "cannot-open" },
     },
+    // A null refuses the item rather than reading as absent (#505, #1146).
+    {
+      name: "an item with a null re",
+      item: { ...decisionItem, re: null },
+      recipient: "phone",
+      expect: { error: "bad-schema" },
+    },
+    {
+      name: "an envelope with a null recoverySig",
+      item: rawSeal(
+        "decision",
+        decisionItem.id,
+        {
+          ...signedDecision,
+          recoverySig: null,
+        } as unknown as SignedEnvelope,
+        devices,
+      ),
+      recipient: "phone",
+      expect: { error: "bad-schema" },
+    },
     {
       name: "an item that is quiet: false",
       item: { ...decisionItem, quiet: false },
@@ -1174,6 +1215,12 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
       { input: formatPairingCode(code).toLowerCase(), expect: formatPairingCode(code) },
       { input: "0123 4567 89ab cdef ghjk mnpq", expect: "0123-4567-89AB-CDEF-GHJK-MNPQ" },
       { input: "o1l1-I111-1111-1111-1111-1111", expect: "0111-1111-1111-1111-1111-1111" },
+      // JavaScript's \s: U+00A0, U+3000 and U+FEFF are in it, U+0085 is not (#1145).
+      {
+        input: "0123\u00A04567\u300089ab\uFEFFcdef ghjk mnpq",
+        expect: "0123-4567-89AB-CDEF-GHJK-MNPQ",
+      },
+      { input: "0123\u00854567 89ab cdef ghjk mnpq", expect: "bad-encoding" },
       { input: "0123-4567-89AB-CDEF-GHJK-MNPU", expect: "bad-encoding" },
       { input: "0123-4567", expect: "bad-encoding" },
     ],
@@ -1988,6 +2035,17 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
     settled: [
       { name: "by a device", body: settledBody, valid: true },
       ...withHead(settledBody),
+      {
+        name: "a device's deny on a permission",
+        body: { ...settledBody, behavior: "deny" },
+        valid: true,
+      },
+      // A behavior other than allow or deny is refused, not shown (#1144).
+      {
+        name: "a behavior that is neither allow nor deny",
+        body: { ...settledBody, behavior: "ask" },
+        valid: false,
+      },
       {
         name: "at the keyboard",
         body: { ...settledBody, outcome: "keyboard", device: undefined },

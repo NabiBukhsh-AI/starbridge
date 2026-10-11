@@ -21,7 +21,7 @@ import dev.starbridge.app.protocol.ProtocolJson
 import dev.starbridge.app.protocol.Span
 import dev.starbridge.app.protocol.contextText
 import dev.starbridge.app.protocol.parseContext
-import dev.starbridge.app.protocol.SealedItem
+import dev.starbridge.app.protocol.parseSealedItem
 import dev.starbridge.app.protocol.SignedEnvelope
 import dev.starbridge.app.protocol.Sodium
 import dev.starbridge.app.protocol.fromB64
@@ -159,9 +159,8 @@ class ProtocolVectorsTest {
         fun box(id: String) = members.first { it.str("id") == id }.let { KeyPair(fromB64(it.str("boxPk")), fromB64(it.str("boxSk"))) }
         for (case in v.getValue("sealed").jsonArray.map { it.jsonObject }) {
             val name = case.str("name")
-            val item = ProtocolJson.decodeFromJsonElement(SealedItem.serializer(), case.getValue("item"))
             val me = case.str("recipient")
-            val run = { envelopes.open(item, me, box(me), dir) }
+            val run = { envelopes.open(parseSealedItem(case.getValue("item")), me, box(me), dir) }
             val expect = case.getValue("expect").jsonObject
             val error = expect.opt("error")
             if (error != null) {
@@ -172,7 +171,7 @@ class ProtocolVectorsTest {
             assertEquals(name, expect.str("signer"), opened.signer.id)
             assertEquals(name, expect.getValue("body"), parseJsonText(opened.bodyText))
             // The typed parse round-trips to the same body, so nothing the vectors carry is dropped.
-            assertEquals(name, parseBody(item.kind, opened.bodyText), opened.body)
+            assertEquals(name, parseBody(case.getValue("item").jsonObject.str("kind"), opened.bodyText), opened.body)
         }
     }
 
@@ -334,7 +333,7 @@ class ProtocolVectorsTest {
         val key = recovery.str("key")
         assertEquals(key, RecoveryKeys.encode(fromB64(recovery.str("seed")), sodium))
         assertEquals(recovery.str("signPk"), toB64(sodium.signSeedKeyPair(recoverySignSeed(fromB64(recovery.str("seed")), sodium)).public))
-        for (typed in listOf(key, key.lowercase(), key.replace("-", ""), key.replace("-", " "), key.replace('0', 'O').replace('1', 'l'))) {
+        for (typed in listOf(key) + recovery.getValue("typed").jsonArray.map { it.str }) {
             assertEquals(recovery.str("seed"), toB64(RecoveryKeys.seed(typed, sodium)))
         }
         assertEquals("Character 5, \"U\", is not in a recovery key.", RecoveryKeys.read(key.take(5) + "U" + key.drop(6)).problem)

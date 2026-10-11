@@ -15,6 +15,8 @@ struct Secrets: Codable, Equatable {
     /** The ephemeral key pair of a join by digits. */
     var joinPk: String?
     var joinSk: String?
+    /** The recovery key's seed, from the first device's setup until the owner confirms they stored it. */
+    var recoverySeed: String?
 }
 
 /** Stores [Secrets] somewhere only this app reads. */
@@ -31,16 +33,48 @@ struct VaultError: Error, CustomStringConvertible {
 /**
  * The secrets as one keychain item, readable after the first unlock since boot and never moved
  * to another device by a backup, so a notification can answer from the lock screen as on Android.
+ * The item lives in the app group, which doubles as a keychain access group, so the notification
+ * service extension opens the boxes with the same keys.
  */
 struct KeychainVault: Vault {
     var service = "dev.starbridge.ios"
     var account = "secrets"
+    var group: String? = APP_GROUP
 
     private var query: [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
+        var q: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
+        if let group { q[kSecAttrAccessGroup as String] = group }
+        return q
     }
 
     func load() throws -> Secrets {
+        let secrets = try read(query)
+        if secrets == Secrets(), group != nil { return try moveIntoGroup() }
+        return secrets
+    }
+
+    /**
+     * Builds before the app group kept the item in the app's own access group: moves it into
+     * the group once, so an update keeps its keys.
+     */
+    private func moveIntoGroup() throws -> Secrets {
+        var q: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
+        q[kSecReturnAttributes as String] = true
+        q[kSecMatchLimit as String] = kSecMatchLimitOne
+        var out: CFTypeRef?
+        guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess,
+              let old = (out as? [String: Any])?[kSecAttrAccessGroup as String] as? String, old != group else { return Secrets() }
+        var legacy = q
+        legacy.removeValue(forKey: kSecReturnAttributes as String)
+        legacy.removeValue(forKey: kSecMatchLimit as String)
+        legacy[kSecAttrAccessGroup as String] = old
+        let secrets = try read(legacy)
+        try save(secrets)
+        SecItemDelete(legacy as CFDictionary)
+        return secrets
+    }
+
+    private func read(_ query: [String: Any]) throws -> Secrets {
         var q = query
         q[kSecReturnData as String] = true
         q[kSecMatchLimit as String] = kSecMatchLimitOne

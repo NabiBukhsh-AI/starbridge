@@ -2,3 +2,6 @@
 /Starbridge.xcodeproj/
 /build/
 /Starbridge/Info.plist
+/Starbridge/Starbridge.entitlements
+/Notifications/Info.plist
+/Notifications/StarbridgeNotifications.entitlements

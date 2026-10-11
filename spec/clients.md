@@ -54,7 +54,8 @@
   search view.
 - **Answer buttons** (#138, #166): "Answer buttons on narrow screens", Always (default), When the agent
   waits, or Never, applies under 1100 px. More than two options, or a label over 18 characters,
-  stack. `answerIn` and typed-only questions have no buttons.
+  stack. An `answerIn` question gets its page's link and Done when its machine takes a Done
+  (#539, #1148); a typed-only question has no buttons.
 - **Typed answers** (#562): Enter sends, Shift+Enter starts a new line, on the web and with an
   Android hardware keyboard. An Enter that ends an input method's composition only commits it.
 - **The reply field** (#947) grows to 10 lines, then scrolls, on both clients. On the web it is one
@@ -73,6 +74,12 @@
   heading is a bold line. Anything else shows as typed. `packages/protocol`'s `parseContext`
   parses it, ported to Kotlin with shared vectors, and notifications show the same text plain.
   Each line on its own makes a line per option read as a list; bold lets the labels lead it.
+- **Selectable text** (#1143). A question's words can be selected and copied, so a command an
+  agent asks about can be pasted elsewhere: on its card, the question; in its detail, the
+  question, the context, the answer and a prompt's full input. A long press (Android, iOS) or a
+  drag (web) selects; a tap still opens the question, and options and swipes work as before. On
+  the web card the question sits above the row's button: a click that does not drag still opens
+  the row.
 - **`\n` in `--context`** (#1037). Models in opencode wrote `\n` for line breaks inside the
   quoted `--context`, which the shell passes on as typed, and cards showed a backslash and an n.
   The skill says to break lines with real line breaks inside the quotes. `ask` also turns `\n`
@@ -113,6 +120,6 @@
   still counts. The tab appears as soon as a machine's first snapshot arrives: the server pushes
   that one even when it is quiet, since a phone whose pushes work does not poll and would
   otherwise learn of it only at its next start or pull (#1010).
-- **Devices.** Each device shows whether it notifies, as it last said (#943), and an icon for the app it said it from (#1019): a phone for the Android app, a globe for a browser, a laptop for the desktop app, a server for a machine (the owner's pick of two sets). The server knows the app from how the device signs in (a bearer token, the session cookie, the desktop app's client header), so devices paired before show theirs without pairing again; one that has not said yet shows a plain device. Rows that share a name show when each was added (#287). A Recovery key row says
+- **Devices.** Each device shows whether it notifies, as it last said (#943), and an icon for the app it said it from (#1019): a phone for the Android and iPhone apps, a globe for a browser, a laptop for the desktop app, a server for a machine (the owner's pick of two sets). The server knows the app from how the device signs in (a bearer token, the session cookie, the desktop and iPhone apps' client header), so devices paired before show theirs without pairing again; one that has not said yet shows a plain device. Rows that share a name show when each was added (#287). A Recovery key row says
   when and on which device the key was set, with Replace; other devices show a replacement once
   (#348).

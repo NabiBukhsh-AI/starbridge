@@ -401,6 +401,7 @@ test("the recovery key reads back to its seed and signing key", () => {
   const { recovery } = V.keys;
   expect(recoveryKey(fromB64(recovery.seed))).toBe(recovery.key);
   expect(toB64(recoverySeedFromKey(recovery.key))).toBe(recovery.seed);
+  for (const typed of recovery.typed) expect(toB64(recoverySeedFromKey(typed))).toBe(recovery.seed);
   expect(toB64(recoveryKeyPair(fromB64(recovery.seed)).publicKey)).toBe(recovery.signPk);
 });
 

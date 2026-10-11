@@ -23,6 +23,15 @@ targets:
       - Starbridge
     dependencies:
       - package: StarbridgeProtocol
+      - target: StarbridgeNotifications
+    entitlements:
+      path: Starbridge/Starbridge.entitlements
+      properties:
+        aps-environment: development
+        # Shared with the extension: the saved state's file, and the keychain item, since an app
+        # group name is also a keychain access group.
+        com.apple.security.application-groups:
+          - group.dev.starbridge.ios
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.starbridge.ios
@@ -39,12 +48,46 @@ targets:
           UIColorName: ""
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+        # A background push says a question was answered elsewhere, so its notification goes.
+        UIBackgroundModes:
+          - remote-notification
         NSCameraUsageDescription: Starbridge scans the QR code that your other device shows, to add this iPhone to your account.
         # GitHub sign-in comes back on starbridge://auth (PROTOCOL.md, "Auth").
         CFBundleURLTypes:
           - CFBundleURLName: dev.starbridge.ios
             CFBundleURLSchemes:
               - starbridge
+  # Opens each push's sealed box and replaces the placeholder (#1137).
+  StarbridgeNotifications:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Notifications
+      - Starbridge/Data/Saved.swift
+      - Starbridge/Data/Vault.swift
+      - Starbridge/Data/Api.swift
+      - Starbridge/Data/Inbox.swift
+      - Starbridge/Data/Notify.swift
+    dependencies:
+      - package: StarbridgeProtocol
+    entitlements:
+      path: Notifications/StarbridgeNotifications.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.dev.starbridge.ios
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.starbridge.ios.notifications
+        TARGETED_DEVICE_FAMILY: "1"
+    info:
+      path: Notifications/Info.plist
+      properties:
+        CFBundleDisplayName: Starbridge
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.usernotifications.service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).NotificationService
   StarbridgeTests:
     type: bundle.unit-test
     platform: iOS

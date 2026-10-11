@@ -6,6 +6,8 @@ struct ApiError: Error, CustomStringConvertible {
     let status: Int
     let error: String?
     let detail: String?
+    /** For 426 `client-too-old`: the oldest release the server serves. */
+    var minimum: String?
 
     var description: String { [error ?? "HTTP \(status)", detail].compactMap(\.self).joined(separator: ": ") }
 }
@@ -24,11 +26,26 @@ struct JoinView {
     let approval: JSON?
 }
 
+/** One item of a list: the sealed item, where the list stands after it, and when it was answered. */
+struct Listed {
+    let item: SealedItem
+    let receivedAt: String?
+    let answeredAt: String?
+}
+
+struct ItemsPage {
+    let items: [Listed]
+    let cursor: String
+}
+
 /** The server's /v1 routes this app calls so far. */
 struct Api {
     let server: String
     let session: String?
     var http: URLSession = .shared
+
+    /** This release, as the server counts it and checks it against its minimum (PROTOCOL.md, "HTTP API"). */
+    static let client = "ios/" + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0")
 
     private func call(_ method: String, _ path: String, _ body: JSON? = nil, headers: [String: String] = [:], wait: Int? = nil) async throws -> (Int, JSON?) {
         guard let url = URL(string: server + "/v1" + path) else { throw ApiError(status: 0, error: "bad-server", detail: server) }
@@ -37,6 +54,7 @@ struct Api {
         // A long-poll holds up to `wait` seconds before it answers.
         request.timeoutInterval = TimeInterval((wait ?? 0) + 30)
         if let session { request.setValue("Bearer \(session)", forHTTPHeaderField: "Authorization") }
+        request.setValue(Api.client, forHTTPHeaderField: "starbridge-client")
         for (k, v) in headers { request.setValue(v, forHTTPHeaderField: k) }
         if let body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -46,7 +64,7 @@ struct Api {
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         let json = data.isEmpty ? nil : try? JSON.parse(String(decoding: data, as: UTF8.self))
         guard (200..<300).contains(status) else {
-            throw ApiError(status: status, error: json?["error"]?.string, detail: json?["detail"]?.string)
+            throw ApiError(status: status, error: json?["error"]?.string, detail: json?["detail"]?.string, minimum: json?["minimum"]?.string)
         }
         return (status, json)
     }
@@ -86,6 +104,9 @@ struct Api {
 
     func logout() async throws { _ = try await call("POST", "/auth/logout") }
 
+    /** Deletes the caller's account and everything the server holds for it (#1104). */
+    func deleteAccount() async throws { _ = try await call("DELETE", "/account") }
+
     // --- Directory -------------------------------------------------------------
 
     func directory(from: Int) async throws -> [JSON] {
@@ -95,7 +116,7 @@ struct Api {
         return entries
     }
 
-    func append(_ entry: SignedEnvelope) async throws { _ = try await call("POST", "/directory", ["entry": entry.json]) }
+    func append(_ entry: JSON) async throws { _ = try await call("POST", "/directory", ["entry": entry]) }
 
     // --- Joining by code -------------------------------------------------------
 
@@ -133,4 +154,38 @@ struct Api {
     func revealJoin(id: String, key: String) async throws { _ = try await call("POST", "/joins/\(id)/reveal", ["key": .string(key)]) }
 
     func cancelJoin(id: String) async throws { _ = try await call("DELETE", "/joins/\(id)") }
+
+    // --- Items -----------------------------------------------------------------
+
+    private func listed(_ json: JSON) throws -> Listed {
+        Listed(item: try SealedItem(json: try field(json, "item")), receivedAt: json["receivedAt"]?.string, answeredAt: json["answeredAt"]?.string)
+    }
+
+    /** A page of items of `kinds` after `cursor`, 100 at most (PROTOCOL.md, "Items"). */
+    func items(_ kinds: String, after cursor: String) async throws -> ItemsPage {
+        var q = URLComponents()
+        q.queryItems = [URLQueryItem(name: "kind", value: kinds), URLQueryItem(name: "after", value: cursor)]
+        let body = try await call("GET", "/items?" + (q.percentEncodedQuery ?? "")).1
+        guard let list = try field(body, "items").array else { throw ProtocolError(.badSchema, "items is not a list") }
+        // One item this app cannot read never hides the rest.
+        return ItemsPage(items: list.compactMap { try? listed($0) }, cursor: try string(body, "cursor"))
+    }
+
+    func item(_ id: String) async throws -> Listed { try listed(try await call("GET", "/items/\(id)").1 ?? .null) }
+
+    func postItem(_ item: JSON) async throws { _ = try await call("POST", "/items", item) }
+
+    func deleteItem(_ id: String) async throws { _ = try await call("DELETE", "/items/\(id)") }
+
+    // --- Push ------------------------------------------------------------------
+
+    /** Subscribes this iPhone's APNs token (hex) in its environment; re-subscribing a known one works. */
+    func subscribe(apnsToken: String, environment: String) async throws -> String {
+        try string(await call("POST", "/push/subscriptions", ["type": "apns", "endpoint": .string(apnsToken), "environment": .string(environment)]).1, "id")
+    }
+
+    func unsubscribe(_ id: String) async throws { _ = try await call("DELETE", "/push/subscriptions/\(id)") }
+
+    /** Whether this iPhone notifies, for every device's Devices list (#943). */
+    func notificationState(_ state: String) async throws { _ = try await call("PUT", "/notifications", ["state": .string(state)]) }
 }
