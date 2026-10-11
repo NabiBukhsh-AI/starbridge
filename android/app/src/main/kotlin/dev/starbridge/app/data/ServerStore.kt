@@ -195,6 +195,8 @@ class ServerStore(
     /** A sync that waits for the network, then retries until the server answers (#920). */
     private var catchUpJob: Job? = null
     override val pushHold = MutableStateFlow<Int?>(null)
+    /** Counts wipes, so a hold read or saved for the account before one never lands after it (#1192). */
+    @Volatile private var wipes = 0
     @Volatile private var inFront = false
     private var presenceJob: Job? = null
     private val beacon = Beacon({ present -> if (phase.value == Phase.Ready) api().presence(present) })
@@ -394,6 +396,7 @@ class ServerStore(
         machinesBehind.value = emptySet()
         // The next account's hold shows once its own read succeeds, as on the web (#1192).
         pushHold.value = null
+        wipes++
         joinJob?.cancel()
         showJob?.cancel()
         watchJob?.cancel()
@@ -1893,9 +1896,10 @@ class ServerStore(
     }
 
     override fun loadPushHold() {
+        val wiped = wipes
         scope.launch {
             // A server without the setting shows no row.
-            runCatching { api().pushHold() }.onSuccess { pushHold.value = it }
+            runCatching { api().pushHold() }.onSuccess { if (wipes == wiped) pushHold.value = it }
         }
     }
 
@@ -1926,11 +1930,13 @@ class ServerStore(
 
     override fun setPushHold(seconds: Int) {
         val was = pushHold.value
+        val wiped = wipes
         pushHold.value = seconds
         scope.launch {
             runCatching { api().setPushHold(seconds) }
-                .onSuccess { pushHold.value = it }
+                .onSuccess { if (wipes == wiped) pushHold.value = it }
                 .onFailure { e ->
+                    if (wipes != wiped) return@onFailure
                     pushHold.value = was
                     if (e is Exception) report(e)
                 }
