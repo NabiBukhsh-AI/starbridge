@@ -19,11 +19,11 @@ final class JoinApproveTests: XCTestCase {
         guard let server = env["STARBRIDGE_TEST_SERVER"], let token = env["STARBRIDGE_TEST_OWNER_TOKEN"] else {
             throw XCTSkip("no STARBRIDGE_TEST_SERVER")
         }
-        let session = try await Api(server: server, session: nil).ownerSignIn(token: token)
+        let session = try await Api(server: server, session: nil).ownerSession(token: token)
         let empty = try await Api(server: server, session: session).directory(from: 0).isEmpty
         try XCTSkipUnless(empty, "the server's account already has devices")
         addTeardownBlock {
-            let s = try? await Api(server: server, session: nil).ownerSignIn(token: token)
+            let s = try? await Api(server: server, session: nil).ownerSession(token: token)
             var request = URLRequest(url: URL(string: server + "/v1/account")!)
             request.httpMethod = "DELETE"
             request.setValue("Bearer \(s ?? "")", forHTTPHeaderField: "Authorization")
@@ -35,7 +35,7 @@ final class JoinApproveTests: XCTestCase {
             return Store(vault: MemoryVault(), disk: Disk(url: dir.appendingPathComponent("saved.json")), deviceName: name)
         }
         let phone = store("First iPhone")
-        await phone.signInWithOwnerToken(server: server, token: token)
+        await phone.signInWaiting(server: server, token: token)
         await phone.setUpFirstDevice()
         await phone.confirmRecoveryKey()
         XCTAssertEqual(phone.phase, .ready)
@@ -44,7 +44,7 @@ final class JoinApproveTests: XCTestCase {
 
         // --- A second iPhone asks; both show the same digits; the first approves ---
         let second = store("Second iPhone")
-        await second.signInWithOwnerToken(server: server, token: token)
+        await second.signInWaiting(server: server, token: token)
         XCTAssertEqual(second.phase, .noDevice(accountExists: true))
         await second.askDevices()
         try await until("the ask is listed") { phone.joinAsks.contains { $0.name == "Second iPhone" } }
@@ -64,7 +64,7 @@ final class JoinApproveTests: XCTestCase {
 
         // --- A third asks; refused, it says so and stays out ---
         let third = store("Stranger")
-        await third.signInWithOwnerToken(server: server, token: token)
+        await third.signInWaiting(server: server, token: token)
         await third.askDevices()
         try await until("the third ask is listed") { phone.joinAsks.contains { $0.name == "Stranger" } }
         let refused = try XCTUnwrap(phone.joinAsks.first { $0.name == "Stranger" })
