@@ -78,6 +78,8 @@ extension Store {
                 // This iPhone signed the revocation, so it is no fork: a head the member forged ends with it (#813).
                 self.forgetHeads(of: id)
             }
+            // The revocation may end a hold that named this member (#813).
+            withheldWhy = withheld()
             // Its questions and prompts leave the inbox, and their notifications close (#344).
             await Notify.removeDelivered(about: closedItems)
         }
