@@ -71,7 +71,7 @@ export function isPrivateHost(hostname: string): boolean {
 /**
  * Judges an IPv6 address by the IPv4 address it embeds, where a translator could route it to
  * one: IPv4-compatible (`::a.b.c.d`, and so `::` and `::1`), IPv4-mapped, IPv4-translated
- * (`::ffff:0:a.b.c.d`, RFC 6791), NAT64 and 6to4.
+ * (`::ffff:0:a.b.c.d`, RFC 2765), NAT64 and 6to4.
  */
 function privateV6(ip: string): boolean {
   const [a = 0, b = 0, c = 0, d = 0, e = 0, f = 0, g = 0, h = 0] = v6Words(ip);
