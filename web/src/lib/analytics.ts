@@ -1,6 +1,6 @@
 // Umami, self-hosted beside the server (deploy/compose.yaml): cookieless page analytics for
 // the public pages. The signed-in app loads no tracker and sends only the two events of `send`
-// (SPEC.md, "The hosted instance"); the server sends the launch funnel (server/src/funnel.ts).
+// (spec/hosted.md); the server sends the launch funnel (server/src/funnel.ts).
 
 /** Umami's id for starbridge.run; deploy/umami-setup.sh creates the website with it. */
 export const WEBSITE_ID = "f3741d82-c450-47d3-8845-646cddbe392f";

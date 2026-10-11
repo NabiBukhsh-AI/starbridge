@@ -229,7 +229,10 @@ ALTER TABLE members ADD COLUMN cli_version TEXT;
 ALTER TABLE members ADD COLUMN cli_latest TEXT;
 `;
 
-export const MIGRATIONS = [V1, V2, V3, V4, V5, V6];
+/** Which APNs environment an iPhone's push token belongs to: production unless set. */
+const V7 = "ALTER TABLE push_subscriptions ADD COLUMN environment TEXT;";
+
+export const MIGRATIONS = [V1, V2, V3, V4, V5, V6, V7];
 
 /** The `user_version` this server brings a database to. */
 export const SCHEMA_VERSION = MIGRATIONS.length;
