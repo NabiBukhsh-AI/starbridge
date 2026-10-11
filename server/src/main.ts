@@ -108,6 +108,7 @@ const modes = [
   config.ownerToken && "owner token",
   config.fcm ? "FCM" : config.relayUrl && "FCM via relay",
   config.vapid ? "Web Push" : config.relayUrl && "Web Push via relay",
+  config.apns ? "APNs" : config.relayUrl && "APNs via relay",
   config.relayMode && "relay mode",
   config.demo && "DEMO",
 ].filter(Boolean);

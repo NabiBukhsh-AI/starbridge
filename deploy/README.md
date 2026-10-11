@@ -45,7 +45,11 @@ image is tagged by a hash of that file and built only when no image has the tag.
    `ssh deploy@starbridge.run sudo sh -s < deploy/host/lock-root.sh` turns root login off.
 3. `deploy/push-secrets.sh` copies the secrets from `~/.config/starbridge/secrets` to
    `/etc/starbridge/secrets` (root, 0700); given names, only those. `deploy/host/server-env.sh`
-   and `caddy-auth.sh` turn them into what the containers read on every deploy.
+   and `caddy-auth.sh` turn them into what the containers read on every deploy. The iPhone
+   app's APNs key is optional until it ships: `apns-key.p8` (the key Apple gives once) and
+   `apns-key-id` (its 10-character id) become `APNS_PRIVATE_KEY` and `APNS_KEY_ID`, with the
+   team id and bundle id set in `server-env.sh`. Without them, iPhone pushes go nowhere and their
+   subscriptions stay.
 4. `deploy/deploy.sh`.
 5. `deploy/setup-actions-deploy.sh` for deploys from Actions.
 

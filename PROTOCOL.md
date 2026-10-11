@@ -534,10 +534,10 @@ options. For permission answers, see below.
 
 | Route | Who | What |
 |---|---|---|
-| `POST /push/subscriptions` | device | `{type: "fcm" \| "webpush" \| "unifiedpush", endpoint, keys?}` → `{id}`; URL endpoints must be public HTTPS; 409 `too-many-subscriptions` past 10 per device or 30 per account (re-subscribing a known endpoint always works) |
+| `POST /push/subscriptions` | device | `{type: "fcm" \| "webpush" \| "unifiedpush" \| "apns", endpoint, keys?, environment?}` → `{id}`; URL endpoints must be public HTTPS; an `apns` endpoint is the device token in hex, and `environment` (`production` unless set, or `sandbox`) names its APNs environment; 409 `too-many-subscriptions` past 10 per device or 30 per account (re-subscribing a known endpoint always works) |
 | `DELETE /push/subscriptions/:id` | device | stop pushing there |
 | `GET /push/vapid` | anyone | `{publicKey}`: the VAPID key a browser subscribes with (the relay's when this server forwards Web Push) |
-| `POST /relay` | another server | relay mode only: `{type: "fcm" \| "webpush", endpoint, keys?, payload}` → `{result: "ok" \| "gone" \| "failed" \| "no-route"}`; rate-limited per IP; 503 `busy` with `Retry-After` while the server has 16 relayed Web Pushes in flight, or the address 4 |
+| `POST /relay` | another server | relay mode only: `{type: "fcm" \| "webpush" \| "apns", endpoint, keys?, environment?, payload}` → `{result: "ok" \| "gone" \| "failed" \| "no-route"}`; rate-limited per IP; 503 `busy` with `Retry-After` while the server has 16 relayed Web Pushes in flight, or the address 4 |
 
 A push payload is JSON text: `{v, kind, id, from, re?, wakeAt?, box?}` for a new item, with the device's
 own box when the payload stays within 3 KB, else without it and the device fetches
@@ -547,13 +547,22 @@ A settled notice, a `waiting` item and a `snooze` are pushed as new items; a `sn
 at its `wakeAt` ("Snoozing"). FCM gets it as data field `p`; Web Push and UnifiedPush
 encrypt it per RFC 8291.
 
+APNs gets it parsed, as the key `p` beside `aps`. A `decision`, `permission`, `waiting`, `join`,
+and a `snooze` whose `wakeAt` has passed go as alerts: `apns-push-type: alert`, priority 10,
+`aps.mutable-content: 1`, a placeholder `aps.alert` that the notification service extension
+replaces, `aps.category` (`decision`, `permission` or `join`) and `aps.thread-id` (the sending
+machine, or `join`). `apns-collapse-id` is the item id, or for `waiting` and `snooze` the
+decision's (`re`). Everything else, `answered`, `settled` and a `snooze` as it is posted, goes as
+a background push: `apns-push-type: background`, priority 5, `aps.content-available: 1`. Each
+expires after a day. A payload over APNs' 4 KB goes without its box.
+
 A quota snapshot asks for a push only when it raises an alert: the uploader marks that alert
 `notify: true` and posts every other snapshot `quiet`. It raises each alert (a kind, and for
 `low` a threshold) at most once per window per reset. Each device decides from its own
 settings whether to show it. The server pushes a machine's first stored snapshot even when it
 is `quiet`, so devices learn at once that the machine sends quotas.
 
-Quota snapshots and runs go to FCM and UnifiedPush only. Browsers expect every Web Push to show a
+Quota snapshots and runs go to FCM and UnifiedPush only, not to Web Push or APNs. Browsers expect every Web Push to show a
 notification and drop a subscription that keeps showing none (Firefox after 16), so the web page
 fetches `GET /quota` and `GET /items?kind=run` instead. Decisions, permissions, settled notices,
 waiting states, snoozes and `answered` still go to Web Push.
@@ -566,7 +575,9 @@ flight and 200 waiting; each request gives up after 10 s.
 A server with FCM credentials or VAPID keys pushes directly. One without them posts to the relay
 set in `RELAY_URL` (starbridge.run runs with `RELAY_MODE=1`), which pushes with its
 own credentials; the payload is already ciphertext or an id. UnifiedPush always goes direct.
-`gone` from a push service drops the subscription.
+`gone` from a push service drops the subscription. APNs is `gone` on 410, or on
+`BadDeviceToken` from both environments: the server tries the other one before giving up on the
+token.
 
 ### Presence and settings
 
