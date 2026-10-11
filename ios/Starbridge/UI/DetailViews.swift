@@ -75,7 +75,8 @@ enum HistoryText {
         if let theirs = d.theirAnswer, let by = d.answeredBy { return "\(store.memberName(by)): \(theirs)" }
         switch d.settled {
         case "withdrawn": return d.reason.map { "Withdrawn · \($0)" } ?? "Withdrawn"
-        case "elsewhere": return "Answered at the keyboard"
+        // Only a question without a page was answered in the agent's own picker (#865, #1157).
+        case "elsewhere" where d.body.answerIn == nil: return "Answered at the keyboard"
         default: break
         }
         if let page = d.body.answerIn { return Store.doneText(page) }
