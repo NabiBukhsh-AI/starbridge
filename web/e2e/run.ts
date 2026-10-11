@@ -1764,7 +1764,7 @@ async function main() {
   await shoot(pageB, "join-browser");
   // Switching to digits cancels the QR code's wait; that cancel shows no error.
   await pageB.getByRole("button", { name: "Can't scan? Compare digits" }).click();
-  await pageB.getByText(/Open Starbridge on a signed-in device/).waitFor();
+  await pageB.getByText(/Open Starbridge on a device you already use/).waitFor();
   await pageB.waitForTimeout(1000);
   // Next.js's route announcer is an empty alert too; the page's errors are paragraphs.
   const digitsError = pageB.locator('p[role="alert"]');
