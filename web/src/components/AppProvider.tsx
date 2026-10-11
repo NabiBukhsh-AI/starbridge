@@ -28,6 +28,7 @@ import {
   type QuotaSettings,
   saveSettings,
 } from "@/lib/quotaSettings";
+import { closeRun, notifyRuns, runAlertsOn } from "@/lib/runAlerts";
 import { runState } from "@/lib/runs";
 import { keptSettingsData, loadSettingsData } from "@/lib/settingsData";
 import { chimeForNew, unlockSound } from "@/lib/sound";
@@ -114,7 +115,8 @@ const PUSHLESS_POLL_MS = 5_000;
 const PROMPT_POLL_MS = 1_500;
 /**
  * Runs skip Web Push (PROTOCOL.md, "Push"), so the page polls them while it is visible: often
- * while one runs, so its steps show about when the phone gets them by push (#188).
+ * while one runs, so its steps show about when the phone gets them by push (#188). Hidden, it
+ * polls every 10 s while it may notify, so a run that ends still notifies (#1064).
  */
 const RUNS_POLL_MS = 10_000;
 const LIVE_RUNS_POLL_MS = 2_000;
@@ -425,20 +427,32 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Runs dismissed on this page, with the update dismissed: a read that started before the
   // DELETE must not bring one back, while a newer update from its machine does.
   const dismissed = useRef(new Map<string, string>());
+  // Whether this account's runs were read yet: the first read notifies nothing.
+  const runsRead = useRef(false);
   const refreshRuns = useCallback(async () => {
     const fresh = await current();
     if (!fresh) return;
     const d = await load();
     const next = await holding(() => d.loadRuns(fresh));
-    if (next) setRuns(undismissed(next, dismissed.current));
+    if (!next) return;
+    setRuns(undismissed(next, dismissed.current));
+    const first = !runsRead.current;
+    runsRead.current = true;
+    await notifyRuns(next.items, first);
   }, [current, holding]);
 
   const runLive = !!runs?.items.some((i) => runState(i.run, Date.now()) === "running");
   useEffect(() => {
     if (!ctx) return;
+    runsRead.current = false;
     const read = single(refreshRuns);
+    let last = 0;
     const tick = () => {
-      if (polling()) read();
+      const due =
+        polling() || (runAlertsOn() && !backingOff() && Date.now() - last >= RUNS_POLL_MS - 500);
+      if (!due) return;
+      last = Date.now();
+      read();
     };
     tick();
     const timer = setInterval(tick, runLive ? LIVE_RUNS_POLL_MS : RUNS_POLL_MS);
@@ -697,6 +711,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const id = item.run.id;
       dismissed.current.set(id, item.run.at);
       setRuns((all) => all && undismissed(all, dismissed.current));
+      void closeRun(id);
       const d = await load();
       try {
         await d.dismissRun(ctx, id);

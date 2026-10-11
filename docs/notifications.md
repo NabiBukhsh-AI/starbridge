@@ -64,11 +64,11 @@ with one category per kind:
 
 On the web, notifications are on once you pick Turn on notifications in the inbox, and off in the
 browser's site settings for starbridge.run. A closed browser gets questions, permission prompts and
-join requests. Quota alerts show only while a Starbridge page is open, and runs only in the inbox,
-never as a notification. Settings → Notifications → Sound for new questions plays a chime in an open Starbridge page or web app, off by default. It needs notifications on in this browser, since the push is what starts it, and the page needs a click since it loaded before a browser lets it play. A closed web app makes your system's notification sound instead.
+join requests. Quota alerts, and runs that pass or fail, notify only while a Starbridge page is open, in
+the background too. A run notifies once when it ends, with the system's sound, as on Android. Settings → Notifications → Sound for new questions plays a chime in an open Starbridge page or web app, off by default. It needs notifications on in this browser, since the push is what starts it, and the page needs a click since it loaded before a browser lets it play. A closed web app makes your system's notification sound instead.
 
-In the Mac app, questions and permission prompts play the macOS notification sound, a failed
-answer plays the error sound, and quota alerts are silent. Turn sounds off in System Settings →
+In the Mac app, questions, permission prompts and runs that end play the macOS notification
+sound, a failed answer plays the error sound, and quota alerts are silent. Turn sounds off in System Settings →
 Notifications → Starbridge. macOS plays it at System Settings → Sound → Alert volume,
 on the output under Play sound effects through, which may not be your headphones.
 

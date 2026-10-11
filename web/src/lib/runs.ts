@@ -39,3 +39,21 @@ export function duration(ms: number): string {
 export function progressText(p: NonNullable<RunItem["run"]["progress"]>): string {
   return p.unit === "percent" ? `${p.done}%` : `${p.done}/${p.total}`;
 }
+
+/** The runs to notify about, as on Android: each that passed or failed, once. A lost run notifies nothing. */
+export function runsToNotify(items: RunItem[], shown: string[]): RunItem[] {
+  return items.filter((i) => i.run.exit && !shown.includes(runKey(i)));
+}
+
+/** One key per run's end, so a run its machine runs again under the same id notifies again. */
+export const runKey = (i: RunItem) => `${i.run.id}/${i.run.exit?.at ?? ""}`;
+
+/** "Passed in 8 s" or "Failed, exit 1, after 2 min 05 s", then the machine and project, then why. */
+export function runNote(i: RunItem): { title: string; body: string } {
+  const r = i.run;
+  const took = duration(Date.parse(r.exit?.at ?? r.at) - Date.parse(r.startedAt));
+  const outcome =
+    r.exit?.code === 0 ? `Passed in ${took}` : `Failed, exit ${r.exit?.code}, after ${took}`;
+  const where = [r.source.machine, r.source.project].filter(Boolean).join(" · ");
+  return { title: r.title, body: `${outcome}\n${where}\n${r.reason}` };
+}

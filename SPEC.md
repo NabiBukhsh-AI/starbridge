@@ -1080,6 +1080,12 @@ the Cursor IDE, which this machine does not run.
   Its progress ("34 of 120", "40%") leads the title: at the end, a long title's ellipsis hid it,
   and the collapsed notification shows no text line under a progress bar (#826).
   The web polls every 2 s while a run is live and the page is visible, else every 10 s.
+- The web and the Mac app notify once when a run passes or fails, with the system's sound, as
+  Android's Runs channel does (#1064). A run that ends is news whoever is at a screen, so the
+  presence hold leaves it alone there too, and a lost run notifies nothing on any device. Runs
+  skip Web Push and the server cannot read whether one ended, so an open page notifies, polling
+  every 10 s while hidden if this device's notifications are on; its first read only notes the
+  runs that already ended, so opening a page never replays old results.
 
 ### Quotas
 

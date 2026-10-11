@@ -1,5 +1,14 @@
 import { expect, test } from "bun:test";
-import { duration, progressText, runState, SHOWN_AFTER_MS, shownRuns } from "./runs";
+import {
+  duration,
+  progressText,
+  runKey,
+  runNote,
+  runState,
+  runsToNotify,
+  SHOWN_AFTER_MS,
+  shownRuns,
+} from "./runs";
 import type { RunItem } from "./types";
 
 const T0 = Date.parse("2026-10-05T10:00:00Z");
@@ -47,4 +56,27 @@ test("durations and progress read at a glance", () => {
   expect(duration(3_780_000)).toBe("1 h 03 min");
   expect(progressText({ done: 3, total: 7, unit: "step" })).toBe("3/7");
   expect(progressText({ done: 42, total: 100, unit: "percent" })).toBe("42%");
+});
+
+test("a run notifies once when it passes or fails, and again when it ends again", () => {
+  const runs = [
+    item("passed", { exit: { code: 0, at: at(5_000) } }),
+    item("failed", { exit: { code: 1, at: at(5_000) } }),
+    item("running", { at: at(5_000) }),
+    item("shown", { exit: { code: 0, at: at(5_000) } }),
+    item("again", { exit: { code: 0, at: at(9_000) } }),
+  ];
+  const shown = [runKey(runs[3] as RunItem), `again/${at(5_000)}`];
+  expect(runsToNotify(runs, shown).map((i) => i.run.id)).toEqual(["passed", "failed", "again"]);
+});
+
+test("a run's notification says how it ended, where, and why", () => {
+  const failed = item("npm test", { exit: { code: 1, at: at(125_000) } });
+  expect(runNote(failed)).toEqual({
+    title: "npm test",
+    body: "Failed, exit 1, after 2 min 05 s\ndevbox · p\nuses your session and keyboard",
+  });
+  expect(runNote(item("b", { exit: { code: 0, at: at(8_000) } })).body).toStartWith(
+    "Passed in 8 s",
+  );
 });

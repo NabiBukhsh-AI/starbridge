@@ -113,7 +113,7 @@ async function ready(): Promise<void> {
   });
 
   const ses = session.fromPartition("persist:starbridge");
-  // The page copies codes and keys, and shows quota alerts as web notifications; items notify
+  // The page copies codes and keys, and shows quota alerts and ended runs as web notifications; items notify
   // through the bridge instead. It gets nothing else.
   const allowed = ["clipboard-sanitized-write", "notifications"];
   ses.setPermissionRequestHandler((wc, permission, done) =>
