@@ -617,7 +617,7 @@ compares them; no device reads GitHub. Nothing is pushed.
 | Route | Who | What |
 |---|---|---|
 | `PUT /release` | machine | `{version, latest}`: `version` the CLI release it runs, `latest` the latest release it knows, null when it knows none or its owner turned the check off → 204 |
-| `GET /releases` | device | `{machines: {[memberId]: {version, latest, behind}}}`, for the account's active machines that have said; `behind` is `version` below `latest` |
+| `GET /releases` | device | `{machines: {[memberId]: {version, latest, behind, updatedAt}}}`, for the account's active machines that have said; `behind` is `version` below `latest`; `updatedAt` is when the machine last said a `version` other than the one before (#1266), null until then |
 
 ### Limits
 
