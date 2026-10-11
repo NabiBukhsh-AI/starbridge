@@ -139,10 +139,10 @@ with the server running:
 sudo sqlite3 "$(docker volume inspect -f '{{.Mountpoint}}' starbridge_data)/starbridge.db" ".backup 'starbridge-before.db'"
 ```
 
-Then check out the new release's tag, such as `v0.1.5`, and rebuild:
+Then check out the new release's tag, such as `v0.1.4`, and rebuild:
 
 ```bash
-git fetch --tags && git checkout v0.1.5
+git fetch --tags && git checkout v0.1.4
 docker compose -f server/compose.yaml up -d --build
 ```
 
