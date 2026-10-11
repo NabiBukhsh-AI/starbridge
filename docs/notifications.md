@@ -39,9 +39,10 @@ notifies only the device you are using: a Starbridge page or app you touched in 
 Your other devices notify after the hold time once you leave (30 s by default), if nobody
 answered.
 
-A computer counts too once you run `starbridge config presence on` on it
+A computer counts too while it is unlocked and used in the last minute, once you run
+`starbridge config presence on` on it
 ([presence](../cli/README.md#quiet-your-other-devices-while-you-re-here)). The Mac app counts
-without the CLI, in any app, window open or not.
+without the CLI, in any app, window open or not. A locked or sleeping Mac never counts.
 
 ### Quota alerts
 

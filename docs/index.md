@@ -35,13 +35,15 @@ starbridge.run, or [host your own](../server/README.md).
 1. **Get the app and sign in with GitHub.**
    - Android: the APK from [GitHub Releases](https://github.com/T0mSIlver/starbridge/releases),
      or the repository in [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/T0mSIlver/starbridge)
-     to get each release. Google Play is in closed testing: join
-     [the group](https://groups.google.com/g/starbridge-testers), then
-     [opt in](https://play.google.com/apps/testing/dev.starbridge.app). The APK has the Play
-     build's signing key, so a Play install later updates it in place.
+     to get each release (and each release candidate with "Include prereleases" on).
+   - Google Play, in closed testing: join [the group](https://groups.google.com/g/starbridge-testers),
+     then [opt in](https://play.google.com/apps/testing/dev.starbridge.app). Testers get each
+     release candidate. The APK has the Play build's signing key, so a Play install later updates
+     it in place.
    - macOS: the desktop app's DMG from
      [GitHub Releases](https://github.com/T0mSIlver/starbridge/releases/latest), `arm64` for
-     Apple silicon or `x64` for Intel. It updates itself.
+     Apple silicon or `x64` for Intel. It updates itself; check Get Release Candidates in its
+     menu bar icon's menu to get each release candidate.
    - iOS 16.4 and later: open [starbridge.run](https://starbridge.run) in Safari and add it to the
      Home Screen to get notifications. A native iPhone app is in progress.
    - Anywhere else: [starbridge.run](https://starbridge.run).
@@ -72,8 +74,8 @@ starbridge.run, or [host your own](../server/README.md).
    Setup then installs Starbridge in each harness it finds and starts the background service
    ([what setup does](../cli/README.md#what-setup-does)).
 
-   It also asks before it installs CodexBar, which reads your AI plans' quotas. CodexBar is
-   optional: `--no-quota` skips it, and everything else works without it.
+   CodexBar reads your AI plans' quotas. CodexBar is optional: setup asks before installing it,
+   `--no-quota` skips it, and questions, runs and permission prompts work without it.
 
 4. **Answer the test question.** Setup ends with "Send a test decision to your devices?". Say
    yes, tap Yes on your phone, browser or desktop app, and the terminal prints your answer. If
