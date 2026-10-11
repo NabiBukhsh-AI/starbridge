@@ -29,6 +29,7 @@ test("a derived, missing or cut-short session name gives way to the first prompt
   expect(title("bridge")).toBe("Fix T0mSIlver/starbridge: cards from Claude Code sessions");
   expect(title("auto")).toBe("Fix T0mSIlver/starbridge #1143!");
   expect(title("unnamed")).toBe("Review the merged PRs");
+  expect(title("abbrev")).toBe("Review the diff, e.g. the parser.");
   expect(title("user")).toBe("Card declutter");
   expect(title("desktop")).toBe("Starbridge orchestrator");
   // No transcript: a derived name stays out, an auto one stays as Claude Code cut it.

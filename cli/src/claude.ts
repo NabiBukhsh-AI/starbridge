@@ -133,6 +133,8 @@ function firstPrompt(path: string): string | undefined {
       }
     }
     return undefined;
+  } catch {
+    return undefined;
   } finally {
     closeSync(fd);
   }
@@ -190,7 +192,8 @@ function titleOf(prompt: string): string | undefined {
     lines.push(l.replace(/^[#>*-]+\s*/, ""));
   }
   const text = lines.join(" ").replace(/\s+/g, " ").trim();
-  const end = text.search(/[.!?](\s|$)/);
+  // A period before a lowercase word ends an abbreviation ("e.g. the"), not the sentence.
+  const end = text.search(/[.!?](\s+[^\sa-z]|$)/);
   let title = end === -1 ? text : text.slice(0, end + 1);
   if (title.length > MAX_TITLE) {
     const cut = title.slice(0, MAX_TITLE + 1);
