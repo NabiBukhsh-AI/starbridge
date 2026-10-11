@@ -155,14 +155,9 @@ extension Store {
     }
 
     /**
-     * A pairing link opened the app (#611): signed in to an account this iPhone is not in yet,
-     * another device's code for it to join with; once it is in, Add a device looks the code up.
+     * A machine's `starbridge://pair` link opened the app: Add a device looks its code up, once
+     * this iPhone is in the account, as on Android. It is never a code to join with: the machine
+     * already posted under it.
      */
-    func openPairLink(_ url: URL) async {
-        switch phase {
-        case .noDevice(accountExists: true): await joinWithCode(url.absoluteString)
-        case .ready: pairLink = url.absoluteString
-        default: break
-        }
-    }
+    func openPairLink(_ url: URL) { pairLink = url.absoluteString }
 }
