@@ -274,6 +274,12 @@ for (const viaAgent of [true, false]) {
 
   test(`${how}: a stalled server never holds the hook past its deadline or SIGTERM`, async () => {
     (globalThis as { tr?: boolean }).tr = true;
+    let last = performance.now();
+    const lag = setInterval(() => {
+      const now = performance.now();
+      if (now - last > 150) __t("loop lag", Math.round(now - last));
+      last = now;
+    }, 50);
     for (const path of ["/directory", "/items"])
       for (const cancel of ["sigterm", "deadline"] as const) {
         const ctx = await machine(viaAgent);
@@ -293,6 +299,7 @@ for (const viaAgent of [true, false]) {
         expect(Date.now() - started).toBeLessThan(cancel === "deadline" ? 4_000 : 1_500);
       }
     (globalThis as { tr?: boolean }).tr = false;
+    clearInterval(lag);
   });
 }
 

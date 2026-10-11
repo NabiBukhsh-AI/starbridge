@@ -118,7 +118,11 @@ export class Permissions implements Feature {
           );
         this.holds.set(id, (this.holds.get(id) ?? 0) + 1);
         try {
-          return await this.hold(id, end, req.signal, b.handOver === true);
+          __t("hold start", wait);
+          return await this.hold(id, end, req.signal, b.handOver === true).then((r) => {
+            __t("hold end", JSON.stringify(r), end - Date.now());
+            return r;
+          });
         } finally {
           const left = (this.holds.get(id) ?? 1) - 1;
           if (left > 0) this.holds.set(id, left);
