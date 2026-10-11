@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { DESCRIPTION } from "@/lib/landing";
 
-// Install metadata for the web page, the iOS and desktop app (SPEC.md, "Platforms"). The icons
+// Install metadata for the web page, the iOS and desktop app (spec/product.md, "Platforms"). The icons
 // and the window colours are DESIGN.md's dark `bg`, like the Android launcher icon; the page's
 // theme-color meta (layout.tsx) follows the scheme once it loads. The screenshots are dark
 // copies of e2e/run.ts's shots, for Chrome's install sheet.

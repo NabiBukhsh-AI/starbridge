@@ -31,6 +31,12 @@ if (location.origin === arg("origin")) {
     ipcRenderer.send("answered", { id: a.id, error });
   });
   ipcRenderer.on("open", (_e, id: string) => onOpen?.(id));
+  let shown = ipcRenderer.sendSync("shown?") !== false;
+  let onShown: (() => void) | null = null;
+  ipcRenderer.on("shown", (_e, s: unknown) => {
+    shown = s === true;
+    onShown?.();
+  });
   ipcRenderer.on("place", (_e, p: unknown) => {
     place = p;
   });
@@ -42,6 +48,21 @@ if (location.origin === arg("origin")) {
     } catch {}
     ipcRenderer.send("screen-told", n);
   });
+
+  // The page's background, for the window to show under it: told at load and when the theme
+  // changes, by the Colours setting or the system's.
+  const background = () =>
+    ipcRenderer.send(
+      "background",
+      getComputedStyle(document.documentElement).getPropertyValue("--bg").trim(),
+    );
+  addEventListener("DOMContentLoaded", () => {
+    background();
+    new MutationObserver(background).observe(document.documentElement, {
+      attributeFilter: ["data-theme"],
+    });
+  });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", background);
 
   contextBridge.exposeInMainWorld("starbridgeDesktop", {
     version: arg("version"),
@@ -61,6 +82,12 @@ if (location.origin === arg("origin")) {
     /** Called when the reading changes; resolve once the page acted on it. */
     onScreen: (f: (() => Promise<void>) | null) => {
       onScreen = f;
+    },
+    /** Whether the window is on screen, which `document.visibilityState` does not say here. */
+    shown: () => shown,
+    /** Called when the window shows or hides. */
+    onShown: (f: (() => void) | null) => {
+      onShown = f;
     },
     /** Opens an item whose notification was clicked. */
     onOpen: (f: (id: string) => void) => {

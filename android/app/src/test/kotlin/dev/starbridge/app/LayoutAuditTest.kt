@@ -224,7 +224,7 @@ class LayoutAuditTest(private val shot: String, private val look: Look) {
             }
         },
         "settings" to Shot(Tab.Settings) {
-            SettingsScreen(worst.windows, QuotaSettings(alerts = dev.starbridge.app.data.QuotaAlerts(short = listOf("runs-out"))), worst.members.size, Colours.Starbridge, fake.push, worst.server, settingsActions, pushHold = 120)
+            SettingsScreen(worst.windows, QuotaSettings(alerts = dev.starbridge.app.data.QuotaAlerts(short = listOf("runs-out"))), worst.members.size, Colours.Starbridge, fake.push, worst.server, settingsActions, pushHold = 60)
         },
         "devices" to Shot(Tab.Settings, bar = false) { DevicesScreen(worst.members, now, deviceActions) },
         "devices-revoke" to Shot(Tab.Settings, bar = false, before = { compose.onAllNodesWithText("Revoke")[0].performClick() }) { DevicesScreen(worst.members, now, deviceActions) },

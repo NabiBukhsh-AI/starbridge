@@ -4,8 +4,7 @@ import type { SessionLink } from "@starbridge/protocol";
 
 /**
  * What `ask` fills in about the Claude Code session that runs it, from the record Claude Code
- * keeps for each running session in `~/.claude/sessions/<pid>.json` (SPEC.md, "Platform
- * facts"): its `name` unless Claude Code derived it, `bridgeSessionId` while Remote Control is on, and `hostSessionId`
+ * keeps for each running session in `~/.claude/sessions/<pid>.json` (spec/platform-facts.md): its `name` unless Claude Code derived it, `bridgeSessionId` while Remote Control is on, and `hostSessionId`
  * when Claude Desktop runs it.
  */
 export interface ClaudeSession {

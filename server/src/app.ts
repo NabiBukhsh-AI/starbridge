@@ -26,6 +26,7 @@ import { notificationRoutes } from "./routes/notifications";
 import { PairingClients, pairingRoutes, sweepPairings } from "./routes/pairings";
 import { presenceRoutes } from "./routes/presence";
 import { pushRoutes } from "./routes/push";
+import { releaseRoutes } from "./routes/releases";
 import { wakeSnoozes } from "./snooze";
 import { closeDays, diskFull, Usage } from "./usage";
 import { Waiters } from "./waiters";
@@ -115,7 +116,8 @@ export async function createApp(config: Config, fetchFn: typeof fetch = fetch) {
     .route("/", itemRoutes)
     .route("/", pushRoutes)
     .route("/", presenceRoutes)
-    .route("/", notificationRoutes);
+    .route("/", notificationRoutes)
+    .route("/", releaseRoutes);
 
   const app = new Hono<Env>();
   app.use(async (c, next) => {

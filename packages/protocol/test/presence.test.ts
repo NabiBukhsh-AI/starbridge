@@ -14,5 +14,6 @@ test("every hold time a client offers is one the server takes", () => {
   for (const pushHold of PUSH_HOLD_CHOICES)
     expect(AccountSettings.safeParse({ pushHold }).success).toBe(true);
   expect(AccountSettings.safeParse({ pushHold: 301 }).success).toBe(false);
+  expect(AccountSettings.safeParse({ pushHold: -2 }).success).toBe(false);
   expect(AccountSettings.safeParse({ pushHold: 1.5 }).success).toBe(false);
 });

@@ -12,7 +12,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
 /**
- * Quota settings, per phone (SPEC.md, "Quota settings follow CodexBar"): a curated set of
+ * Quota settings, per phone (spec/items.md, "Quota settings follow CodexBar"): a curated set of
  * CodexBar's own settings with CodexBar's meaning. They stay on the phone; the server learns
  * nothing of them. The web page keeps the same set (web/src/lib/quotaSettings.ts).
  */
@@ -41,7 +41,7 @@ data class QuotaSettings(
     }
 
     /**
-     * The windows to show (SPEC.md, "Quota order"): hidden providers out, the rest by provider in
+     * The windows to show (spec/items.md, "Quota order"): hidden providers out, the rest by provider in
      * this order, each provider's windows in the uploader's order. With [runningOutFirst], windows
      * that will run out or ran out, and have not reset, lead in that same order.
      */

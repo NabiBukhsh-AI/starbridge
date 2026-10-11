@@ -390,6 +390,7 @@ class ServerStore(
         reportedNotify = null
         notifyStates.value = emptyMap()
         deviceClients.value = emptyMap()
+        machinesBehind.value = emptySet()
         joinJob?.cancel()
         showJob?.cancel()
         watchJob?.cancel()
@@ -1883,6 +1884,7 @@ class ServerStore(
 
     override val notifyStates = MutableStateFlow<Map<String, String>>(emptyMap())
     override val deviceClients = MutableStateFlow<Map<String, String>>(emptyMap())
+    override val machinesBehind = MutableStateFlow<Set<String>>(emptySet())
     /** The state the server holds for this phone, once it took one. */
     private var reportedNotify: Boolean? = null
 
@@ -1893,6 +1895,8 @@ class ServerStore(
                 notifyStates.value = states
                 deviceClients.value = clients
             }
+            // A server without the route: no machine shows an update.
+            runCatching { api().machinesBehind() }.onSuccess { machinesBehind.value = it }
         }
     }
 

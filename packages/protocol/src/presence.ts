@@ -19,15 +19,25 @@ export const PRESENCE_VALID_MS = 75_000;
 export const Presence = z.object({ present: z.boolean() });
 export type Presence = z.infer<typeof Presence>;
 
-/** The hold times clients offer, in seconds; 0 pushes at once, as without presence. */
-export const PUSH_HOLD_CHOICES = [0, 15, 30, 60, 120] as const;
+/** No hold: every device's push goes at once, as without presence. */
+export const PUSH_HOLD_OFF = 0;
+/**
+ * A hold that ends as soon as the owner leaves the last screen (#1060). Not 0, which stays off for
+ * the clients released before it.
+ */
+export const PUSH_HOLD_ON_LEAVE = -1;
+/** The hold choices clients offer: off, or how long after the owner left the last screen. */
+export const PUSH_HOLD_CHOICES = [PUSH_HOLD_OFF, PUSH_HOLD_ON_LEAVE, 15, 30, 60] as const;
 export const PUSH_HOLD_DEFAULT = 30;
 export const PUSH_HOLD_MAX = 300;
 
 /** `GET` and `PUT /settings`: the account's own settings, which the server applies. */
 export const AccountSettings = z.object({
-  /** Seconds a held push waits once the owner left the last screen. */
-  pushHold: z.number().int().min(0).max(PUSH_HOLD_MAX),
+  /**
+   * Seconds a held push waits once the owner left the last screen: `PUSH_HOLD_OFF` holds nothing,
+   * `PUSH_HOLD_ON_LEAVE` none at all.
+   */
+  pushHold: z.number().int().min(PUSH_HOLD_ON_LEAVE).max(PUSH_HOLD_MAX),
 });
 export type AccountSettings = z.infer<typeof AccountSettings>;
 

@@ -77,7 +77,7 @@ class QuotasViewModel @Inject constructor(private val store: Store, private val 
     fun refresh() = store.refreshQuotas()
 }
 
-/** One card per provider, its windows inside, in the settings' order (SPEC.md, "Quota order"). */
+/** One card per provider, its windows inside, in the settings' order (spec/items.md, "Quota order"). */
 @Composable
 fun QuotasScreen(
     windows: List<QuotaWindow>,

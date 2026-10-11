@@ -32,5 +32,5 @@ presenceRoutes.put("/settings", requireCaller("paired-device"), async (c) => {
   c.var.db
     .query("UPDATE accounts SET push_hold = ? WHERE id = ?")
     .run(settings.pushHold, caller.account);
-  return c.json(settings);
+  return c.json({ pushHold: pushHold(c.var.db, caller.account) } satisfies AccountSettings);
 });
