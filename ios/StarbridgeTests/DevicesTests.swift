@@ -39,11 +39,11 @@ final class DevicesTests: XCTestCase {
     private func now() -> String { Dates.format(Date()) }
 
     func testListsAndRevokes() async throws {
-        let session = try await Api(server: server, session: nil).ownerSignIn(token: token)
+        let session = try await Api(server: server, session: nil).ownerSession(token: token)
         let empty = try await Api(server: server, session: session).directory(from: 0).isEmpty
         try XCTSkipUnless(empty, "the server's account already has devices")
         addTeardownBlock { [server, token] in
-            let s = try? await Api(server: server, session: nil).ownerSignIn(token: token)
+            let s = try? await Api(server: server, session: nil).ownerSession(token: token)
             var request = URLRequest(url: URL(string: server + "/v1/account")!)
             request.httpMethod = "DELETE"
             request.setValue("Bearer \(s ?? "")", forHTTPHeaderField: "Authorization")
@@ -53,7 +53,7 @@ final class DevicesTests: XCTestCase {
         addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
         let vault = MemoryVault()
         let store = Store(vault: vault, disk: Disk(url: dir.appendingPathComponent("saved.json")), deviceName: "Test iPhone")
-        await store.signInWithOwnerToken(server: server, token: token)
+        await store.signInWaiting(server: server, token: token)
         await store.setUpFirstDevice()
         await store.confirmRecoveryKey()
         XCTAssertEqual(store.phase, .ready)
