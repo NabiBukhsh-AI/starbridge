@@ -15,6 +15,7 @@ import {
   SealedItem,
   type SessionLink,
   type Settled,
+  toWellFormed,
   verifyDirectory,
   type Waiting,
 } from "@starbridge/protocol";
@@ -259,7 +260,8 @@ function agentOf(input: AskInput, env: Ctx["env"]): { agent?: Agent } {
 
 function checked(decision: unknown): Decision {
   try {
-    return parseWith(Decision, decision);
+    // Agents' text, cut to length, can hold a lone surrogate, which the protocol refuses (#1090).
+    return parseWith(Decision, toWellFormed(decision));
   } catch (e) {
     throw e instanceof ProtocolError ? new UsageError(`bad decision: ${e.message}`) : e;
   }
