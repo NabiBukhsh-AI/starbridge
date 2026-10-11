@@ -57,6 +57,7 @@ import dev.starbridge.app.data.Store
 import dev.starbridge.app.ui.Label
 import dev.starbridge.app.ui.Lockup
 import dev.starbridge.app.ui.Panel
+import dev.starbridge.app.ui.devices.Confirm
 import dev.starbridge.app.ui.pairing.rememberScanner
 import dev.starbridge.app.protocol.formatDigits
 import dev.starbridge.app.ui.fieldColors
@@ -100,6 +101,7 @@ class SetupViewModel @Inject constructor(private val store: Store) : ViewModel()
         recover = store::recover,
         saved = store::confirmRecoveryKey,
         signOut = store::signOut,
+        deleteAccount = store::deleteAccount,
     )
 }
 
@@ -117,6 +119,7 @@ class SetupActions(
     val saved: () -> Unit,
     val signOut: () -> Unit,
     val confirmDigits: () -> Unit = {},
+    val deleteAccount: () -> Unit = {},
 )
 
 /**
@@ -132,7 +135,7 @@ fun SetupScreen(phase: Phase, server: String, busy: Boolean, actions: SetupActio
         is Phase.JoiningByDigits -> when {
             phase.digits != null && !phase.matched -> Waiting("Compare digits", "Does your other device show the same digits?", phase.digits, actions.cancelJoin, modifier, onMatch = actions.confirmDigits)
             phase.digits != null -> Waiting("Compare digits", "Approve on your other device.", phase.digits, actions.cancelJoin, modifier)
-            else -> Waiting("Compare digits", "Approve on your other device if the digits match.", null, actions.cancelJoin, modifier)
+            else -> Waiting("Compare digits", "Open Starbridge on a device you already use: it asks whether to let this phone join.", null, actions.cancelJoin, modifier)
         }
         is Phase.RecoveryKey -> Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = Spacing.s4, end = Spacing.s4, bottom = Spacing.s10), verticalArrangement = Arrangement.spacedBy(Spacing.s4)) {
             // Continue posts the account's first entry (#370): it can take a moment, or fail and stay here.
@@ -253,6 +256,7 @@ private fun SignIn(server: String, busy: Boolean, actions: SetupActions, openUrl
 @Composable
 private fun Join(busy: Boolean, actions: SetupActions, modifier: Modifier) {
     var recovering by rememberSaveable { mutableStateOf(false) }
+    var deleting by rememberSaveable { mutableStateOf(false) }
     var scanError by rememberSaveable { mutableStateOf<String?>(null) }
     val scan = rememberScanner(onResult = { scanError = null; actions.joinWithCode(it) }, onError = { scanError = it })
     if (recovering) return Recover(busy, actions, modifier) { recovering = false }
@@ -270,10 +274,28 @@ private fun Join(busy: Boolean, actions: SetupActions, modifier: Modifier) {
             FlowRow(Modifier.padding(top = Spacing.s3), horizontalArrangement = Arrangement.spacedBy(Spacing.s6, Alignment.CenterHorizontally), verticalArrangement = Arrangement.spacedBy(Spacing.s6)) {
                 Link("Use the recovery key") { recovering = true }
                 Link("Sign out", actions.signOut)
+                Link("Delete account") { deleting = true }
             }
         },
     )
+    if (deleting) {
+        Confirm(
+            title = "Delete your account?",
+            text = DELETE_UNPAIRED,
+            action = "Delete account",
+            typed = "delete",
+            onConfirm = { actions.deleteAccount(); deleting = false },
+            onDismiss = { deleting = false },
+        )
+    }
 }
+
+/**
+ * Why deleting is the way out for someone with no device and no recovery key (#1117): no one
+ * else holds a key that reads the account's data or vouches for a new device.
+ */
+private const val DELETE_UNPAIRED =
+    "Your questions and answers are end-to-end encrypted: without one of your devices or the recovery key, nobody can read them or add this phone, not even the server. Deleting the account lets you start over. It signs out every phone, browser and machine, and can't be undone."
 
 /** Where this app came from, so the update screen sends the owner back there. */
 enum class Installer(val action: String) {
