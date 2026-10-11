@@ -45,6 +45,11 @@ export class Usage {
     }
   }
 
+  /** Forgets that a deleted account was seen today (#1104); its events no longer name it. */
+  forget(account: string): void {
+    for (const k of this.seenToday) if (k.includes(account)) this.seenToday.delete(k);
+  }
+
   /**
    * Marks the caller's account, and its machine or paired device, active today, and counts the
    * release its client named (`active.clients.<name>.<major>.<minor>`) once per member, or per

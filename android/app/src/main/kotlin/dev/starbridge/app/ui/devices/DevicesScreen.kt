@@ -198,14 +198,32 @@ fun AddDeviceScreen(
     }
 }
 
+/** A destructive action's dialog; with [typed], the owner types that word before it works. */
 @Composable
-fun Confirm(title: String, text: String, action: String, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+fun Confirm(title: String, text: String, action: String, onConfirm: () -> Unit, onDismiss: () -> Unit, typed: String? = null) {
+    var word by rememberSaveable { mutableStateOf("") }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
-        text = { Text(text, style = StarbridgeTheme.type.body) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.s3)) {
+                Text(text, style = StarbridgeTheme.type.body)
+                if (typed != null) TextField(
+                    value = word,
+                    onValueChange = { word = it },
+                    singleLine = true,
+                    label = { Text("Type $typed to confirm") },
+                    colors = fieldColors(),
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, autoCorrectEnabled = false),
+                )
+            }
+        },
         confirmButton = {
-            TextButton(onClick = onConfirm, colors = ButtonDefaults.textButtonColors(contentColor = StarbridgeTheme.colors.bad)) { Text(action) }
+            TextButton(
+                onClick = onConfirm,
+                enabled = typed == null || word.trim().lowercase() == typed,
+                colors = ButtonDefaults.textButtonColors(contentColor = StarbridgeTheme.colors.bad),
+            ) { Text(action) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )

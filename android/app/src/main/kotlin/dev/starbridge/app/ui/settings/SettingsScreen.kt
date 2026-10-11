@@ -111,6 +111,7 @@ class SettingsViewModel @Inject constructor(private val store: Store, private va
     fun loadPushHold() = store.loadPushHold()
     fun setPushHold(seconds: Int) = store.setPushHold(seconds)
     fun signOut() = store.signOut()
+    fun deleteAccount() = store.deleteAccount()
 }
 
 /** What the settings page changes, and where its rows lead. */
@@ -126,6 +127,7 @@ class SettingsActions(
     val allowUnseen: (Boolean) -> Unit = {},
     val pushHold: (Int) -> Unit = {},
     val alerts: () -> Unit = {},
+    val deleteAccount: () -> Unit = {},
 )
 
 /** Everything this phone keeps for itself, and the account's devices. The settings stay on the phone. */
@@ -150,6 +152,7 @@ fun SettingsScreen(
 ) {
     val context = LocalContext.current
     var signingOut by rememberSaveable { mutableStateOf(false) }
+    var deleting by rememberSaveable { mutableStateOf(false) }
     val set = actions.quota
     Page("Settings", modifier, titleGap = Spacing.s2) {
         item { Section("Notifications") }
@@ -242,14 +245,15 @@ fun SettingsScreen(
         }
 
         item { Section("Account") }
-        item { LinkRow(0, 4, "Server", server, null) {} }
+        item { LinkRow(0, 5, "Server", server, null, null) }
         item {
-            ChoiceRow(1, 4, "Notifications delivered through", pushState(push, server)) {
+            ChoiceRow(1, 5, "Notifications delivered through", pushState(push, server)) {
                 Segments(listOf("fcm" to "Google", "unifiedpush" to "UnifiedPush"), push.type, actions.push)
             }
         }
-        item { LinkRow(2, 4, "Agent instructions", null, Sym.Open) { openLink(context, GUIDE) } }
-        item { LinkRow(3, 4, "Sign out", null, Sym.Logout) { signingOut = true } }
+        item { LinkRow(2, 5, "Agent instructions", null, Sym.Open) { openLink(context, GUIDE) } }
+        item { LinkRow(3, 5, "Sign out", null, Sym.Logout) { signingOut = true } }
+        item { LinkRow(4, 5, "Delete account", null, null) { deleting = true } }
     }
     if (signingOut) {
         Confirm(
@@ -258,6 +262,16 @@ fun SettingsScreen(
             action = "Sign out",
             onConfirm = { actions.signOut(); signingOut = false },
             onDismiss = { signingOut = false },
+        )
+    }
+    if (deleting) {
+        Confirm(
+            title = "Delete your account?",
+            text = "The server deletes your devices, machines, questions, answers and push targets, and signs out every phone, browser and machine. This can't be undone.",
+            action = "Delete account",
+            typed = "delete",
+            onConfirm = { actions.deleteAccount(); deleting = false },
+            onDismiss = { deleting = false },
         )
     }
 }
@@ -333,8 +347,8 @@ private fun RadioRow(index: Int, count: Int, title: String, selected: Boolean, o
 }
 
 @Composable
-private fun LinkRow(index: Int, count: Int, title: String, sub: String?, icon: Sym?, onClick: () -> Unit) {
-    Shell(index, count, if (icon != null) Modifier.clickable(onClick = onClick) else Modifier) {
+private fun LinkRow(index: Int, count: Int, title: String, sub: String?, icon: Sym?, onClick: (() -> Unit)?) {
+    Shell(index, count, if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier) {
         Line {
             Texts(title, sub, Modifier.weight(1f))
             icon?.let { Symbol(it, size = 20.dp, tint = MaterialTheme.colorScheme.onSurface) }

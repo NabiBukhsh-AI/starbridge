@@ -419,6 +419,8 @@ request without the header, or with one the server cannot read, is served.
   recovery-signed `add`, or fetches its own pairing result (a new device signs in first).
   Revoking a device ends its sessions, which then get 401 `revoked` instead of
   `unauthenticated` until they would have expired; revoking a machine drops its token.
+- Deleting the account ends every session and machine token of it, which then get 401
+  `unauthenticated`.
 
 | Route | Who | What |
 |---|---|---|
@@ -430,6 +432,7 @@ request without the header, or with one the server cannot read, is served.
 | `GET /auth/app/signed-in?state=<challenge>` | device | `{signedIn}`: true once the app whose challenge this is traded its code for a session of the caller's account (#943); the server keeps each challenge's account 10 minutes, in memory |
 | `POST /auth/owner` | anyone | self-hosted: `{token}` against `OWNER_TOKEN`; sets the session and returns `{session}` |
 | `POST /auth/logout` | device | end the session |
+| `DELETE /account` | device, paired or not | delete the caller's account and everything the server holds for it: directory, members, sessions, machine tokens, items, push subscriptions, joins and pairings; open waits end with 401; 204, and the cookie is cleared. Today's usage events keep their counts under a random subject (#1104) |
 | `GET /auth/challenge` | device | `{nonce, expiresInSeconds}`: one nonce per session, single use, 5 minutes; asking again returns the outstanding one |
 | `POST /auth/bind` | device | `{member, sig}`: binds the session to that active device when `sig` checks against its signing key; 400 `no-challenge`, 401 `bad-signature`, 404 for no such active device, 409 `already-paired` when the session holds another device |
 | `GET /me` | device, machine | `{account, member, role}`; `member` is null until a device pairs |

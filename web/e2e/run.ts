@@ -2258,6 +2258,33 @@ async function main() {
   if ((await pageC.evaluate(NOTIFICATIONS)).length > 0)
     throw new Error("signing out left notifications on screen");
 
+  step("delete the account: typed confirmation, then a new sign-in starts a new account (#1104)");
+  const d = await ff.newContext({ permissions: ["notifications"] });
+  await watchCsp(d);
+  const pageD = await signIn(d);
+  await pageD.getByRole("button", { name: "Use the recovery key" }).click();
+  await pageD.getByLabel("Your recovery key").fill(newKey);
+  await pageD.getByRole("button", { name: "Recover" }).click();
+  await pageD.getByRole("heading", { name: "Inbox" }).waitFor({ timeout: 30_000 });
+  await pageD
+    .getByRole("navigation", { name: "Main" })
+    .getByRole("link", { name: "Settings" })
+    .click();
+  await pageD.getByRole("button", { name: "Delete account" }).click();
+  const dialog = pageD.getByRole("dialog");
+  const confirm = dialog.getByRole("button", { name: "Delete account" });
+  if (await confirm.isEnabled()) throw new Error("Delete account worked before typing delete");
+  await dialog.getByLabel("Type delete to confirm").fill("delete");
+  await confirm.click();
+  await pageD
+    .getByRole("heading", { name: /Know the moment your agent is stuck/ })
+    .waitFor({ timeout: 30_000 });
+  await d.clearCookies();
+  await pageD.goto(ORIGIN);
+  await pageD.getByRole("link", { name: SIGN_IN }).click();
+  // The same GitHub user gets an account with no devices, not the deleted one's recovery screen.
+  await pageD.getByRole("heading", { name: "Set up your account" }).waitFor({ timeout: 30_000 });
+
   await ff.close();
   if (violations.length) throw new Error(`CSP violations:\n${violations.join("\n")}`);
   console.log("\nE2E PASSED");

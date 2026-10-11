@@ -759,18 +759,22 @@ function ConfirmDialog({
   title,
   text,
   action,
+  typed,
   onClose,
   onConfirm,
 }: {
   title: string;
   text: string;
   action: string;
+  /** A word the owner types before the button works, for what can't be undone. */
+  typed?: string;
   onClose: () => void;
   onConfirm: () => Promise<void>;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const [word, setWord] = useState("");
   useEffect(() => ref.current?.showModal(), []);
   return (
     <dialog
@@ -783,6 +787,19 @@ function ConfirmDialog({
         {title}
       </h3>
       <p className={`t-small ${s.sub}`}>{text}</p>
+      {typed && (
+        <label className={`t-meta ${s.dim} ${s.typed}`}>
+          Type {typed} to confirm
+          <input
+            className={`t-body ${ui.input}`}
+            value={word}
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            onChange={(e) => setWord(e.target.value)}
+          />
+        </label>
+      )}
       {error && <p className={`t-meta ${s.error}`}>{error}</p>}
       <div className={s.dialogActions}>
         <button type="button" className={`t-label ${ui.btn}`} onClick={() => ref.current?.close()}>
@@ -791,7 +808,7 @@ function ConfirmDialog({
         <button
           type="button"
           className={`t-label ${ui.btn} ${ui.destroy}`}
-          disabled={busy}
+          disabled={busy || (typed !== undefined && word.trim().toLowerCase() !== typed)}
           onClick={async () => {
             setBusy(true);
             setError(undefined);
@@ -814,6 +831,7 @@ function AccountSection() {
   const { boot } = useApp();
   const ctx = boot.state === "ready" ? boot.ctx : undefined;
   const [asking, setAsking] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   return (
     <Section title="Account">
       <a className={s.linkRow} href={AGENTS_GUIDE} target="_blank" rel="noopener noreferrer">
@@ -832,6 +850,23 @@ function AccountSection() {
           onConfirm={async () => {
             if (!ctx) return setAsking(false);
             await (await load()).signOut(ctx);
+            location.assign("/");
+          }}
+        />
+      )}
+      <button type="button" className={`t-small ${s.linkRow}`} onClick={() => setDeleting(true)}>
+        Delete account
+      </button>
+      {deleting && (
+        <ConfirmDialog
+          title="Delete your account?"
+          text="The server deletes your devices, machines, questions, answers and push targets, and signs out every phone, browser and machine. This can't be undone."
+          action="Delete account"
+          typed="delete"
+          onClose={() => setDeleting(false)}
+          onConfirm={async () => {
+            if (!ctx) return setDeleting(false);
+            await (await load()).deleteAccount(ctx);
             location.assign("/");
           }}
         />

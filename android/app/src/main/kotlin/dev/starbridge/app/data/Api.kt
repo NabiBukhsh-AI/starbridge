@@ -192,6 +192,11 @@ class Api(private val http: OkHttpClient, private val server: String, private va
         call("POST", "/auth/logout")
     }
 
+    /** Deletes the account and everything the server holds for it, and ends every sign-in. */
+    suspend fun deleteAccount() {
+        call("DELETE", "/account")
+    }
+
     suspend fun me(): Me = get("/me")
 
     suspend fun directory(from: Int): List<JsonElement> =
