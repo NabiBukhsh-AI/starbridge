@@ -130,18 +130,38 @@ struct Disk {
     /** The saved state, or nil when there is none or it cannot be read; moves nothing. */
     func load() -> Saved? { try? read() }
 
+    /** What the app found at launch. */
+    enum Loaded {
+        case saved(Saved?)
+        /** Not this release's format, or damaged: kept as `saved.json.unreadable-<tag>`. */
+        case aside(tag: String)
+        /** Not read, or not moved aside: left where it is, and why. */
+        case stuck(String)
+    }
+
     /**
-     * The saved state for the app. A file it cannot read, a newer release's or a damaged one,
-     * moves aside to `saved.json.unreadable-<time>`, kept rather than overwritten (#473): `aside`
-     * is that tag.
+     * The saved state for the app. A file this release cannot decode, a newer release's or a
+     * damaged one, moves aside to `saved.json.unreadable-<tag>`, kept rather than overwritten
+     * (#473). A file it cannot read at all, such as before the first unlock, stays where it is.
      */
-    func loadOrMoveAside() -> (saved: Saved?, aside: String?) {
+    func loadOrMoveAside() -> Loaded {
+        guard FileManager.default.fileExists(atPath: url.path) else { return .saved(nil) }
+        let data: Data
         do {
-            return (try read(), nil)
+            data = try Data(contentsOf: url)
         } catch {
-            let tag = "\(Int(Date().timeIntervalSince1970 * 1000))"
-            try? FileManager.default.moveItem(at: url, to: url.appendingPathExtension("unreadable-\(tag)"))
-            return (nil, tag)
+            return .stuck("\(error.localizedDescription)")
+        }
+        do {
+            return .saved(try JSONDecoder().decode(Saved.self, from: data))
+        } catch {
+            let tag = "\(Int(Date().timeIntervalSince1970 * 1000))-\(UUID().uuidString.prefix(8).lowercased())"
+            do {
+                try FileManager.default.moveItem(at: url, to: url.appendingPathExtension("unreadable-\(tag)"))
+                return .aside(tag: tag)
+            } catch {
+                return .stuck("\(error.localizedDescription)")
+            }
         }
     }
 

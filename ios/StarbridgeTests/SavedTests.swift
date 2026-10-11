@@ -61,4 +61,32 @@ final class SavedTests: XCTestCase {
             try tearDownWithError()
         }
     }
+
+    /** A file there but not readable, as before the first unlock, stays, and nothing is written this run. */
+    func testAFileThatCannotBeReadStaysAndNothingIsWritten() throws {
+        // A folder in the file's place: there, but Data(contentsOf:) fails.
+        try FileManager.default.createDirectory(at: file, withIntermediateDirectories: true)
+        let vault = signedIn()
+        let store = Store(vault: vault, disk: Disk(url: file), deviceName: "Test iPhone")
+        XCTAssertNotNil(store.notice)
+        XCTAssertEqual(try asideFiles(), [])
+        XCTAssertEqual(vault.aside, [:])
+        store.persist(Saved(server: "https://other.test"), Secrets())
+        XCTAssertEqual(vault.secrets, Secrets(session: "sb_1", signSk: "key"))
+        var isFolder: ObjCBool = false
+        XCTAssertTrue(FileManager.default.fileExists(atPath: file.path, isDirectory: &isFolder) && isFolder.boolValue)
+    }
+
+    /** Keys that could not follow the file aside are not overwritten: nothing is written this run. */
+    func testKeysThatCannotBeSetAsideAreKeptAndNothingIsWritten() throws {
+        try Data(#"{"server":"#.utf8).write(to: file)
+        let vault = signedIn()
+        vault.asideFails = true
+        let store = Store(vault: vault, disk: Disk(url: file), deviceName: "Test iPhone")
+        XCTAssertEqual(try asideFiles().count, 1)
+        XCTAssertTrue(store.notice?.contains("keychain: locked") == true)
+        store.persist(Saved(server: "https://other.test"), Secrets())
+        XCTAssertEqual(vault.secrets, Secrets(session: "sb_1", signSk: "key"))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: file.path))
+    }
 }
