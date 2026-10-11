@@ -15,14 +15,18 @@ BOXES=(
   "sb-dell3 dell3 self-hosted,linux,x64,starbridge,pr,heavy,docker,starbridge-pr"
   "sb-hp hp self-hosted,linux,x64,starbridge,pr,light,docker,starbridge-pr"
 )
-SSH=(ssh -o BatchMode=yes -o ConnectTimeout=5)
+# Bounded: a box that reboots mid-call must not hold the round. No shared SSH connection, which
+# would outlive a box's reboot.
+SSH=(timeout 30 ssh -o BatchMode=yes -o ConnectTimeout=5 -o ServerAliveInterval=5 -o ServerAliveCountMax=2
+  -o ControlMaster=no -o ControlPath=none)
+GH=(timeout 30 gh)
 
 if [ "${1:-}" = --install ]; then
   dest=$HOME/.local/lib/starbridge-runners
   units=$HOME/.config/systemd/user
   mkdir -p "$dest" "$units"
   install -m 0755 "$0" "$dest/feed.sh"
-  printf '[Unit]\nDescription=Queue runner registrations on the Starbridge CI boxes\n\n[Service]\nType=oneshot\nExecStart=%s\n' \
+  printf '[Unit]\nDescription=Queue runner registrations on the Starbridge CI boxes\n\n[Service]\nType=oneshot\nTimeoutStartSec=3min\nExecStart=%s\n' \
     "$dest/feed.sh" > "$units/starbridge-runner-feed.service"
   printf '[Unit]\nDescription=Queue runner registrations on the Starbridge CI boxes every 15 s\n\n[Timer]\nOnBootSec=30s\nOnUnitActiveSec=15s\nAccuracySec=1s\n\n[Install]\nWantedBy=timers.target\n' \
     > "$units/starbridge-runner-feed.timer"
@@ -30,6 +34,10 @@ if [ "${1:-}" = --install ]; then
   systemctl --user enable --now starbridge-runner-feed.timer
   exit
 fi
+
+# One round at a time: two would hand out registrations the other then deletes as leftovers.
+exec 9>"${XDG_RUNTIME_DIR:-/tmp}/starbridge-runner-feed.lock"
+flock -n 9 || exit 0
 
 held=() reached=()
 for box in "${BOXES[@]}"; do
@@ -50,7 +58,7 @@ for box in "${BOXES[@]}"; do
     args=(-f "name=$name" -F runner_group_id=1 -f work_folder=_work)
     IFS=, read -ra list <<<"$labels"
     for label in "${list[@]}"; do args+=(-f "labels[]=$label"); done
-    config=$(gh api -X POST "repos/$REPO/actions/runners/generate-jitconfig" "${args[@]}" --jq .encoded_jit_config) || {
+    config=$("${GH[@]}" api -X POST "repos/$REPO/actions/runners/generate-jitconfig" "${args[@]}" --jq .encoded_jit_config) || {
       echo "$name: registration failed" >&2
       continue
     }
@@ -65,11 +73,11 @@ done
 # it over failed. Only the boxes reached this round, so an unreachable box keeps its queue.
 [ ${#reached[@]} -gt 0 ] || exit 0
 pattern="^($(IFS='|'; echo "${reached[*]}"))-[0-9]+-[0-9]+\$"
-gh api --paginate "repos/$REPO/actions/runners?per_page=100" \
+"${GH[@]}" api --paginate "repos/$REPO/actions/runners?per_page=100" \
   --jq '.runners[] | select(.status == "offline") | "\(.id) \(.name)"' |
   while read -r id name; do
     [[ $name =~ $pattern ]] || continue
     [[ " ${held[*]} " == *" $name "* ]] && continue
     # Fails when GitHub removed the runner meanwhile; the next round tries again otherwise.
-    if gh api -X DELETE "repos/$REPO/actions/runners/$id" >/dev/null; then echo "$name: deleted"; fi
+    if "${GH[@]}" api -X DELETE "repos/$REPO/actions/runners/$id" >/dev/null; then echo "$name: deleted"; fi
   done
