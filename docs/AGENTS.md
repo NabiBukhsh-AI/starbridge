@@ -1,7 +1,7 @@
 # Docs guide
 
-These rules apply to `docs/*.md`, `README.md` and `cli/README.md`. The site serves them under
-/docs (`web/src/lib/docs.ts`).
+These rules apply to `README.md`, `docs/*.md`, `cli/README.md` and `server/README.md`. The site
+serves all but `README.md` under /docs (`DOCS` in `web/src/lib/docs.ts`).
 
 ## Where things go
 
@@ -11,8 +11,8 @@ These rules apply to `docs/*.md`, `README.md` and `cli/README.md`. The site serv
   user asks. The CLI: commands and flags, one line each.
 - One home per fact. Other pages link to it in a few words; never restate it.
 - Why a decision was made goes in `spec/`, not in the docs.
-- Keep inbound anchors working: the apps and the landing page link to `/docs#start`,
-  `/docs#sessions-already-running`, `/docs/faq#what-does-the-server-see` and
+- Keep inbound links working. The apps link to the pages, the landing page to
+  `/docs/faq#what-does-the-server-see`, and `README.md` to `/docs#start` and
   `/docs/tell-your-agents#what-each-harness-supports`. Renaming a heading changes its anchor.
 
 ## Terms

@@ -99,9 +99,9 @@ Pi's [notify extension](https://github.com/earendil-works/pi/blob/main/packages/
 
 | App | What it notifies | Turn it off |
 |---|---|---|
-| Claude app (Android, iOS) | Claude Code's Remote Control pushes, and Dispatch sessions finishing or needing approval. | For Remote Control, Claude Code's `/config` toggles. For the rest, Android's settings, as for any Android app. |
+| Claude app (Android, iOS) | Claude Code's Remote Control pushes, and Dispatch sessions finishing or needing approval. | For Remote Control, Claude Code's `/config` toggles. For the rest, the phone's notification settings for the app. |
 | ChatGPT on the web | Codex notifications by category, by push, email or SMS. | Settings → Notifications. |
-| ChatGPT app (Android, iOS) | Not documented. | Android's settings, as for any Android app. |
+| ChatGPT app (Android, iOS) | Not documented. | the phone's notification settings for the app. |
 | Any Android app | Notifications by category, which Android calls channels. | Settings → Notifications → App notifications → the app, then turn off a category. Or touch and hold one of its notifications, tap Settings, and turn off its category. |
 
 Sources: [ChatGPT notifications](https://learn.chatgpt.com/docs/notifications),
