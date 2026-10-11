@@ -3,7 +3,7 @@ import XCTest
 @testable import Starbridge
 
 /** Keeps the secrets in memory. */
-private final class MemoryVault: Vault, @unchecked Sendable {
+final class MemoryVault: Vault, @unchecked Sendable {
     var secrets = Secrets()
     func load() throws -> Secrets { secrets }
     func save(_ secrets: Secrets) throws { self.secrets = secrets }

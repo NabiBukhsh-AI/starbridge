@@ -11,6 +11,8 @@ enum Phase: Equatable {
     case joining
     /** Joining by digits: the digits once the approver's key came, and whether they matched. */
     case joiningByDigits(digits: String?, matched: Bool)
+    /** The first device's recovery key, shown once until the owner says they stored it (#370). */
+    case recoveryKey(String)
     case ready
 }
 
@@ -20,8 +22,9 @@ struct Notice: Error, Equatable {
 }
 
 /**
- * The app's state and the setup steps, as Android's ServerStore does them: sign in, then join the
- * account from a device it already has, by its QR code or by comparing digits. Secrets go to the
+ * The app's state and the setup steps, as Android's ServerStore does them: sign in, then set up
+ * an empty account's first device, join the account from a device it already has, by its QR
+ * code or by comparing digits, or recover it with the recovery key. Secrets go to the
  * [Vault], the rest to [Disk], each before the server hears of what they hold, so a killed app
  * resumes the same join.
  */
@@ -62,6 +65,7 @@ final class Store {
         if secrets.session == nil { return .signedOut }
         if let dj = saved.digitJoin { return .joiningByDigits(digits: dj.digits, matched: dj.matched) }
         if saved.joining != nil { return .joining }
+        if let seed = secrets.recoverySeed.flatMap({ try? fromB64($0) }), seed.count == 16 { return .recoveryKey(RecoveryKeys.encode(SecretKey(seed))) }
         if saved.me != nil, saved.pin != nil { return .ready }
         return .noDevice(accountExists: saved.accountExists)
     }
@@ -111,6 +115,8 @@ final class Store {
         case let e as ApiError: "The server refused: \(e)"
         case let e as URLError where e.code == .cancelled: "Cancelled."
         case is URLError: "Can't reach \(saved.server). Check the connection and try again."
+        // Another account's key, or this account's from before a replacement (#348).
+        case let e as ProtocolError where e.code == .wrongRecoveryKey: "This is a recovery key, but not this account's current one."
         case let e as ProtocolError: "Something didn't check out (\(e.code.rawValue)). Try again."
         default: "\(error)"
         }
@@ -227,10 +233,18 @@ final class Store {
             persist(nil, k)
             return
         }
+        if saved.pendingGenesis != nil, me.account == saved.account {
+            // A first-device setup the server may already hold: keep its keys and seed to retry.
+            var k = secrets
+            k.session = session
+            persist(nil, k)
+            return
+        }
         if saved.me != nil, saved.pin != nil, me.account != saved.account {
             // The server's word alone, unsigned: a hostile one could unpair the iPhone with it (#808).
             throw Notice(message: "This iPhone belongs to another account than the one you signed in to. Sign in with the account you set it up with, or sign out and remove its keys.")
         }
+        // A setup that never finished: start over.
         if saved.me != nil || secrets.signSk != nil { wipe() }
         if me.member != nil { throw Notice(message: "This session already belongs to another device.") }
         let exists = !(try await fresh.directory(from: 0).isEmpty)
@@ -251,7 +265,10 @@ final class Store {
 
     // --- Joining ------------------------------------------------------------------
 
-    /** New keys for this iPhone, in the vault before the server hears of them. */
+    /**
+     * New keys for this iPhone, in the vault before the server hears of them. They end any
+     * recovery attempt that made the ones they replace.
+     */
     private func newMember() -> SavedMember {
         let box = Sodium.boxKeyPair()
         let sign = Sodium.signKeyPair()
@@ -262,7 +279,9 @@ final class Store {
         k.boxSk = toB64(box.secretKey.bytes)
         k.signPk = member.signPk
         k.signSk = toB64(sign.secretKey.bytes)
-        persist(nil, k)
+        var s = saved
+        s.recovering = nil
+        persist(s, k)
         return member
     }
 
@@ -454,6 +473,137 @@ final class Store {
         endJoin(nil)
     }
 
+    // --- The first device ------------------------------------------------------------
+
+    /**
+     * Makes the keys, the recovery seed and the signed first entry, all stored, and shows the
+     * recovery key. The server sees the entry only once the owner confirms the key, as on Android
+     * and the web (#370): an app deleted before that leaves no account without a device, and a
+     * killed one shows the same key again.
+     */
+    func setUpFirstDevice() async {
+        await run { [self] in
+            guard saved.pendingGenesis == nil, let account = saved.account else { return }
+            if !(try await api().directory(from: 0).isEmpty) {
+                var s = saved
+                s.accountExists = true
+                persist(s)
+                throw Notice(message: "This account already has devices. Join it instead.")
+            }
+            let member = newMember()
+            let seed = RecoveryKeys.generateSeed()
+            let entry = Directories.genesisEntry(account: account, device: member.member, signKey: try signKey, recovery: RecoveryKeys.keyPair(seed), at: now())
+            var s = saved
+            s.me = member
+            s.pin = nil
+            s.pendingGenesis = entry.json.text
+            var k = secrets
+            k.recoverySeed = toB64(seed.bytes)
+            persist(s, k)
+        }
+    }
+
+    /** The owner stored the recovery key: the first entry goes to the server, and the key is forgotten. */
+    func confirmRecoveryKey() async {
+        await run { [self] in
+            if saved.pendingGenesis != nil { try await postFirstEntry() }
+            var k = secrets
+            k.recoverySeed = nil
+            persist(nil, k)
+        }
+    }
+
+    /**
+     * Posts the stored first entry, so a lost reply is retried with the same entry, and a chain
+     * that already starts with it is adopted instead of refused.
+     */
+    private func postFirstEntry() async throws {
+        guard let text = saved.pendingGenesis, let me = saved.me else { return }
+        let genesis = try JSON.parse(text)
+        let existing = try await api().directory(from: 0)
+        if existing.isEmpty {
+            try await api().append(genesis)
+        } else if existing.first != genesis {
+            // Another device set the account up meanwhile: this setup's key was never used.
+            var s = saved
+            s.me = nil
+            s.pendingGenesis = nil
+            s.accountExists = true
+            persist(s, Secrets(session: secrets.session))
+            throw Notice(message: "This account already has devices. Join it instead.")
+        } else if try await api().me().member == nil {
+            // The server took the entry but the session that posted it is gone: bind this one.
+            let nonce = try await api().challenge()
+            try await api().bind(member: me.id, sig: toB64(Sodium.sign(Pairings.bindMessage(account: saved.account ?? "", member: me.id, nonce: nonce), secretKey: try signKey)))
+        }
+        let dir = try Directories.verify([genesis], account: saved.account)
+        directory = dir
+        var s = saved
+        s.entries = [text]
+        s.pin = Pin(length: dir.length, head: dir.head)
+        s.pendingGenesis = nil
+        persist(s)
+    }
+
+    // --- Recovering -----------------------------------------------------------------
+
+    /**
+     * Adds this iPhone with the recovery key, revoking every other member: recovery means they
+     * are lost, or in someone else's hands (#363).
+     */
+    func recover(_ key: String) async {
+        await run { [self] in
+            let seed: SecretKey
+            do {
+                seed = try RecoveryKeys.seed(key)
+            } catch {
+                throw Notice(message: RecoveryKeyText.problem(error.reading) ?? "That is not a recovery key.")
+            }
+            let recovery = RecoveryKeys.keyPair(seed)
+            let entries = try await api().directory(from: 0)
+            // The chain's current recovery key must be this one, whose own signature a server cannot
+            // fake; an iPhone that was a device before keeps the server from serving a shorter chain.
+            let dir = try Directories.verify(entries, account: saved.account, pin: saved.pin, recoveryPk: toB64(recovery.publicKey))
+            // The keys made for an earlier attempt stay until the chain holds them: when its reply
+            // was lost, the server bound the session to that member, and a retry finds it there
+            // (#274). Only while those keys are still this iPhone's, and the member was not revoked since.
+            let earlier = saved.recovering.flatMap { r in
+                r.signPk == secrets.signPk && r.boxPk == secrets.boxPk && dir.members[r.id]?.active != false ? r : nil
+            }
+            let member: SavedMember
+            if let earlier {
+                member = earlier
+            } else {
+                member = newMember()
+                var s = saved
+                s.recovering = member
+                persist(s)
+            }
+            var all = entries
+            if dir.members[member.id]?.active != true {
+                let entry = Directories.recoverEntry(dir, recoveryKey: recovery.secretKey, member: member.member, at: now()).json
+                try await api().append(entry)
+                all.append(entry)
+            }
+            let after = try Directories.verify(all, account: saved.account, pin: Pin(length: dir.length, head: dir.head))
+            directory = after
+            var s = saved
+            s.me = member
+            s.recovering = nil
+            s.entries = all.map(\.text)
+            s.pin = Pin(length: after.length, head: after.head)
+            persist(s)
+            // A session an abandoned attempt's append bound to its member cannot act as this one,
+            // and the server never moves it: signing in again binds a new one to this iPhone's keys.
+            if let bound = try? await api().me().member, bound != member.id {
+                var k = secrets
+                k.session = nil
+                persist(nil, k)
+                throw Notice(message: "Sign in again to finish recovering. This iPhone keeps its keys.")
+            }
+        }
+    }
+
     // --- Signing out --------------------------------------------------------------
 
     private func wipe() {
@@ -475,7 +625,7 @@ final class Store {
                 let dir = try Directories.verify(entries, account: saved.account, pin: saved.pin)
                 // The last device stays: removing it would leave only the recovery key.
                 if dir.active(.device).count > 1 {
-                    try await api().append(Directories.revokeEntry(dir, signer: me.id, signKey: signKey, id: me.id, at: now()))
+                    try await api().append(Directories.revokeEntry(dir, signer: me.id, signKey: signKey, id: me.id, at: now()).json)
                 }
             } catch {}
         }

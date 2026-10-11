@@ -99,7 +99,7 @@ struct Api {
         return entries
     }
 
-    func append(_ entry: SignedEnvelope) async throws { _ = try await call("POST", "/directory", ["entry": entry.json]) }
+    func append(_ entry: JSON) async throws { _ = try await call("POST", "/directory", ["entry": entry]) }
 
     // --- Joining by code -------------------------------------------------------
 
