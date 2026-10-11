@@ -621,9 +621,7 @@ export async function hookQuestion(
             code = await wait(sub, { id: ids[i], json: true, "no-mark": true }, s);
             answer = lines[0];
           }
-          return code === 0 && answer
-            ? opencodeAnswer(JSON.parse(answer) as Answer, q)
-            : undefined;
+          return code === 0 && answer ? opencodeAnswer(JSON.parse(answer) as Answer, q) : undefined;
         } catch (e) {
           ids[i] = lines[0];
           failed.abort();
