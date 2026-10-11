@@ -142,7 +142,7 @@ final class Store {
             // What failed to store still holds for this run.
             if let newSecrets { secrets = newSecrets }
             if let newSaved { saved = newSaved }
-            notice = "\(error)"
+            notice = describe(error)
         }
     }
 

@@ -73,6 +73,7 @@ final class SavedTests: XCTestCase {
         XCTAssertEqual(vault.aside, [:])
         store.persist(Saved(server: "https://other.test"), Secrets())
         XCTAssertEqual(vault.secrets, Secrets(session: "sb_1", signSk: "key"))
+        XCTAssertTrue(store.notice?.hasPrefix("This iPhone’s saved state couldn’t be read") == true)
         var isFolder: ObjCBool = false
         XCTAssertTrue(FileManager.default.fileExists(atPath: file.path, isDirectory: &isFolder) && isFolder.boolValue)
     }
