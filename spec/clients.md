@@ -54,7 +54,8 @@
   search view.
 - **Answer buttons** (#138, #166): "Answer buttons on narrow screens", Always (default), When the agent
   waits, or Never, applies under 1100 px. More than two options, or a label over 18 characters,
-  stack. `answerIn` and typed-only questions have no buttons.
+  stack. An `answerIn` question gets its page's link and Done when its machine takes a Done
+  (#539, #1148); a typed-only question has no buttons.
 - **Typed answers** (#562): Enter sends, Shift+Enter starts a new line, on the web and with an
   Android hardware keyboard. An Enter that ends an input method's composition only commits it.
 - **The reply field** (#947) grows to 10 lines, then scrolls, on both clients. On the web it is one
