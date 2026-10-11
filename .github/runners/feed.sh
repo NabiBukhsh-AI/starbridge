@@ -70,5 +70,6 @@ gh api --paginate "repos/$REPO/actions/runners?per_page=100" \
   while read -r id name; do
     [[ $name =~ $pattern ]] || continue
     [[ " ${held[*]} " == *" $name "* ]] && continue
-    gh api -X DELETE "repos/$REPO/actions/runners/$id" && echo "$name: deleted"
+    # Fails when GitHub removed the runner meanwhile; the next round tries again otherwise.
+    if gh api -X DELETE "repos/$REPO/actions/runners/$id" >/dev/null; then echo "$name: deleted"; fi
   done
