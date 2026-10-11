@@ -435,7 +435,7 @@ request without the header, or with one the server cannot read, is served.
 | `GET /auth/app/signed-in?state=<challenge>` | device | `{signedIn}`: true once the app whose challenge this is traded its code for a session of the caller's account (#943); the server keeps each challenge's account 10 minutes, in memory |
 | `POST /auth/owner` | anyone | self-hosted: `{token}` against `OWNER_TOKEN`; sets the session and returns `{session}` |
 | `POST /auth/logout` | device | end the session |
-| `DELETE /account` | device, paired or not | delete the caller's account and everything the server holds for it: directory, members, sessions and revoked ones, machine tokens, items, push subscriptions, joins and pairings; 204. Its waits for answers, quotas, joins and pairing results end at once with 401, and a wait for a pairing request at the end of its wait, and the cookie is cleared. Today's usage events keep their counts under a random subject (#1104) |
+| `DELETE /account` | device, paired or not | delete the caller's account and everything the server holds for it: directory, members, sessions and revoked ones, machine tokens, items, push subscriptions, joins and pairings; 204. Its waits end at once: for answers, quotas and the account's joins with 401, for one join (`GET /joins/:id`) and a pairing result with 404, as the rows are gone; and a wait for a pairing request at the end of its wait, and the cookie is cleared. Today's usage events keep their counts under a random subject (#1104) |
 | `GET /auth/challenge` | device | `{nonce, expiresInSeconds}`: one nonce per session, single use, 5 minutes; asking again returns the outstanding one |
 | `POST /auth/bind` | device | `{member, sig}`: binds the session to that active device when `sig` checks against its signing key; 400 `no-challenge`, 401 `bad-signature`, 404 for no such active device, 409 `already-paired` when the session holds another device |
 | `GET /me` | device, machine | `{account, member, role}`; `member` is null until a device pairs |
@@ -592,7 +592,7 @@ token.
 |---|---|---|
 | `PUT /presence` | device, machine | `{present}`: whether the owner sits at this screen ("Held pushes") → 204 |
 | `GET /settings` | device | the account's settings, `{pushHold}`: seconds a held push waits after the owner left the last screen, 30 unless set; 0 holds nothing, -1 pushes as soon as they leave (#1060); above 60, no longer offered, reads as 60 |
-| `PUT /settings` | device | `{pushHold}`, -1 to 300 → the settings as stored |
+| `PUT /settings` | device | `{pushHold}`, -1 to 300, stored as sent → the settings as `GET` reads them, so above 60 as 60 |
 
 ### Device notifications
 
