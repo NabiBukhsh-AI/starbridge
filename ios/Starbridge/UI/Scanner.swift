@@ -1,3 +1,4 @@
+import AVFoundation
 import SwiftUI
 import VisionKit
 
@@ -5,7 +6,20 @@ import VisionKit
 struct QRScanner: UIViewControllerRepresentable {
     let onCode: (String) -> Void
 
-    static var available: Bool { DataScannerViewController.isSupported && DataScannerViewController.isAvailable }
+    /**
+     * Whether the scanner can open, asking for the camera the first time: VisionKit counts it
+     * unavailable until the owner allows the camera. Nil when it can, else why not.
+     */
+    static func whyNot() async -> String? {
+        guard DataScannerViewController.isSupported else { return "This iPhone can't scan QR codes. Compare digits instead." }
+        if AVCaptureDevice.authorizationStatus(for: .video) == .notDetermined {
+            _ = await AVCaptureDevice.requestAccess(for: .video)
+        }
+        if AVCaptureDevice.authorizationStatus(for: .video) != .authorized {
+            return "Starbridge can't use the camera. Allow it in Settings, or compare digits instead."
+        }
+        return DataScannerViewController.isAvailable ? nil : "The camera is busy or restricted. Compare digits instead."
+    }
 
     func makeUIViewController(context: Context) -> DataScannerViewController {
         let scanner = DataScannerViewController(

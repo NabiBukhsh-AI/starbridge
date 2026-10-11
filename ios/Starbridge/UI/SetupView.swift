@@ -241,7 +241,9 @@ private struct JoinStep: View {
             Tile(symbol: "qrcode")
         } bottom: {
             Button {
-                if QRScanner.available { scanning = true } else { store.notice = "This iPhone can't scan here. Compare digits instead." }
+                Task {
+                    if let why = await QRScanner.whyNot() { store.notice = why } else { scanning = true }
+                }
             } label: {
                 Label("Scan a QR code", systemImage: "qrcode.viewfinder")
             }
