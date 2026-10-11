@@ -223,7 +223,8 @@
     margin var(--t-state);
 }
 
-.question {
+/* A question or a prompt's description, broken anywhere when one word is wider than the pane. */
+.title {
   overflow-wrap: anywhere;
 }
 
