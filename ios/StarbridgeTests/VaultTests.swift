@@ -19,4 +19,14 @@ final class VaultTests: XCTestCase {
         try vault.save(Secrets())
         XCTAssertEqual(try vault.load(), Secrets())
     }
+
+    /** An update finds the item an earlier build kept outside the app group, and moves it in. */
+    func testMovesAnEarlierBuildsItemIntoTheGroup() throws {
+        let old = KeychainVault(service: vault.service, account: vault.account, group: nil)
+        try old.save(Secrets(session: "sb_old"))
+        XCTAssertEqual(try vault.load(), Secrets(session: "sb_old"))
+        // Moved, not copied: clearing the group's item leaves nothing behind.
+        try vault.save(Secrets())
+        XCTAssertEqual(try vault.load(), Secrets())
+    }
 }

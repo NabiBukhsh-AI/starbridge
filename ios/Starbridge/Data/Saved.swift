@@ -102,9 +102,15 @@ struct Disk {
     let url: URL
 
     static let standard: Disk = {
-        let dir = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: APP_GROUP)
-            ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return Disk(url: dir.appendingPathComponent("saved.json"))
+        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("saved.json")
+        guard let group = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: APP_GROUP)?.appendingPathComponent("saved.json") else {
+            return Disk(url: support)
+        }
+        // Builds before the app group kept the file in Application Support: it moves once.
+        if !FileManager.default.fileExists(atPath: group.path), FileManager.default.fileExists(atPath: support.path) {
+            try? FileManager.default.moveItem(at: support, to: group)
+        }
+        return Disk(url: group)
     }()
 
     func load() -> Saved? {

@@ -48,6 +48,33 @@ struct KeychainVault: Vault {
     }
 
     func load() throws -> Secrets {
+        let secrets = try read(query)
+        if secrets == Secrets(), group != nil { return try moveIntoGroup() }
+        return secrets
+    }
+
+    /**
+     * Builds before the app group kept the item in the app's own access group: moves it into
+     * the group once, so an update keeps its keys.
+     */
+    private func moveIntoGroup() throws -> Secrets {
+        var q: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
+        q[kSecReturnAttributes as String] = true
+        q[kSecMatchLimit as String] = kSecMatchLimitOne
+        var out: CFTypeRef?
+        guard SecItemCopyMatching(q as CFDictionary, &out) == errSecSuccess,
+              let old = (out as? [String: Any])?[kSecAttrAccessGroup as String] as? String, old != group else { return Secrets() }
+        var legacy = q
+        legacy.removeValue(forKey: kSecReturnAttributes as String)
+        legacy.removeValue(forKey: kSecMatchLimit as String)
+        legacy[kSecAttrAccessGroup as String] = old
+        let secrets = try read(legacy)
+        try save(secrets)
+        SecItemDelete(legacy as CFDictionary)
+        return secrets
+    }
+
+    private func read(_ query: [String: Any]) throws -> Secrets {
         var q = query
         q[kSecReturnData as String] = true
         q[kSecMatchLimit as String] = kSecMatchLimitOne

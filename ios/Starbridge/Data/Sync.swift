@@ -631,11 +631,15 @@ extension Store {
      * Signs the answer, bound to the prompt's id and input hash, and seals it to the machine that
      * asked. A deny is for this call only; a wider allow only for a scope the prompt offered.
      */
-    func answerPrompt(_ id: String, allow: Bool, scope: PermissionScope = .once, message: String? = nil) async {
+    /** True once the server took the answer; a failure shows as a notice. */
+    @discardableResult
+    func answerPrompt(_ id: String, allow: Bool, scope: PermissionScope = .once, message: String? = nil) async -> Bool {
         do {
             try await serial { try await self.sendPrompt(id, allow: allow, scope: scope, message: message) }
+            return true
         } catch {
             notice = describe(error)
+            return false
         }
     }
 

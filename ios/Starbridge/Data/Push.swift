@@ -87,25 +87,31 @@ extension Store {
         }
     }
 
-    /** Deny from a notification: for this call only, as from the inbox. */
+    /**
+     * Deny from a notification: for this call only, as from the inbox. The notification goes once
+     * the server took it; else it stays, saying why, so the owner can deny from the app.
+     */
     func denyFromNotification(_ id: String) async {
         do {
             try await serial { if self.prompt(id) == nil { try await self.fetch(id) } }
         } catch {}
-        await answerPrompt(id, allow: false)
-        await Self.removeDelivered(about: id)
+        if await answerPrompt(id, allow: false) {
+            await Self.removeDelivered(about: id)
+        } else {
+            let why = notice ?? "the server did not take it."
+            notice = nil
+            await replace(id, with: "Deny not sent: \(why)", kind: "permission", title: prompt(id).map(\.headline), source: prompt(id)?.body.source)
+        }
     }
 
-    /** The question's notification again, quiet, saying how its answer ended. */
-    private func replace(_ id: String, with note: String) async {
+    /** The item's notification again, quiet, saying how its answer ended. */
+    private func replace(_ id: String, with note: String, kind: String = "decision", title: String? = nil, source: Source? = nil) async {
         let content = UNMutableNotificationContent()
-        if let d = decision(id) {
-            content.title = d.body.question
-            content.subtitle = Notify.header(d.body.source)
-        }
+        if let title = title ?? decision(id)?.body.question { content.title = title }
+        if let source = source ?? decision(id)?.body.source { content.subtitle = Notify.header(source) }
         content.body = note
         content.interruptionLevel = .passive
-        content.userInfo = ["p": ["v": 1, "kind": "decision", "id": id]]
+        content.userInfo = ["p": ["v": 1, "kind": kind, "id": id]]
         await Self.removeDelivered(about: id)
         try? await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
     }
