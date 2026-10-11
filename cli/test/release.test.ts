@@ -405,8 +405,14 @@ describe.skipIf(!pwsh || !(hasMinisign || WINDOWS))("install.ps1", () => {
     // Windows' temp folder may come as a short 8.3 name; the script prints the long one. The
     // install folder goes on the PATH already, so the script leaves the user's alone.
     const bin = join(WINDOWS ? realpathSync.native(dir) : dir, "bin");
+    // A copy of process.env keeps Windows' `Path` spelling: drop it, or pwsh may read it unprepended.
     const env = WINDOWS
-      ? { ...process.env, PATH: `${bin};${process.env.PATH ?? ""}` }
+      ? {
+          ...Object.fromEntries(
+            Object.entries(process.env).filter(([k]) => k.toUpperCase() !== "PATH"),
+          ),
+          PATH: `${bin};${process.env.PATH ?? ""}`,
+        }
       : { PATH: process.env.PATH ?? "" };
     const minisign =
       opts.minisign ??
@@ -443,6 +449,8 @@ describe.skipIf(!pwsh || !(hasMinisign || WINDOWS))("install.ps1", () => {
     writeFileSync(join(dir, "bin", "starbridge.exe"), "old");
     const r = await installPs(release.url, release.pubkey);
     expect(r.out).toContain(`Installed starbridge 9.9.9 to ${r.bin}`);
+    // The install folder was on the PATH: the user's PATH stays as it was.
+    expect(r.out).not.toContain("to your PATH");
     expect(r.code).toBe(0);
     expect(readFileSync(r.bin, "utf8")).toContain("starbridge 9.9.9");
     expect(existsSync(`${r.bin}.old`)).toBe(false);
