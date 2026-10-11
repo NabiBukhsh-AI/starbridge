@@ -24,7 +24,7 @@ struct SetupView: View {
         switch store.phase {
         case .signedOut: SignInStep(store: store)
         case .noDevice(accountExists: true): JoinStep(store: store)
-        case .noDevice(accountExists: false): NoDeviceStep(store: store)
+        case .noDevice(accountExists: false): FirstDeviceStep(store: store)
         case .joining:
             WaitingStep(store: store, title: "Approve this iPhone", text: "Approve it on the device that shows the QR code.", digits: nil)
         case .joiningByDigits(nil, _):
@@ -33,6 +33,7 @@ struct SetupView: View {
             WaitingStep(store: store, title: "Compare digits", text: "Does your other device show the same digits?", digits: digits, onMatch: { store.confirmDigits() })
         case let .joiningByDigits(digits, true):
             WaitingStep(store: store, title: "Compare digits", text: "Approve on your other device.", digits: digits)
+        case let .recoveryKey(key): RecoveryKeyStep(store: store, key: key)
         case .ready: ReadyStep(store: store)
         }
     }
@@ -230,12 +231,21 @@ private struct SignInStep: View {
     }
 }
 
-/** The account has devices: this iPhone scans one's QR code, or compares digits with it. */
+/** The account has devices: this iPhone scans one's QR code, compares digits with it, or recovers. */
 private struct JoinStep: View {
     let store: Store
     @State private var scanning = false
+    @State private var recovering = false
 
     var body: some View {
+        if recovering {
+            RecoverStep(store: store) { recovering = false }
+        } else {
+            join
+        }
+    }
+
+    private var join: some View {
         Step {
             Title(text: "Add this iPhone")
             Tile(symbol: "qrcode")
@@ -250,7 +260,10 @@ private struct JoinStep: View {
             .buttonStyle(Primary(busy: store.busy))
             .disabled(store.busy)
             LinkButton(text: "Can't scan? Compare digits") { Task { await store.askDevices() } }
-            LinkButton(text: "Sign out") { Task { await store.signOut() } }
+            HStack(spacing: Tokens.Spacing.s6) {
+                LinkButton(text: "Use the recovery key") { recovering = true }
+                LinkButton(text: "Sign out") { Task { await store.signOut() } }
+            }
         }
         .sheet(isPresented: $scanning) {
             QRScanner { text in
@@ -262,20 +275,123 @@ private struct JoinStep: View {
     }
 }
 
-/** Signed in to an account with no device yet; the first one is set up on the web or Android. */
-private struct NoDeviceStep: View {
+/** An empty account: this iPhone creates its keys. */
+private struct FirstDeviceStep: View {
     let store: Store
 
     var body: some View {
         Step {
-            Title(text: "Set up your first device")
-            Lede(text: "This account has no devices yet. Set it up on the web or in the Android app, then add this iPhone from there.")
+            Title(text: "Set up your account")
+            Lede(text: "This iPhone creates your account's keys.")
+                .padding(.bottom, Tokens.Spacing.s6)
+            Tile(symbol: "key")
         } bottom: {
-            Button("Check again") { Task { await store.checkAccount() } }
+            Button("Create the keys") { Task { await store.setUpFirstDevice() } }
                 .buttonStyle(Primary(busy: store.busy))
                 .disabled(store.busy)
             LinkButton(text: "Sign out") { Task { await store.signOut() } }
         }
+    }
+}
+
+/** The recovery key, typed: it adds this iPhone and removes every other device and machine. */
+private struct RecoverStep: View {
+    let store: Store
+    let back: () -> Void
+    @State private var key = ""
+    @State private var shown = false
+
+    var body: some View {
+        let reading = RecoveryKeys.read(key, typing: true)
+        let complete = reading.problem == nil && reading.count == RecoveryKeyText.chars
+        Step {
+            Title(text: "Recovery key")
+            Lede(text: "Recovering removes every other device and machine from the account. Pair the ones you still have again from this iPhone afterwards.")
+            VStack(alignment: .leading, spacing: Tokens.Spacing.s1) {
+                Filled(label: "Your recovery key") {
+                    HStack {
+                        // Masked as a password, with the eye to check what was typed (#274).
+                        Group {
+                            if shown {
+                                TextField("Your recovery key", text: $key, prompt: Text("XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"))
+                            } else {
+                                SecureField("Your recovery key", text: $key, prompt: Text("XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"))
+                            }
+                        }
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                        .textContentType(.password)
+                        Button { shown.toggle() } label: { Image(systemName: shown ? "eye.slash" : "eye") }
+                            .frame(minWidth: Tokens.Sizes.tap, minHeight: Tokens.Sizes.tap)
+                            .accessibilityLabel(shown ? "Hide the key" : "Show the key")
+                    }
+                }
+                Text(RecoveryKeyText.problem(reading) ?? RecoveryKeyText.status(reading))
+                    .type(Tokens.Typography.caption)
+                    .foregroundStyle(reading.problem == nil ? Tokens.Colors.fg2.color : Tokens.Colors.bad.color)
+                    .padding(.horizontal, Tokens.Spacing.s4)
+            }
+            .padding(.horizontal, Tokens.Spacing.s4)
+            .padding(.top, Tokens.Spacing.s6)
+        } bottom: {
+            Button("Recover") { Task { await store.recover(key) } }
+                .buttonStyle(Primary(busy: store.busy))
+                .disabled(store.busy || !complete)
+            LinkButton(text: "Back", action: back)
+        }
+        .privacyCover()
+    }
+}
+
+/**
+ * The first device's recovery key, shown once: Continue posts the account's first entry (#370),
+ * which can take a moment, or fail and stay here.
+ */
+private struct RecoveryKeyStep: View {
+    let store: Store
+    let key: String
+    @State private var stored = false
+    @State private var copied = false
+
+    var body: some View {
+        Step {
+            Title(text: "Your recovery key")
+            Lede(text: "Keep this key in a password manager or on paper. If you lose every device, it adds a new one. This is the only time it is shown.")
+            VStack(spacing: Tokens.Spacing.s3) {
+                // Groups of four, never split across lines.
+                Text(key.split(separator: "-").joined(separator: " "))
+                    .font(.system(size: 22, design: .monospaced))
+                    .tracking(2)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .padding(Tokens.Spacing.s5)
+                    .background(RoundedRectangle(cornerRadius: Tokens.Radius.xl).fill(Tokens.Colors.surface.color))
+                    .accessibilityLabel(key.map(String.init).joined(separator: " "))
+                Button {
+                    RecoveryKeyText.copy(key)
+                    copied = true
+                } label: {
+                    Label("Copy", systemImage: "doc.on.doc")
+                }
+                .buttonStyle(Secondary())
+                if copied {
+                    Text("Copied. The clipboard clears itself in a minute.")
+                        .type(Tokens.Typography.small)
+                        .foregroundStyle(Tokens.Colors.fg2.color)
+                }
+                Toggle("I stored this key", isOn: $stored)
+                    .type(Tokens.Typography.body)
+                    .frame(minHeight: Tokens.Sizes.tap)
+            }
+            .padding(.horizontal, Tokens.Spacing.s4)
+            .padding(.top, Tokens.Spacing.s6)
+        } bottom: {
+            Button("Continue") { Task { await store.confirmRecoveryKey() } }
+                .buttonStyle(Primary(busy: store.busy))
+                .disabled(store.busy || !stored)
+            LinkButton(text: "Sign out") { Task { await store.signOut() } }
+        }
+        .privacyCover()
     }
 }
 
