@@ -94,6 +94,7 @@ export class AgentClient {
     signal?: AbortSignal,
   ): Promise<T> {
     const text = body === undefined ? undefined : JSON.stringify(body);
+    __t("call", method, path, timeoutMs);
     return new Promise<T>((resolve, reject) => {
       // Before any request exists: one destroyed before its error listener is attached emits
       // "socket hang up" with nobody listening, which crashes the process (#98).
@@ -145,6 +146,7 @@ export class AgentClient {
             raw += d;
           });
           res.on("end", () => {
+            __t("res end", path, res.statusCode);
             let json: unknown;
             try {
               json = raw ? JSON.parse(raw) : undefined;
@@ -165,13 +167,16 @@ export class AgentClient {
         },
       );
       const onAbort = () => {
+        __t("abort", path);
         req.destroy();
         reject(new Interrupted("interrupted"));
       };
       signal?.addEventListener("abort", onAbort, { once: true });
       req.on("close", () => signal?.removeEventListener("abort", onAbort));
+      req.on("timeout", () => __t("timeout", path));
       req.on("timeout", () => req.destroy(new Error(`agent: no answer within ${timeoutMs} ms`)));
       req.on("error", (e: NodeJS.ErrnoException) => {
+        __t("error", path, e.code, e.message);
         if (e.code && NOT_LISTENING.has(e.code))
           reject(new NoAgent(tooLong(this.socket) ?? `no agent on ${this.socket}`, e.code));
         else if (e.code && DROPPED.has(e.code))
@@ -213,3 +218,5 @@ export async function withAgent<T>(
     throw e;
   }
 }
+
+const __t = (...a: unknown[]) => console.error("TRACE1073", Math.round(performance.now()), ...a);

@@ -154,10 +154,12 @@ export async function hookPermission(
     );
     if (output !== undefined) ctx.out(JSON.stringify(output));
   } catch (e) {
+    __t("hook caught", (e as Error).name, (e as Error).message);
     ctx.err(`starbridge: permission prompt not sent: ${(e as Error).message}`);
   } finally {
     started?.stop();
     watch.stop();
+    __t("hook end");
   }
   return 0;
 }
@@ -818,3 +820,5 @@ async function hold(
     .join("\n\n");
   return { message, ack: async () => {} };
 }
+
+const __t = (...a: unknown[]) => console.error("TRACE1073", Math.round(performance.now()), ...a);

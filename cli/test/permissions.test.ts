@@ -287,6 +287,7 @@ for (const viaAgent of [true, false]) {
         await until(() => !server.stalls.includes(path));
         if (cancel === "sigterm") abort.abort();
         expect(await out).toBe(0);
+        __t("iteration", viaAgent, path, cancel, Date.now() - started);
         expect(ctx.lines).toEqual([]);
         expect(Date.now() - started).toBeLessThan(cancel === "deadline" ? 4_000 : 1_500);
       }
@@ -900,3 +901,5 @@ test("a picker card whose hook died unsettled stops holding the open mark after 
   expect(promptsMark(st, Date.parse(asked.askedAt) + 1000)).toBe("open");
   expect(promptsMark(st, Date.parse(asked.askedAt) + 86_400_001)).toBe("");
 });
+
+const __t = (...a: unknown[]) => console.error("TRACE1073", Math.round(performance.now()), ...a);
