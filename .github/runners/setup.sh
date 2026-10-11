@@ -49,9 +49,10 @@ if [ ! -f "$tarball" ]; then
 fi
 for n in $(seq 1 "$slots"); do
   dir=/home/runner/slots/$n
-  if [ ! -x "$dir/run.sh" ]; then
+  if [ "$(cat "$dir/.setup-version" 2>/dev/null)" != "$RUNNER_VERSION" ]; then
     install -d -o runner -g runner "$dir"
     sudo -u runner tar xzf "$tarball" -C "$dir"
+    echo "$RUNNER_VERSION" | sudo -u runner tee "$dir/.setup-version" >/dev/null
   fi
 done
 
