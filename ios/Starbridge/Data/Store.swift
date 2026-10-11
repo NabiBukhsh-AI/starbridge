@@ -369,7 +369,7 @@ final class Store {
             do {
                 try await api().postPairing(request, claimHash: Pairings.claimHash(claim))
             } catch let e as ApiError where e.error == "taken" || e.status == 409 {
-                throw Notice(message: "Another device already used this code. Show a new one.")
+                throw Notice(message: "That QR code is another device asking to join. On a device you already use, open Add a device and show a QR code for this iPhone.")
             }
             var s = saved
             s.me = member
@@ -681,6 +681,18 @@ final class Store {
         withheldWhy = nil
         persist(Saved(server: saved.server), Secrets())
         try? FileManager.default.removeItem(at: SavedImage.directory)
+    }
+
+    /**
+     * Deletes the account on the server, with every device, machine, item and push target, then
+     * forgets it here as Sign out does. A failed delete shows why and forgets nothing (#1104).
+     */
+    func deleteAccount() async {
+        await run { [self] in
+            joinTask?.cancel()
+            try await api().deleteAccount()
+            wipe()
+        }
     }
 
     /** Leaves the account: removes this iPhone from the devices unless it is the last one. */

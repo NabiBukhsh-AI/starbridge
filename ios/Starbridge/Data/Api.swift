@@ -104,6 +104,9 @@ struct Api {
 
     func logout() async throws { _ = try await call("POST", "/auth/logout") }
 
+    /** Deletes the caller's account and everything the server holds for it (#1104). */
+    func deleteAccount() async throws { _ = try await call("DELETE", "/account") }
+
     // --- Directory -------------------------------------------------------------
 
     func directory(from: Int) async throws -> [JSON] {

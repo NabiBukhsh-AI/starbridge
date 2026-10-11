@@ -21,6 +21,7 @@ struct InboxView: View {
     @State private var snoozedOpen = false
     @State private var historyOpen = false
     @State private var query = ""
+    @State private var deleting = false
     /** One feed, or grouped by machine or by waiting, remembered on this iPhone. */
     @AppStorage("grouping") private var grouping = Grouping.none
     /** Answer buttons on cards: Always, When the agent waits, or Never (#138). */
@@ -86,6 +87,7 @@ struct InboxView: View {
                         .pickerStyle(.menu)
                         Section("This iPhone: \(store.me?.name ?? "")") {
                             Button("Sign out", role: .destructive) { Task { await store.signOut() } }
+                            Button("Delete account", role: .destructive) { deleting = true }
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle").accessibilityLabel("Options")
@@ -93,6 +95,7 @@ struct InboxView: View {
                 }
             }
         }
+        .deleteAccount(store: store, isPresented: $deleting, text: DeleteAccount.paired)
         .sheet(item: $opened) { which in
             Group {
                 switch which {

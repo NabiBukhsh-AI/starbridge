@@ -82,5 +82,19 @@ final class FirstDeviceTests: XCTestCase {
         XCTAssertEqual(after.members[firstId]?.active, false)
         let secondBound = try await Api(server: server, session: secondVault.secrets.session).me().member
         XCTAssertEqual(secondBound, secondId)
+
+        // --- Delete account: the server forgets it, and so does the iPhone (#1141) ---
+        let deleted = try XCTUnwrap(secondVault.secrets.session)
+        await second.deleteAccount()
+        XCTAssertNil(second.notice)
+        XCTAssertEqual(second.phase, .signedOut)
+        XCTAssertEqual(secondVault.secrets, Secrets())
+        // Its sessions went with it. (No new owner sign-in: the suite stays under 10 a minute.)
+        do {
+            _ = try await Api(server: server, session: deleted).me()
+            XCTFail("the deleted account's session still works")
+        } catch let e as ApiError {
+            XCTAssertEqual(e.status, 401)
+        }
     }
 }
