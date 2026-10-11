@@ -366,7 +366,6 @@ private struct RecoveryKeyStep: View {
                     .frame(maxWidth: .infinity)
                     .padding(Tokens.Spacing.s5)
                     .background(RoundedRectangle(cornerRadius: Tokens.Radius.xl).fill(Tokens.Colors.surface.color))
-                    .textSelection(.enabled)
                     .accessibilityLabel(key.map(String.init).joined(separator: " "))
                 Button {
                     RecoveryKeyText.copy(key)

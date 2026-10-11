@@ -74,23 +74,28 @@ final class Store {
 
     private func api(_ session: String? = nil) -> Api { Api(server: saved.server, session: session ?? secrets.session, http: http) }
 
-    private func persist(_ newSaved: Saved? = nil, _ newSecrets: Secrets? = nil) {
+    /** Stores the state, or throws: for keys and steps that must not go on without being stored. */
+    private func save(_ newSaved: Saved? = nil, _ newSecrets: Secrets? = nil) throws {
         // The secrets first: a saved state naming keys the vault lacks could not resume.
         if let newSecrets {
-            do {
-                try vault.save(newSecrets)
-            } catch {
-                notice = "\(error)"
-            }
+            try vault.save(newSecrets)
             secrets = newSecrets
         }
         if let newSaved {
-            do {
-                try disk.save(newSaved)
-            } catch {
-                notice = "\(error)"
-            }
+            try disk.save(newSaved)
             saved = newSaved
+        }
+    }
+
+    /** Stores the state; a failure shows as a notice, and the app goes on with it in memory. */
+    private func persist(_ newSaved: Saved? = nil, _ newSecrets: Secrets? = nil) {
+        do {
+            try save(newSaved, newSecrets)
+        } catch {
+            // What failed to store still holds for this run.
+            if let newSecrets { secrets = newSecrets }
+            if let newSaved { saved = newSaved }
+            notice = "\(error)"
         }
     }
 
@@ -267,9 +272,9 @@ final class Store {
 
     /**
      * New keys for this iPhone, in the vault before the server hears of them. They end any
-     * recovery attempt that made the ones they replace.
+     * recovery attempt that made the ones they replace. Throws when the vault cannot keep them.
      */
-    private func newMember() -> SavedMember {
+    private func newMember() throws -> SavedMember {
         let box = Sodium.boxKeyPair()
         let sign = Sodium.signKeyPair()
         let name = String(deviceName.prefix(100))
@@ -281,7 +286,7 @@ final class Store {
         k.signSk = toB64(sign.secretKey.bytes)
         var s = saved
         s.recovering = nil
-        persist(s, k)
+        try save(s, k)
         return member
     }
 
@@ -314,7 +319,7 @@ final class Store {
             } catch {
                 throw Notice(message: "That QR code is not a Starbridge pairing code.")
             }
-            let member = newMember()
+            let member = try newMember()
             let claim = Pairings.newClaimSecret()
             let request = try Pairings.request(PairingRequestBody(rendezvous: code.rendezvous, role: .device, id: member.id, name: member.name, boxPk: member.boxPk, signPk: member.signPk, at: now()), code: code)
             do {
@@ -361,7 +366,7 @@ final class Store {
     func askDevices() async {
         await run { [self] in
             guard let account = saved.account else { return }
-            let member = newMember()
+            let member = try newMember()
             let eph = Joins.newKeyPair()
             let id = Joins.newJoinId()
             let request = try Joins.request(JoinRequestBody(join: id, account: account, id: member.id, name: member.name, boxPk: member.boxPk, signPk: member.signPk, at: now()))
@@ -372,7 +377,7 @@ final class Store {
             var k = secrets
             k.joinPk = toB64(eph.publicKey)
             k.joinSk = toB64(eph.secretKey.bytes)
-            persist(s, k)
+            try save(s, k)
             do {
                 _ = try await api().postJoin(request: request, commitment: Joins.commitment(joinerKey: eph.publicKey, request: request))
             } catch {
@@ -490,7 +495,7 @@ final class Store {
                 persist(s)
                 throw Notice(message: "This account already has devices. Join it instead.")
             }
-            let member = newMember()
+            let member = try newMember()
             let seed = RecoveryKeys.generateSeed()
             let entry = Directories.genesisEntry(account: account, device: member.member, signKey: try signKey, recovery: RecoveryKeys.keyPair(seed), at: now())
             var s = saved
@@ -499,7 +504,7 @@ final class Store {
             s.pendingGenesis = entry.json.text
             var k = secrets
             k.recoverySeed = toB64(seed.bytes)
-            persist(s, k)
+            try save(s, k)
         }
     }
 
@@ -566,18 +571,22 @@ final class Store {
             let dir = try Directories.verify(entries, account: saved.account, pin: saved.pin, recoveryPk: toB64(recovery.publicKey))
             // The keys made for an earlier attempt stay until the chain holds them: when its reply
             // was lost, the server bound the session to that member, and a retry finds it there
-            // (#274). Only while those keys are still this iPhone's, and the member was not revoked since.
-            let earlier = saved.recovering.flatMap { r in
-                r.signPk == secrets.signPk && r.boxPk == secrets.boxPk && dir.members[r.id]?.active != false ? r : nil
+            // (#274). Only while those keys are still this iPhone's, and the chain either lacks the
+            // member or added it with the recovery key: a server could serve a fork where a device
+            // it holds added the same member, leaving the other members in.
+            let earlier = saved.recovering.flatMap { r -> SavedMember? in
+                guard r.signPk == secrets.signPk, r.boxPk == secrets.boxPk else { return nil }
+                guard let entry = dir.members[r.id] else { return r }
+                return entry.active && Self.recovered(r, in: entries) ? r : nil
             }
             let member: SavedMember
             if let earlier {
                 member = earlier
             } else {
-                member = newMember()
+                member = try newMember()
                 var s = saved
                 s.recovering = member
-                persist(s)
+                try save(s)
             }
             var all = entries
             if dir.members[member.id]?.active != true {
@@ -601,6 +610,15 @@ final class Store {
                 persist(nil, k)
                 throw Notice(message: "Sign in again to finish recovering. This iPhone keeps its keys.")
             }
+        }
+    }
+
+    /** Whether a `recover` entry of `entries`, which only the recovery key signs, added `member`. */
+    private static func recovered(_ member: SavedMember, in entries: [JSON]) -> Bool {
+        entries.contains { e in
+            guard let env = try? SignedEnvelope(json: e), let body = try? JSON.parse(env.body),
+                  case let .recover(m) = (try? DirectoryEntry(json: body))?.op else { return false }
+            return m == member.member
         }
     }
 
