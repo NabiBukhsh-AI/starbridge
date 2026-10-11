@@ -228,6 +228,13 @@ test("subscriptions to private or plain-HTTP addresses are refused unless allowe
   // The owner's own hosts, listed, over HTTP too; "any" is the old ALLOW_PRIVATE_PUSH_ENDPOINTS=1.
   const lan = privatePushHosts(" NTFY.lan. , 10.0.0.5,[fd00::1]");
   expect(lan).toEqual(["ntfy.lan", "10.0.0.5", "fd00::1"]);
+  // Written as the URL parser would not write it, a host still matches.
+  expect(privatePushHosts("fd00:0:0:0:0:0:0:1,192.168.001.020")).toEqual([
+    "fd00::1",
+    "192.168.1.16",
+  ]);
+  for (const bad of ["ntfy.lan:8080", "a b", "http://ntfy.lan", "ntfy.lan/up"])
+    expect(() => privatePushHosts(bad)).toThrow("not a host name or address");
   expect(checkTarget(wp("http://10.0.0.5:8080/up"), lan)).toBeUndefined();
   expect(checkTarget(wp("http://ntfy.lan/up"), lan)).toBeUndefined();
   expect(checkTarget(wp("https://[fd00::1]/up"), lan)).toBeUndefined();

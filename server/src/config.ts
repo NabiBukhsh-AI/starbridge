@@ -106,8 +106,21 @@ export function privatePushHosts(v: string | undefined): PrivatePushHosts {
   if (flag(v)) return "any";
   return (v ?? "")
     .split(",")
-    .map((h) => pushHostKey(h.trim()))
-    .filter((h) => h && h !== "0" && h !== "false");
+    .map((h) => h.trim())
+    .filter((h) => h && h !== "0" && h !== "false")
+    .map(canonicalHost);
+}
+
+/** `host` as a URL names it, so `fd00:0::1` or `010.0.0.1` matches the endpoints that use it. */
+function canonicalHost(host: string): string {
+  const bare = host.replace(/^\[|\]$/g, "");
+  let url: URL | undefined;
+  try {
+    url = new URL(`http://${bare.includes(":") ? `[${bare}]` : bare}/`);
+  } catch {}
+  if (!url || url.port || url.username || `${url.pathname}${url.search}${url.hash}` !== "/")
+    throw new Error(`ALLOW_PRIVATE_PUSH_ENDPOINTS: not a host name or address: ${host}`);
+  return pushHostKey(url.hostname);
 }
 
 function flag(v: string | undefined): boolean {
