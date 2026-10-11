@@ -1,7 +1,7 @@
 #!/bin/bash
-# Keeps one single-use runner registration (a JIT config) waiting in every slot of the CI boxes,
-# and deletes the boxes' offline registrations that no slot holds. Runs where `gh` is logged in as
-# the repository's owner, from a user timer every 15 s; the boxes never hold a GitHub credential.
+# Gives every empty slot of the CI boxes a single-use runner registration (a JIT config), and
+# deletes the boxes' offline registrations that no slot holds. Runs where `gh` is logged in as the
+# repository's owner, from a user timer every 15 s; the boxes never hold a GitHub credential.
 # A JIT config registers one runner, with labels GitHub fixes when it is made, for one job.
 #   feed.sh            one round
 #   feed.sh --install  copies itself to ~/.local/lib/starbridge-runners and starts the timer
@@ -43,7 +43,9 @@ for box in "${BOXES[@]}"; do
     # The box's word is checked: a pull request's job could take it over.
     [[ $n =~ ^[0-9]+$ ]] || continue
     held+=("$next" "$current")
-    [ "$next" = - ] || continue
+    # Only a slot with no runner at all: a registration made ahead of time would show as an
+    # offline runner until its slot took it.
+    [ "$next" = - ] && [ "$current" = - ] || continue
     name=$prefix-$n-$(date +%s)
     args=(-f "name=$name" -F runner_group_id=1 -f work_folder=_work)
     IFS=, read -ra list <<<"$labels"

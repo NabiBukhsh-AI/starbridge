@@ -52,7 +52,7 @@ project or image tag.
   fixes when it is made. The runner takes one job, then GitHub removes it.
 - The boxes hold no GitHub credential. `feed.sh` runs every 15 s from a user timer on the machine
   where `gh` is logged in as the repository's owner. It makes a registration for every runner
-  slot that has none waiting, hands it over SSH, and deletes leftover offline registrations.
+  slot that has none, hands it over SSH, and deletes offline registrations no slot holds.
 - Before each job, `slot.sh` deletes everything the last one left except the tool cache
   (`_work/_tool`: Node, Bun, pnpm's store and Firefox), and gives the job its own home and temp
   folder. It drops the tool cache too when the disk is 80% full.
@@ -89,8 +89,8 @@ remove its offline registrations in the repository's runner settings or with
 gh api repos/T0mSIlver/starbridge/actions/runners --jq '.runners[] | [.name, .status, .busy] | @tsv'
 ```
 
-Each slot shows two registrations: the runner waiting for a job (online) and the next one,
-queued (offline). On the box:
+Each slot shows one runner, online. A slot gets its next registration within 15 s of a job's
+end, and an offline runner of these boxes is deleted at the feeder's next round. On the box:
 
 ```bash
 ssh sb-hp 'sudo /usr/local/lib/gh-runner/queue.sh status; systemctl status "gh-runner@*" --no-pager'
