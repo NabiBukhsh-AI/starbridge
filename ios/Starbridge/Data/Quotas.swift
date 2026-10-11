@@ -70,6 +70,9 @@ struct QuotaFailure: Equatable {
     let provider: String
     let error: String
     let machine: String?
+
+    /** Two machines can fail the same provider. */
+    var key: String { provider + "/" + (machine ?? "") }
 }
 
 /**

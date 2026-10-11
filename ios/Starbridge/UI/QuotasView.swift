@@ -40,7 +40,7 @@ struct QuotasView: View {
                             ProviderCard(provider: g[0].provider, machine: g[0].machine, error: g[0].error, takenAt: g[0].takenAt, windows: g, now: now, settings: settings)
                         }
                         // After the windows: a provider with none to show says only why.
-                        ForEach(failed, id: \.provider) { f in
+                        ForEach(failed, id: \.key) { f in
                             ProviderCard(provider: f.provider, machine: f.machine, error: f.error, takenAt: nil, windows: [], now: now, settings: settings)
                         }
                     }
