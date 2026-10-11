@@ -224,9 +224,13 @@ jobs:
         env:
           pnpm_config_store_dir: ${{ runner.tool_cache }}/pnpm-store
       # The PR pool has Firefox's system libraries already; only GitHub's runners install them.
+      # Firefox goes in each runner's own tool cache: the PR pool's runners on one host share a home, and
+      # three parts installing into one directory at once could break each other's copy.
       - if: steps.scope.outputs.run == 'true'
         run: pnpm --filter @starbridge/web exec playwright install ${{ runner.environment == 'github-hosted' && '--with-deps' || '' }} firefox
         timeout-minutes: 5
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.tool_cache }}/ms-playwright
       # A part takes up to ~4 min, the snooze's 2-minute wait for its time included. At 7 the
       # watchdog prints what is still running and stops it.
       - if: steps.scope.outputs.run == 'true'
@@ -235,6 +239,7 @@ jobs:
         env:
           TMPDIR: ${{ runner.temp }}
           E2E_SHARD: ${{ matrix.shard }}
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.tool_cache }}/ms-playwright
       # What a later merge of the same tree looks up (the tested step above). It holds the commit
       # that passed; overwrite, since a re-run attempt uploads it again.
       - id: tree
