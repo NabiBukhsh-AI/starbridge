@@ -1,6 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { timingSafeEqual } from "node:crypto";
-import { CLIENT_HEADER, parseClientHeader, toB64 } from "@starbridge/protocol";
+import { CLIENT_HEADER, type ClientName, parseClientHeader, toB64 } from "@starbridge/protocol";
 import type { Context, MiddlewareHandler } from "hono";
 import { getCookie } from "hono/cookie";
 import { HTTPException } from "hono/http-exception";
@@ -17,9 +17,10 @@ export type Caller =
       session: string;
       /**
        * The web page signs in with the cookie, as does the desktop app's page, which names itself
-       * in `starbridge-client`; the Android app sends a bearer token.
+       * in `starbridge-client`; the Android app sends a bearer token, as does the iPhone app,
+       * which names itself too.
        */
-      client: "web" | "desktop" | "android";
+      client: "web" | "desktop" | "android" | "ios";
     }
   | { role: "machine"; account: string; member: string };
 
@@ -73,8 +74,8 @@ function bearer(c: Context): string | undefined {
   return h?.startsWith("Bearer ") ? h.slice(7).trim() : undefined;
 }
 
-function desktopPage(c: Context): boolean {
-  return parseClientHeader(c.req.header(CLIENT_HEADER))?.name === "desktop";
+function clientName(c: Context): ClientName | undefined {
+  return parseClientHeader(c.req.header(CLIENT_HEADER))?.name;
 }
 
 /** Reads the caller from the bearer token or the session cookie, if any. */
@@ -99,7 +100,13 @@ export function identify(c: Context<Env>): Caller | undefined {
     account: s.account_id,
     member: s.member_id,
     session: hash,
-    client: sent ? "android" : desktopPage(c) ? "desktop" : "web",
+    client: sent
+      ? clientName(c) === "ios"
+        ? "ios"
+        : "android"
+      : clientName(c) === "desktop"
+        ? "desktop"
+        : "web",
   };
 }
 

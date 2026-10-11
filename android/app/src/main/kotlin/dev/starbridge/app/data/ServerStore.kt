@@ -748,8 +748,13 @@ class ServerStore(
         val dir = directories.verify(entries, saved.account, saved.pin, recoveryPk = toB64(recovery.public))
         // The keys made for an earlier attempt stay until the chain holds them: when its reply was
         // lost, the server has bound the session to that member, and a retry finds it there (#274).
-        // Only while those keys are still this phone's, and the member was not revoked since.
-        val earlier = saved.recovering?.takeIf { it.signPk == secrets.signPk && it.boxPk == secrets.boxPk && dir.members[it.id]?.active != false }
+        // Only while those keys are still this phone's, and the chain either lacks the member or a
+        // `recover` entry added it: a server could serve a fork where a device it holds added the
+        // same member, leaving the other members in (#1132).
+        val earlier = saved.recovering?.takeIf { r ->
+            r.signPk == secrets.signPk && r.boxPk == secrets.boxPk &&
+                dir.members[r.id].let { it == null || (it.active && recovered(r, entries)) }
+        }
         val member = earlier ?: newMember().also { persist(saved.copy(recovering = it)) }
         val all = if (dir.members[member.id]?.active == true) {
             entries
@@ -771,6 +776,14 @@ class ServerStore(
             return@run
         }
         sync()
+    }
+
+    /** Whether a `recover` entry of [entries], which only the recovery key signs, added [member]. */
+    private fun recovered(member: DirectoryMember, entries: List<JsonElement>) = entries.any { raw ->
+        runCatching {
+            val env = ProtocolJson.decodeFromJsonElement(SignedEnvelope.serializer(), raw)
+            ProtocolJson.decodeFromString(DirectoryEntry.serializer(), env.body).let { it.op == "recover" && it.member == member }
+        }.getOrDefault(false)
     }
 
     // --- Syncing -----------------------------------------------------------------

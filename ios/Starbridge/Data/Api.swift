@@ -30,6 +30,9 @@ struct Api {
     let session: String?
     var http: URLSession = .shared
 
+    /** This release, as the server counts it and checks it against its minimum (PROTOCOL.md, "HTTP API"). */
+    static let client = "ios/" + (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0")
+
     private func call(_ method: String, _ path: String, _ body: JSON? = nil, headers: [String: String] = [:], wait: Int? = nil) async throws -> (Int, JSON?) {
         guard let url = URL(string: server + "/v1" + path) else { throw ApiError(status: 0, error: "bad-server", detail: server) }
         var request = URLRequest(url: url)
@@ -37,6 +40,7 @@ struct Api {
         // A long-poll holds up to `wait` seconds before it answers.
         request.timeoutInterval = TimeInterval((wait ?? 0) + 30)
         if let session { request.setValue("Bearer \(session)", forHTTPHeaderField: "Authorization") }
+        request.setValue(Api.client, forHTTPHeaderField: "starbridge-client")
         for (k, v) in headers { request.setValue(v, forHTTPHeaderField: k) }
         if let body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -95,7 +99,7 @@ struct Api {
         return entries
     }
 
-    func append(_ entry: SignedEnvelope) async throws { _ = try await call("POST", "/directory", ["entry": entry.json]) }
+    func append(_ entry: JSON) async throws { _ = try await call("POST", "/directory", ["entry": entry]) }
 
     // --- Joining by code -------------------------------------------------------
 

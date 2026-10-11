@@ -15,6 +15,8 @@ struct Secrets: Codable, Equatable {
     /** The ephemeral key pair of a join by digits. */
     var joinPk: String?
     var joinSk: String?
+    /** The recovery key's seed, from the first device's setup until the owner confirms they stored it. */
+    var recoverySeed: String?
 }
 
 /** Stores [Secrets] somewhere only this app reads. */

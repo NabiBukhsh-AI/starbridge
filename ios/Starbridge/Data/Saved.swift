@@ -35,6 +35,13 @@ struct Saved: Codable, Equatable {
     /** The pairing code of a join by a scanned QR code. */
     var joining: String?
     var digitJoin: DigitJoin?
+    /**
+     * The account's first entry, signed and kept until the owner confirms the recovery key, when
+     * it goes to the server (#370). A lost reply is retried with the same entry.
+     */
+    var pendingGenesis: String?
+    /** While recovering: the member whose keys this iPhone made, until the chain holds it. */
+    var recovering: SavedMember?
 
     init(server: String) { self.server = server }
 

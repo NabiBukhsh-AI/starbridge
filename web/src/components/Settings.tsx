@@ -625,7 +625,8 @@ const NOTIFY_LABELS: Record<NotifyState, string> = {
 function deviceIcon(role: string, client: string | undefined): IconName {
   if (role === "machine") return "server";
   return (
-    ({ android: "phone", web: "globe", desktop: "laptop" } as const)[client ?? ""] ?? "devices"
+    ({ android: "phone", ios: "phone", web: "globe", desktop: "laptop" } as const)[client ?? ""] ??
+    "devices"
   );
 }
 

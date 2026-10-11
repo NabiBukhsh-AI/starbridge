@@ -1,13 +1,17 @@
 # Starbridge for iPhone
 
 The native iPhone app: SwiftUI on [`StarbridgeProtocol`](StarbridgeProtocol), the Swift port of
-`packages/protocol`. So far it signs in and joins the account; the inbox comes next (the plan is
+`packages/protocol`. So far it signs in, sets up an empty account's first device, joins an account
+that has one, and recovers one with the recovery key; the inbox comes next (the plan is
 in the planning repo's `research/ios-app.md`).
 
 - **Sign-in** goes through the browser with PKCE, as on Android (PROTOCOL.md, "Auth"):
   `ASWebAuthenticationSession` opens `/v1/auth/github?app=1&challenge=…` and ends on
   `starbridge://auth`, where the app trades GitHub's code and its verifier for the session.
   Self-hosted servers also take the owner token.
+- **The first device** follows Android (#370): the app keeps the signed first entry and shows the
+  recovery key once; the server gets the entry when the owner says they stored the key.
+  **Recovery** with the key adds this iPhone and revokes every other member.
 - **Joining** follows Android: scan the QR code that a device already in the account shows, or
   compare digits with it (PROTOCOL.md, "Joining by digits").
 - **Keys** and the session are one keychain item, readable after the first unlock and never
@@ -28,8 +32,9 @@ xcodegen generate
 xcodebuild -project Starbridge.xcodeproj -scheme Starbridge -destination "platform=iOS Simulator,name=iPhone 16" test
 ```
 
-`JoinTests` joins an account on a real server, playing the device that approves. It runs when the
-test process gets a self-hosted server with no device yet, started from the repository root with
+`JoinTests` joins an account on a real server, playing the device that approves, and
+`FirstDeviceTests` sets up the first device, recovers on a second iPhone, then deletes the account.
+They run when the test process gets a self-hosted server with no device yet, started from the repository root with
 `PORT=18731 DB_PATH=/tmp/sb.db OWNER_TOKEN=test bun run server/src/main.ts`:
 
 ```bash
