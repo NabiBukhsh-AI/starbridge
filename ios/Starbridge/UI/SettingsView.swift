@@ -15,9 +15,9 @@ struct MainTabs: View {
         let needYou = store.openDecisions.count
         TabView(selection: $tab) {
             InboxView(store: store)
-                .tabItem { Label("Inbox", systemImage: "tray") }
+                .tabItem { Label("Inbox", systemImage: "tray").accessibilityValue(needYou > 0 ? "\(needYou) need you" : "") }
+                // Hidden at 0.
                 .badge(needYou)
-                .accessibilityValue(needYou > 0 ? "\(needYou) need you" : "")
                 .tag(Tab.inbox)
             if store.quotasHeld || tab == .quotas {
                 QuotasView(store: store)
