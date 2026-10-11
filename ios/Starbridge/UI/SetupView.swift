@@ -276,7 +276,7 @@ extension JoinStep {
         LinkButton(text: "Use the recovery key") { recovering = true }
         LinkButton(text: "Sign out") { Task { await store.signOut() } }
         // The way out without a device or the recovery key (#1117).
-        LinkButton(text: "Delete account") { deleting = true }
+        LinkButton(text: "Delete account") { deleting = true }.disabled(store.busy)
     }
 }
 
@@ -346,7 +346,8 @@ private struct RecoverStep: View {
                 .disabled(store.busy || !complete)
             HStack(spacing: Tokens.Spacing.s6) {
                 LinkButton(text: "Back", action: back)
-                LinkButton(text: "Delete account", action: delete)
+                // A delete confirmed while Recover runs would do nothing.
+                LinkButton(text: "Delete account", action: delete).disabled(store.busy)
             }
         }
         .privacyCover()
