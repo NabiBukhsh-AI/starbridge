@@ -550,6 +550,7 @@ private struct SwipeToSnooze<Content: View>: View {
     @State private var width: CGFloat = 0
     /** The drag's direction, settled by its first move: only a sideways one moves the card. */
     @State private var sideways: Bool?
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         let armed = width > 0 && offset >= width * swipeArms
@@ -587,6 +588,11 @@ private struct SwipeToSnooze<Content: View>: View {
             // Ticks crossing 40%, and again backing under it, but not as the card springs back after a snooze.
             .sensoryFeedback(trigger: armed) { _, now in now || sideways != nil ? .impact(weight: .light) : nil }
             .accessibilityAction(named: "Snooze", onSwipe)
+            // A drag cut short, by a call or the app leaving, never ends: the card goes back.
+            .onChange(of: scenePhase) {
+                sideways = nil
+                offset = 0
+            }
     }
 }
 
@@ -597,17 +603,22 @@ private struct SnoozeSheet: View {
     let close: () -> Void
 
     var body: some View {
+        let open = store.decision(id)?.isOpen == true
         ScrollView {
             VStack(alignment: .leading, spacing: Tokens.Spacing.s4) {
-                if let d = store.decision(id) {
+                if let d = store.decision(id), open {
                     Text(d.body.question).type(Tokens.Typography.subtitle)
                     SnoozeControls(store: store, id: id, until: nil, open: true, done: close)
+                } else {
+                    Text("This question is gone.").type(Tokens.Typography.body)
                 }
             }
             .padding(Tokens.Spacing.s5)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .background(Tokens.Colors.bg.color.ignoresSafeArea())
+        // Answered meanwhile, on this iPhone or another: nothing left to put off.
+        .onChange(of: open) { if !open { close() } }
     }
 }
 
