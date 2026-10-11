@@ -377,7 +377,7 @@ test("the agent refuses bad requests with the CLI's own messages", async () => {
   expect(await server.opened("decision")).toEqual([]);
 });
 
-// Windows uploads no quotas: CodexBar has no build there (SPEC.md, Platforms).
+// Windows uploads no quotas: CodexBar has no build there (spec/product.md, "Platforms").
 test.skipIf(WINDOWS)("the agent uploads quotas on its timer", async () => {
   const { agent } = await machine({ providers: ["claude", "codex"], interval: "1s" });
   await until(async () => (await server.opened("quota")).length >= 1, 10_000);
@@ -397,7 +397,7 @@ async function asDevice(token: string, method: string, path: string) {
   return (await r.json()) as { items: unknown[]; behind?: number };
 }
 
-// Windows uploads no quotas: CodexBar has no build there (SPEC.md, Platforms).
+// Windows uploads no quotas: CodexBar has no build there (spec/product.md, "Platforms").
 test.skipIf(WINDOWS)(
   "the agent posts a snapshot as soon as a device joins, and when one asks",
   async () => {

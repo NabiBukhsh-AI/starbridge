@@ -57,7 +57,7 @@ test("bar: used or remaining, with ticks and the marker on the same scale", () =
   });
 });
 
-// The same cases as Android's QuotaSettingsTest.arrange* (SPEC.md, "Quota order"). Wednesday noon.
+// The same cases as Android's QuotaSettingsTest.arrange* (spec/items.md, "Quota order"). Wednesday noon.
 const now = new Date(2026, 9, 7, 12);
 const win = (
   provider: string,

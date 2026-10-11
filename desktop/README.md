@@ -2,7 +2,7 @@
 
 The macOS app: the server's web page in a window, an amber light in the menu bar while something
 needs you, and a notification per question that you answer with its buttons or a typed reply. The
-page stays the device, as in a browser; the app adds what a browser cannot. SPEC.md, "Desktop", has the rules.
+page stays the device, as in a browser; the app adds what a browser cannot. spec/desktop.md has the rules.
 
 ## Develop
 
@@ -105,7 +105,7 @@ can use:
 
 - the `desktop` workflow's `signed build` job, on `main` or run by hand, once the repository
   variable `DESKTOP_SIGNING` is `true`: a DMG to try;
-- the release, once `DESKTOP_RELEASE` is `true` (SPEC.md, "The desktop app's release").
+- the release, once `DESKTOP_RELEASE` is `true` (spec/releases.md, "The desktop app's release").
 
 The environment's secrets: `MAC_CERTIFICATE` (the Developer ID Application certificate and key,
 a base64 `.p12`), `MAC_CERTIFICATE_PASSWORD`, and an App Store Connect API key for notarization:
