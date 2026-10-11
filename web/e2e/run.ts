@@ -1780,6 +1780,9 @@ async function main() {
   const result = page.getByRole("status", { name: "Pairing result" });
   await result.waitFor();
   await result.waitFor({ state: "detached", timeout: 15_000 });
+  // The first browser's window can cover this one, and Firefox stops a covered window's
+  // animation frames, which a click waits on.
+  await pageB.bringToFront();
   await pageB.getByRole("button", { name: "Cancel" }).click();
   const codeB = (
     await pageB
