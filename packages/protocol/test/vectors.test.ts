@@ -217,13 +217,20 @@ describe("pairing.json: links", () => {
 });
 
 describe("pairing.json: app links", () => {
-  const [made, ...rest] = V.pairing.keyLinks;
+  const [made, qr, ...rest] = V.pairing.keyLinks;
   test("appPairingLink", () => {
     expect(made.link).toBe(
       `starbridge://pair?server=https%3A%2F%2Fstarbridge.example%3A8443&k=${made.key}#${V.pairing.code}`,
     );
     expect(checkKeyFromLink(made.link)).toBe(made.expect);
     expect(formatPairingCode(codeFromLink(made.link))).toBe(V.pairing.code);
+  });
+  test("machineQrText", () => {
+    expect(qr.link).toBe(
+      `starbridge-pair?server=https%3A%2F%2Fstarbridge.example%3A8443&k=${qr.key}#${V.pairing.code}`,
+    );
+    expect(checkKeyFromLink(qr.link)).toBe(qr.expect);
+    expect(formatPairingCode(codeFromLink(qr.link))).toBe(V.pairing.code);
   });
   for (const c of rest) {
     test(`checkKeyFromLink ${c.input}`, () => {

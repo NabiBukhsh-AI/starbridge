@@ -4,18 +4,21 @@ import { request } from "node:https";
 import { isIP } from "node:net";
 import webpush from "web-push";
 import { z } from "zod";
+import { Apns } from "./apns";
 import type { Config } from "./config";
 
-export const PushType = z.enum(["fcm", "webpush", "unifiedpush"]);
+export const PushType = z.enum(["fcm", "webpush", "unifiedpush", "apns"]);
 export type PushType = z.infer<typeof PushType>;
 
 export const PushKeys = z.object({ p256dh: z.string().max(200), auth: z.string().max(100) });
 
 export const PushTarget = z.object({
   type: PushType,
-  /** An FCM registration token, or the push service URL. */
+  /** An FCM registration token, an APNs device token in hex, or the push service URL. */
   endpoint: z.string().min(1).max(4096),
   keys: PushKeys.optional(),
+  /** APNs only: `sandbox` for a debug build from Xcode; production unless set. */
+  environment: z.enum(["production", "sandbox"]).optional(),
 });
 export type PushTarget = z.infer<typeof PushTarget>;
 
@@ -24,9 +27,12 @@ export type PushResult = "ok" | "gone" | "failed" | "no-route";
 
 /** Returns why `target` cannot be accepted, or undefined. */
 export function checkTarget(target: PushTarget, allowPrivate: boolean): string | undefined {
+  if (target.environment && target.type !== "apns") return "environment is for apns only";
   if (target.type === "fcm") {
     return /^[A-Za-z0-9_:.-]+$/.test(target.endpoint) ? undefined : "not an FCM token";
   }
+  if (target.type === "apns")
+    return /^(?:[0-9a-f]{2}){32,100}$/i.test(target.endpoint) ? undefined : "not an APNs token";
   if (target.type === "webpush" && !target.keys) return "webpush needs keys";
   let url: URL;
   try {
@@ -58,18 +64,40 @@ export function isPrivateHost(hostname: string): boolean {
   )
     return true;
   if (isIP(h) === 4) return privateV4(h);
-  if (isIP(h) === 6) {
-    const mapped = h.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
-    if (mapped?.[1]) return privateV4(mapped[1]);
-    return (
-      h === "::" ||
-      h === "::1" ||
-      /^f[cd]/.test(h) ||
-      /^fe[89ab]/.test(h) ||
-      h.startsWith("::ffff:")
-    );
-  }
+  if (isIP(h) === 6) return privateV6(h);
   return false;
+}
+
+/**
+ * Judges an IPv6 address by the IPv4 address it embeds, where a translator could route it to
+ * one: IPv4-compatible (`::a.b.c.d`, and so `::` and `::1`), IPv4-mapped, NAT64 and 6to4.
+ */
+function privateV6(ip: string): boolean {
+  const [a = 0, b = 0, c = 0, d = 0, e = 0, f = 0, g = 0, h = 0] = v6Words(ip);
+  const v4 = (hi: number, lo: number) => `${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`;
+  const zeroToE = a === 0 && b === 0 && c === 0 && d === 0 && e === 0;
+  if (zeroToE && (f === 0 || f === 0xffff)) return privateV4(v4(g, h));
+  if (a === 0x64 && b === 0xff9b && c === 0 && d === 0 && e === 0 && f === 0)
+    return privateV4(v4(g, h));
+  // Local-use NAT64 (64:ff9b:1::/48) places the IPv4 address by prefix length, so refuse it whole.
+  if (a === 0x64 && b === 0xff9b && c === 1) return true;
+  if (a === 0x2002) return privateV4(v4(b, c));
+  return (a & 0xfe00) === 0xfc00 || (a & 0xffc0) === 0xfe80;
+}
+
+/** The eight 16-bit words of a valid IPv6 address, which may end in a dotted IPv4 address. */
+function v6Words(ip: string): number[] {
+  let s = ip;
+  const dotted = s.match(/^(.*:)(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (dotted) {
+    const [a, b, c, d] = dotted.slice(2).map(Number) as [number, number, number, number];
+    s = `${dotted[1]}${((a << 8) | b).toString(16)}:${((c << 8) | d).toString(16)}`;
+  }
+  const [head = "", tail] = s.split("::");
+  const part = (x: string) => (x ? x.split(":").map((g) => parseInt(g, 16)) : []);
+  const hi = part(head);
+  const lo = tail === undefined ? [] : part(tail);
+  return [...hi, ...Array(8 - hi.length - lo.length).fill(0), ...lo];
 }
 
 function privateV4(ip: string): boolean {
@@ -147,6 +175,7 @@ export class Push {
   private readonly pending = new Set<Promise<unknown>>();
   private readonly queues = new Map<string, { running: number; waiting: (() => void)[] }>();
   private fcmToken?: { value: string; expires: number };
+  private readonly apns?: Apns;
 
   /** Called with each push's outcome, for the daily usage counts. */
   onSent?: (type: PushType, result: PushResult | "dropped") => void;
@@ -158,7 +187,9 @@ export class Push {
     private readonly resolve: (host: string) => Promise<string[]> = async (host) =>
       (await lookup(host, { all: true })).map((a) => a.address),
     private readonly pinned: PinnedSend = pinnedHttps,
-  ) {}
+  ) {
+    if (config.apns) this.apns = new Apns(config.apns, config.pushTimeoutMs);
+  }
 
   /**
    * The address to connect to for `url`, once every address its host resolves to is public;
@@ -196,7 +227,7 @@ export class Push {
     if (members.length === 0) return;
     const subs = this.db
       .query(
-        `SELECT id, member_id, type, endpoint, keys FROM push_subscriptions
+        `SELECT id, member_id, type, endpoint, keys, environment FROM push_subscriptions
          WHERE account_id = ? AND member_id IN (SELECT value FROM json_each(?))
            AND type IN (SELECT value FROM json_each(?))`,
       )
@@ -206,12 +237,14 @@ export class Push {
       type: PushType;
       endpoint: string;
       keys: string | null;
+      environment: "production" | "sandbox" | null;
     }[];
     for (const s of subs) {
       const target: PushTarget = {
         type: s.type,
         endpoint: s.endpoint,
         keys: s.keys ? JSON.parse(s.keys) : undefined,
+        environment: s.environment ?? undefined,
       };
       const body = payload(s.member_id);
       this.queue(account, s.type, async () => {
@@ -272,6 +305,11 @@ export class Push {
     if (q.running === 0 && q.waiting.length === 0) this.queues.delete(account);
   }
 
+  /** Closes the connections kept open to push services. */
+  close(): void {
+    this.apns?.close();
+  }
+
   /** Resolves once every push started so far has settled. */
   async idle(): Promise<void> {
     while (this.pending.size > 0) await Promise.allSettled([...this.pending]);
@@ -299,6 +337,14 @@ export class Push {
           return relay ? await this.viaRelay(target, payload) : "no-route";
         case "unifiedpush":
           return await this.sendWebPush(target, payload, false);
+        case "apns":
+          if (this.apns)
+            return await this.apns.send(
+              target.endpoint,
+              target.environment ?? "production",
+              payload,
+            );
+          return relay ? await this.viaRelay(target, payload) : "no-route";
       }
     } catch (e) {
       console.error(`push to ${target.type} failed:`, e);
