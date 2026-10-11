@@ -63,7 +63,7 @@ Once a day the background service reads the latest release; when it is newer, `s
 | Command | Effect |
 |---|---|
 | `starbridge update` | Installs the latest release over a script install, then runs `setup --refresh` and updates the Claude Code plugins. Homebrew and npm installs update through their manager; then run `setup --refresh`. |
-| `starbridge update --codexbar <version>` | Installs that CodexBar release instead of the pinned one ([why](../docs/faq.md#do-you-trust-codexbar-s-code)). |
+| `starbridge update --codexbar <version>` | Installs that CodexBar release instead of the pinned one ([Do you trust CodexBar's code?](../docs/faq.md#do-you-trust-codexbar-s-code)). |
 | `starbridge config update-check off` | Stops the daily check; `STARBRIDGE_NO_UPDATE_CHECK=1` silences the line. |
 | `starbridge uninstall` | Removes the background service, Starbridge from every harness and the binary, and asks your devices to revoke the machine. Asks before deleting the keys (`--purge` doesn't ask). |
 | `starbridge uninstall --agent <name>` | Removes Starbridge from one harness; setup leaves it out until `setup --agent <name>`. |
@@ -140,8 +140,8 @@ the command anyway. [Runs](../docs/index.md#runs) says what your devices show.
 | Command | Effect |
 |---|---|
 | `starbridge config` | Prints this machine's settings. |
-| `starbridge config permissions on` | Sends permission prompts to your devices ([per harness](../docs/tell-your-agents.md#what-each-harness-supports)). |
-| `starbridge config presence on` | Counts this machine as a screen you are at ([Quiet other devices](../docs/notifications.md#quiet-other-devices-while-you-re-at-a-screen)). |
+| `starbridge config permissions on` | Sends permission prompts to your devices ([What each harness supports](../docs/tell-your-agents.md#what-each-harness-supports)). |
+| `starbridge config presence on` | Counts this machine as a screen you are at ([Quiet other devices while you're at a screen](../docs/notifications.md#quiet-other-devices-while-you-re-at-a-screen)). |
 | `starbridge quota push --provider claude` | Uploads a quota snapshot without the background service. |
 | `starbridge agent` | The background service. Its flags override `agent.json` in the config directory. |
 

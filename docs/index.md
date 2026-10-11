@@ -45,7 +45,7 @@ starbridge.run, or [host your own](../server/README.md).
    [recovery key](#recovery-key) once. Save it.
 
    To keep your keys from the server, start in the Android app and add no browser
-   ([why](faq.md#what-does-the-server-see)).
+   ([What does the server see?](faq.md#what-does-the-server-see)).
 
 2. **Install the CLI** on each machine that runs your harnesses:
 

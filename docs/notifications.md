@@ -69,7 +69,7 @@ for a turn that ends without one. Menu names are from October 2026.
 
 | Starbridge | Replaces |
 |---|---|
-| Waiting for you, Questions | Claude Code's Push when actions required, Claude Desktop's Question notifications, opencode's question sound, and the turn-done notifications below |
+| Waiting for you, Questions | Claude Code's Push when actions required, Claude Desktop's Question notifications, opencode's question sound, and the harnesses' turn-done notifications |
 | Permission prompts, once on | Permission prompt notifications in Claude Code, Claude Desktop, the Codex CLI and opencode |
 | Runs, Quotas | Nothing: the harnesses don't notify about these. |
 
@@ -99,9 +99,9 @@ Pi's [notify extension](https://github.com/earendil-works/pi/blob/main/packages/
 
 | App | What it notifies | Turn it off |
 |---|---|---|
-| Claude app (Android, iOS) | The Remote Control pushes above, and Dispatch sessions finishing or needing approval. | For Remote Control, the `/config` toggles above. For the rest, the phone's settings below. |
+| Claude app (Android, iOS) | Claude Code's Remote Control pushes, and Dispatch sessions finishing or needing approval. | For Remote Control, Claude Code's `/config` toggles. For the rest, Android's settings, as for any Android app. |
 | ChatGPT on the web | Codex notifications by category, by push, email or SMS. | Settings → Notifications. |
-| ChatGPT app (Android, iOS) | Not documented. | The phone's settings below. |
+| ChatGPT app (Android, iOS) | Not documented. | Android's settings, as for any Android app. |
 | Any Android app | Notifications by category, which Android calls channels. | Settings → Notifications → App notifications → the app, then turn off a category. Or touch and hold one of its notifications, tap Settings, and turn off its category. |
 
 Sources: [ChatGPT notifications](https://learn.chatgpt.com/docs/notifications),
