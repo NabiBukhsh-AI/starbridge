@@ -57,6 +57,9 @@ final class Store {
     var pairLink: String?
     /** Where replacing the recovery key stands (#348). */
     var replacing = Replacing.idle
+    /** The open joins by digits, while the app is in front. */
+    var joinAsks: [JoinAsk] = []
+    var comparison = Comparison.idle
 
     /** Decisions this iPhone's answer lost to another device's, until the machine says which won. */
     @ObservationIgnored var lost: Set<String> = []
@@ -74,6 +77,10 @@ final class Store {
     @ObservationIgnored var showTask: Task<Void, Never>?
     /** The keys of a replacement shown and not saved yet: in memory only. */
     @ObservationIgnored var replacement: Replacement?
+    @ObservationIgnored var joinViews: [String: ListedJoin] = [:]
+    @ObservationIgnored var compared: Compared?
+    @ObservationIgnored var watchTask: Task<Void, Never>?
+    @ObservationIgnored var compareTask: Task<Void, Never>?
     @ObservationIgnored var directory: Directory?
     /** Why nothing may be stored this run: the saved state or its keys could not be read or set aside. */
     @ObservationIgnored private var locked: String?
@@ -720,6 +727,12 @@ final class Store {
         pairLink = nil
         replacement = nil
         replacing = .idle
+        watchTask?.cancel()
+        compareTask?.cancel()
+        joinViews = [:]
+        compared = nil
+        joinAsks = []
+        comparison = .idle
         withheldWhy = nil
         persist(Saved(server: saved.server), Secrets())
         try? FileManager.default.removeItem(at: SavedImage.directory)

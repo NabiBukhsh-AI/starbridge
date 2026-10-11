@@ -22,8 +22,10 @@ struct MainTabs: View {
         }
         .task {
             store.startPolling()
+            store.watchJoins(scenePhase == .active)
             await store.enableNotifications()
         }
+        .joinPrompt(store: store)
         // A pairing link opens Add a device with its code looked up (#611).
         .sheet(item: Binding(get: { store.pairLink.map(PairLink.init) }, set: { store.pairLink = $0?.id })) { link in
             NavigationStack {
@@ -37,6 +39,7 @@ struct MainTabs: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { store.startPolling() } else { store.stopPolling() }
+            store.watchJoins(phase == .active)
         }
     }
 }
