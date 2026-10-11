@@ -14,8 +14,8 @@ sealed interface Block {
 }
 
 // JavaScript's \s, spelled out: Android's ICU regex rejects the UNICODE_CHARACTER_CLASS flag
-// that would widen Java's \s to it, and fails the whole pattern (#1002).
-private const val WS = "\\t\\n\\u000B\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF"
+// that would widen Java's \s to it, and fails the whole pattern (#1002). Typed codes strip it too (#1145).
+internal const val WS = "\\t\\n\\u000B\\f\\r \\u00A0\\u1680\\u2000-\\u200A\\u2028\\u2029\\u202F\\u205F\\u3000\\uFEFF"
 
 // Leftmost match wins; at one position, code before a link before bold before a bare URL.
 private val INLINE = Regex(

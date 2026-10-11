@@ -365,8 +365,7 @@ final class ProtocolVectorsTests: XCTestCase {
         let seed = SecretKey(try fromB64(recovery.str("seed")))
         XCTAssertEqual(RecoveryKeys.encode(seed), key)
         XCTAssertEqual(toB64(RecoveryKeys.keyPair(seed).publicKey), recovery.str("signPk"))
-        let swapped = String(key.map { $0 == "0" ? "O" : $0 == "1" ? "l" : $0 })
-        for typed in [key, key.lowercased(), key.replacingOccurrences(of: "-", with: ""), key.replacingOccurrences(of: "-", with: " "), swapped] {
+        for typed in [key] + recovery["typed"]!.items.map({ $0.string! }) {
             XCTAssertEqual(toB64(try RecoveryKeys.seed(typed).bytes), recovery.str("seed"), typed)
         }
         let chars = Array(key)

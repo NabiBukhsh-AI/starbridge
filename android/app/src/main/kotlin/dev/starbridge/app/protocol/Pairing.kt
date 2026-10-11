@@ -48,7 +48,7 @@ private fun splitCode(chars: String) = PairingCode(chars.substring(0, 8), chars.
 
 /** Accepts any case, dashes and spaces, and Crockford's look-alikes (O for 0, I and L for 1). */
 fun parsePairingCode(text: String): PairingCode {
-    val chars = text.uppercase().replace(Regex("[\\s-]"), "").replace('O', '0').replace(Regex("[IL]"), "1")
+    val chars = text.uppercase().replace(Regex("[$WS-]"), "").replace('O', '0').replace(Regex("[IL]"), "1")
     if (chars.length != 24 || chars.any { it !in CROCKFORD }) throw ProtocolException("bad-encoding", "pairing code must be 24 Crockford base32 characters")
     return splitCode(chars)
 }

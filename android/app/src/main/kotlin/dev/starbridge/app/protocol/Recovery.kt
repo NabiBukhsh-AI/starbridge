@@ -32,7 +32,7 @@ object RecoveryKeys {
         return encodeCrockford(seed + check(seed, sodium)).take(CHARS).chunked(4).joinToString("-")
     }
 
-    private fun chars(text: String) = text.uppercase().replace(Regex("[\\s-]"), "").replace('O', '0').replace(Regex("[IL]"), "1")
+    private fun chars(text: String) = text.uppercase().replace(Regex("[$WS-]"), "").replace('O', '0').replace(Regex("[IL]"), "1")
 
     /** 28 characters to bytes, with one padding character so the check's last 4 bits land in byte 17. */
     private fun bytes(chars: String): ByteArray {
