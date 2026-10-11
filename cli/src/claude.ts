@@ -180,16 +180,18 @@ function promptText(line: string): string | undefined {
 
 /** `prompt`'s first sentence, cut on a word boundary to at most 60 characters. */
 function titleOf(prompt: string): string | undefined {
-  // The first paragraph, past code fences, without Markdown's heading, quote and list marks.
+  // The first paragraph, past code fences and the @-mentions of attached files, without
+  // Markdown's heading, quote and list marks. A heading or list item is a paragraph of its own.
   const lines: string[] = [];
   for (const raw of prompt.split("\n")) {
-    const l = raw.trim();
+    const l = raw.trim().replace(/^(@("[^"]*"|\S+)\s*)+/, "");
     if (l.startsWith("```")) continue;
-    if (!l) {
-      if (lines.length) break;
-      continue;
-    }
-    lines.push(l.replace(/^[#>*-]+\s*/, ""));
+    const marked = /^(#+|[*-]|\d+[.)])\s/.test(l);
+    if (marked && lines.length) break;
+    const text = l.replace(/^([#>*-]+|\d+[.)])\s*/, "");
+    if (text) lines.push(text);
+    else if (lines.length) break;
+    if (marked && lines.length) break;
   }
   const text = lines.join(" ").replace(/\s+/g, " ").trim();
   // A period before a lowercase word ends an abbreviation ("e.g. the"), not the sentence.
