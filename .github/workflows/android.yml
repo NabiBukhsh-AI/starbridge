@@ -31,7 +31,7 @@ jobs:
   # build: two Gradle builds at once ran the box out of memory.
   build:
     name: build, unit tests, screenshots
-    runs-on: ${{ github.event_name == 'push' && (vars.ANDROID_RUNNER || vars.RUNNER) || 'ubuntu-24.04' }}
+    runs-on: ${{ github.event_name == 'push' && vars.ANDROID_RUNNER || 'ubuntu-24.04' }}
     # Builds of pull requests never sign with the release key, even on a runner whose environment sets it.
     env:
       STARBRIDGE_KEYSTORE: ""
