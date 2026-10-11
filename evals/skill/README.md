@@ -42,7 +42,7 @@ runs can fill a small /tmp.
 provider's error, such as a rate limit, makes the run a failed run rather than a score.
 `render.ts` shows cards in the real web inbox (headless Chromium) and saves a screenshot of each.
 
-`results/299` holds the records behind #299's entry in SPEC.md, "Platform facts", one folder per
+`results/299` holds the records behind #299's entry in spec/platform-facts.md, one folder per
 text the agents ran: `main`, `rev3`, `heredoc` and `final`.
 
 `results/624` holds round 2, on what changed since: option order, Done, the delivery line,
