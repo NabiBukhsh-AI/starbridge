@@ -2,7 +2,7 @@
 
 The server stores and relays ciphertext. Everything clients trust is signed, and the code that
 signs, seals and verifies lives in `packages/protocol`; its JSON test vectors in
-`packages/protocol/vectors` pin the byte formats for the Kotlin client. This file covers what the
+`packages/protocol/vectors` pin the byte formats for the Kotlin and Swift ports. This file covers what the
 code cannot show: the HTTP API and the flows.
 
 ## The web app trusts its server
