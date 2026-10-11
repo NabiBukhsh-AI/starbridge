@@ -39,9 +39,9 @@ pushRoutes.post("/push/subscriptions", requireCaller("paired-device"), async (c)
   // Subscribing the same endpoint again keeps its id and takes the new keys.
   const row = db
     .query(
-      `INSERT INTO push_subscriptions (id, account_id, member_id, type, endpoint, keys, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT (account_id, member_id, endpoint) DO UPDATE SET type = excluded.type, keys = excluded.keys
+      `INSERT INTO push_subscriptions (id, account_id, member_id, type, endpoint, keys, environment, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (account_id, member_id, endpoint) DO UPDATE SET type = excluded.type, keys = excluded.keys, environment = excluded.environment
        RETURNING id`,
     )
     .get(
@@ -51,6 +51,7 @@ pushRoutes.post("/push/subscriptions", requireCaller("paired-device"), async (c)
       target.type,
       target.endpoint,
       target.keys ? JSON.stringify(target.keys) : null,
+      target.environment ?? null,
       new Date().toISOString(),
     ) as { id: string };
   return c.json({ id: row.id }, 201);
@@ -79,7 +80,7 @@ pushRoutes.get("/push/vapid", async (c) => {
 const relaying = new WeakMap<object, Map<string, number>>();
 
 /**
- * Relay mode: forwards another server's push with this server's FCM and VAPID credentials.
+ * Relay mode: forwards another server's push with this server's FCM, APNs and VAPID credentials.
  * The payload is already the device's ciphertext or an item id.
  */
 pushRoutes.post("/relay", async (c) => {
@@ -93,8 +94,8 @@ pushRoutes.post("/relay", async (c) => {
   if (why) fail(400, "bad-endpoint", why);
   const { payload, ...target } = body;
   // A Web Push goes to whatever host the caller names, which may hold it for pushTimeoutMs; FCM
-  // goes to Google, so only Web Push counts toward the caps and the self-hosters' Android
-  // pushes always get through.
+  // and APNs go to Google and Apple, so only Web Push counts toward the caps and the
+  // self-hosters' phone pushes always get through.
   const flights = relaying.get(push) ?? new Map<string, number>();
   relaying.set(push, flights);
   const keys = target.type === "webpush" ? ["", ipKey(c)] : [];
