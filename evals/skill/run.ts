@@ -116,6 +116,14 @@ for (const arm of (opt.arms as string).split(",")) {
   arms[arm] = dir;
 }
 
+// The CLI as one file in the work folder: a shim naming this checkout led agents to read the
+// eval's own scenarios (#964).
+const cliBundle = join(work, "starbridge.js");
+const bundled = spawnSync(bun, ["build", join(repo, "cli/src/main.ts"), "--target", "bun", "--outfile", cliBundle], {
+  encoding: "utf8",
+});
+if (bundled.status !== 0) throw new Error(`bun build of the CLI: ${bundled.stderr}`);
+
 const sh = (cmd: string, args: string[], cwd: string, env?: Record<string, string>) => {
   const r = spawnSync(cmd, args, { cwd, env: { ...process.env, ...env }, encoding: "utf8" });
   if (r.status !== 0) throw new Error(`${cmd} ${args.join(" ")}: ${r.stderr}`);
@@ -355,8 +363,9 @@ async function turn(
       session ??= e.session_id;
       const shell = e.tool_call?.shellToolCall;
       if (e.type === "tool_call" && e.subtype === "completed" && shell) {
-        commands.push(shell.args?.command ?? "");
-        delivery.push(...deliveryLines(String(shell.result?.success?.interleavedOutput ?? "")));
+        const command = shell.args?.command ?? "";
+        commands.push(command);
+        if (asks(command)) delivery.push(...deliveryLines(String(shell.result?.success?.interleavedOutput ?? "")));
       }
       // `result` joins every message; the last one is the final word.
       if (e.type === "assistant")
@@ -370,8 +379,9 @@ async function turn(
       const step = e.step_update;
       session ??= e.conversation_id;
       if (step?.state === "DONE" && step.tool_name === "run_command") {
-        commands.push(step.tool_info?.parameters?.CommandLine ?? "");
-        delivery.push(...deliveryLines(String(step.tool_info?.output ?? "")));
+        const command = step.tool_info?.parameters?.CommandLine ?? "";
+        commands.push(command);
+        if (asks(command)) delivery.push(...deliveryLines(String(step.tool_info?.output ?? "")));
       }
       if (e.event === "result") {
         const res = e.result ?? {};
@@ -415,6 +425,9 @@ async function turn(
     ...(background.length ? { background } : {}),
   };
 }
+
+/** Whether a command posts a card; a `grep` through the CLI's source prints the lines too. */
+const asks = (command: string) => /starbridge\s+ask\b/.test(command);
 
 /** The lines of a command's output that say how the answer comes back. */
 const deliveryLines = (text: string) =>
@@ -790,7 +803,7 @@ async function one(s: Scenario, arm: string, rep: number): Promise<RunRecord> {
   ghShim(bin, gh, ghLog);
   writeFileSync(
     join(bin, "starbridge"),
-    `#!/bin/sh\nexec '${bun}' '${join(repo, "cli/src/main.ts")}' "$@"\n`,
+    `#!/bin/sh\nexec '${bun}' '${cliBundle}' "$@"\n`,
   );
   chmodSync(join(bin, "starbridge"), 0o755);
 
