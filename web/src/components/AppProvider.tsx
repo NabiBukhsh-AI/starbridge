@@ -33,7 +33,7 @@ import { runState } from "@/lib/runs";
 import { keptSettingsData, loadSettingsData } from "@/lib/settingsData";
 import { chimeForNew, unlockSound } from "@/lib/sound";
 import type { Device, InboxItem, PromptItem, PromptReply, Reply, RunItem } from "@/lib/types";
-import { type Unsent, withUnsent } from "@/lib/unsent";
+import { type Unsent, whileSending, withUnsent } from "@/lib/unsent";
 
 // The protocol code and libsodium load here, after the first paint.
 const load = () => import("@/lib/device");
@@ -557,7 +557,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!ctx) return;
       const d = await load();
       try {
-        const answeredAt = await d.answerPermission(ctx, item, reply);
+        const answeredAt = await whileSending(() => d.answerPermission(ctx, item, reply));
         const at = Date.now();
         setPrompts((all) =>
           all.map((p) =>
@@ -635,7 +635,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setNotSent(({ [id]: _, ...rest }) => rest);
       const d = await load();
       try {
-        const answeredAt = await d.answer(ctx, item, reply);
+        const answeredAt = await whileSending(() => d.answer(ctx, item, reply));
         // A read already in flight may list the decision without this reply and move its cursor
         // past it: it must not land. The next read finds the reply in the sent answers.
         inboxRead.current()();
