@@ -94,6 +94,9 @@ struct SavedPrompt: Codable, Equatable {
 
     var id: String { body.id }
 
+    /** What the agent says the call does, else the tool: the prompt's title everywhere (#805). */
+    var headline: String { body.description.map(visible).flatMap { $0.trimmingCharacters(in: .whitespaces).isEmpty ? nil : $0 } ?? body.tool }
+
     /**
      * The input as the owner reads it before allowing, as Android and the web show it (#276): a
      * command's full text, then its other fields but the description; any other input as it came.

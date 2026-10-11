@@ -161,10 +161,7 @@ struct PromptDetail: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Tokens.Spacing.s4) {
                     MetaRow(source: p.body.source, time: Dates.parse(p.body.createdAt).map { Times.since($0, Date()) } ?? "")
-                    Text(p.body.summary).type(Tokens.Typography.question)
-                    if let description = p.body.description {
-                        Text(visible(description)).type(Tokens.Typography.reading).foregroundStyle(Tokens.Colors.fg2.color)
-                    }
+                    Text(p.headline).type(Tokens.Typography.question)
                     // The whole input; Allow waits until its end has been on screen (#274).
                     Text(p.fullInput)
                         .type(Tokens.Typography.code)

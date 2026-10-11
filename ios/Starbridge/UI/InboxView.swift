@@ -209,7 +209,7 @@ private struct PromptCard: View {
                 MetaRow(source: prompt.body.source, time: Dates.parse(prompt.body.createdAt).map { Times.waited($0, context.date) } ?? "", clock: true)
                 HStack(alignment: .top, spacing: Tokens.Spacing.s2) {
                     Image(systemName: "terminal").foregroundStyle(Tokens.Colors.accent.color).accessibilityHidden(true)
-                    Text(prompt.body.description.map(visible) ?? prompt.body.tool).type(Tokens.Typography.action)
+                    Text(prompt.headline).type(Tokens.Typography.action)
                 }
                 // The whole input when it fits a line, else the summary; Allow covers only what shows (#356).
                 Text(prompt.fitsRow ? prompt.fullInput : visible(prompt.body.summary))

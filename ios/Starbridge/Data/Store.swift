@@ -254,6 +254,8 @@ final class Store {
         } catch let e as ApiError where e.status == 401 {
             throw Notice(message: "Sign-in failed: the server did not accept the session.")
         }
+        // This server serves this release, whatever another one said.
+        tooOld = nil
         if let mine = saved.me, saved.pin != nil, saved.joining == nil, saved.digitJoin == nil, secrets.signSk != nil, me.account == saved.account {
             // Still a device: bind the new session with its signing key (PROTOCOL.md, "Auth").
             if let member = me.member, member != mine.id { throw Notice(message: "This session already belongs to another device.") }
