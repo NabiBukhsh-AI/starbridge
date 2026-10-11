@@ -1,1 +1,7 @@
-{"pid": 103, "cwd": "/work/demo", "sessionId": "user", "name": "Card declutter", "nameSource": "user"}
+{
+  "pid": 103,
+  "cwd": "/work/demo",
+  "sessionId": "user",
+  "name": "Card declutter",
+  "nameSource": "user"
+}
