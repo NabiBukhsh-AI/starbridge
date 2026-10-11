@@ -75,11 +75,11 @@ final class PairingTests: XCTestCase {
 
     func testAddsMembers() async throws {
         try setUpServer()
-        let session = try await Api(server: server, session: nil).ownerSignIn(token: token)
+        let session = try await Api(server: server, session: nil).ownerSession(token: token)
         let empty = try await Api(server: server, session: session).directory(from: 0).isEmpty
         try XCTSkipUnless(empty, "the server's account already has devices")
         addTeardownBlock { [server, token] in
-            let s = try? await Api(server: server, session: nil).ownerSignIn(token: token)
+            let s = try? await Api(server: server, session: nil).ownerSession(token: token)
             var request = URLRequest(url: URL(string: server + "/v1/account")!)
             request.httpMethod = "DELETE"
             request.setValue("Bearer \(s ?? "")", forHTTPHeaderField: "Authorization")
@@ -88,7 +88,7 @@ final class PairingTests: XCTestCase {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         addTeardownBlock { try? FileManager.default.removeItem(at: dir) }
         let store = Store(vault: MemoryVault(), disk: Disk(url: dir.appendingPathComponent("saved.json")), deviceName: "Test iPhone")
-        await store.signInWithOwnerToken(server: server, token: token)
+        await store.signInWaiting(server: server, token: token)
         await store.setUpFirstDevice()
         await store.confirmRecoveryKey()
         XCTAssertEqual(store.phase, .ready)
@@ -131,7 +131,7 @@ final class PairingTests: XCTestCase {
         XCTAssertEqual(store.approval, .found(Joiner(name: "pixel", machine: false, code: shown)))
         await store.approvePairing()
         XCTAssertEqual(store.approval, .done("pixel"))
-        let pixelSession = try await Api(server: server, session: nil).ownerSignIn(token: token)
+        let pixelSession = try await Api(server: server, session: nil).ownerSession(token: token)
         let scanned = try await result(phone, session: pixelSession)
         XCTAssertNil(scanned.check)
         XCTAssertEqual(store.devices.map(\.name), ["Test iPhone", "pixel", "devbox", "laptop"])
