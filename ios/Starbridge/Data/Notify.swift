@@ -8,7 +8,7 @@ import UserNotifications
  * "Push"). The notification service extension builds it to replace the server's placeholder; the
  * app reads the same payload to route a tap or an action.
  */
-struct Shown: Equatable {
+struct Shown: Equatable, Sendable {
     var title: String
     var subtitle: String
     var body: String
@@ -22,7 +22,7 @@ struct Shown: Equatable {
 }
 
 /** A notification button, as the category registers it. */
-struct NotificationAction: Equatable {
+struct NotificationAction: Equatable, Sendable {
     let id: String
     let title: String
     /** Reply: a text field. */
@@ -149,23 +149,23 @@ enum Notify {
     }
 
     /**
-     * The notification service extension's work: the push's placeholder rewritten from the keys
-     * and the pinned directory the app keeps in their shared app group; nil keeps it. Reads, never
-     * writes. Logs what it did, how long it took and the process's memory against the 24 MB limit.
+     * The notification service extension's work: what a push's notification says, from the keys
+     * and the pinned directory the app keeps in their shared app group, with its buttons
+     * registered; nil keeps the placeholder. Reads, never writes. Logs what it did, how long it
+     * took and the process's memory against the 24 MB limit.
      */
-    static func rewrite(_ request: UNNotificationRequest) async -> UNNotificationContent? {
+    static func rewrite(_ p: JSON?) async -> Shown? {
         let log = Logger(subsystem: "dev.starbridge.ios", category: "notifications")
         let start = Date()
-        guard let p = payload(request.content.userInfo), let saved = Disk.standard.load(), let secrets = try? KeychainVault().load(),
-              let content = request.content.mutableCopy() as? UNMutableNotificationContent else {
+        guard let p, let saved = Disk.standard.load(), let secrets = try? KeychainVault().load() else {
             log.info("no payload or no saved state: kept the placeholder")
             return nil
         }
         let api = Api(server: saved.server, session: secrets.session)
         let shown = await shown(p, saved: saved, secrets: secrets) { id in try await api.item(id).item }
-        if let shown { await apply(shown, to: content) }
+        if let shown, !shown.actions.isEmpty { await register(shown.category, shown.actions) }
         log.info("\(p["kind"]?.string ?? "?", privacy: .public) \(shown == nil ? "kept the placeholder" : "shown", privacy: .public) in \(Int(Date().timeIntervalSince(start) * 1000)) ms, \(footprint() / 1_048_576) MB")
-        return shown == nil ? nil : content
+        return shown
     }
 
     /** The process's memory as iOS counts it against an extension's limit. */
@@ -178,8 +178,8 @@ enum Notify {
         return kr == KERN_SUCCESS ? info.phys_footprint : 0
     }
 
-    /** `content` rewritten as `shown` says, with its category registered first. */
-    static func apply(_ shown: Shown, to content: UNMutableNotificationContent) async {
+    /** `content` rewritten as `shown` says; its category is registered already. */
+    static func apply(_ shown: Shown, to content: UNMutableNotificationContent) {
         content.title = shown.title
         content.subtitle = shown.subtitle
         content.body = shown.body
@@ -188,7 +188,6 @@ enum Notify {
             content.sound = nil
             content.interruptionLevel = .passive
         }
-        if !shown.actions.isEmpty { await register(shown.category, shown.actions) }
     }
 
     /**

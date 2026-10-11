@@ -14,11 +14,11 @@ them. Its routes are in `PROTOCOL.md`.
 
 ## Set it up
 
-1. With Docker installed, clone the latest release of this repository (replace `v0.1.0` with
+1. With Docker installed, clone the latest release of this repository (replace `v0.1.4` with
    its tag):
 
    ```bash
-   git clone --branch v0.1.0 https://github.com/T0mSIlver/starbridge
+   git clone --branch v0.1.4 https://github.com/T0mSIlver/starbridge
    cd starbridge
    ```
 
@@ -70,7 +70,7 @@ them. Its routes are in `PROTOCOL.md`.
    [GitHub sign-in](#sign-in) set up, both can use it on your server too, and the web page
    shows "Continue with GitHub" first, with the owner token behind "Use your own server".
 
-6. Install the CLI on each machine that runs agents from your server. Its install script carries
+6. Install the CLI on each machine that runs your harnesses. Its install script carries
    its `PUBLIC_URL`, so setup pairs the machine with your server:
 
    ```bash
@@ -139,10 +139,10 @@ with the server running:
 sudo sqlite3 "$(docker volume inspect -f '{{.Mountpoint}}' starbridge_data)/starbridge.db" ".backup 'starbridge-before.db'"
 ```
 
-Then check out the new release's tag, such as `v0.1.1`, and rebuild:
+Then check out the new release's tag, such as `v0.1.4`, and rebuild:
 
 ```bash
-git fetch --tags && git checkout v0.1.1
+git fetch --tags && git checkout v0.1.4
 docker compose -f server/compose.yaml up -d --build
 ```
 
