@@ -7,8 +7,9 @@
 //                               its compact size under 600 px and its wide size
 //                               in a wide detail pane
 //   android/.../ui/theme/Tokens.kt
+//   ios/Starbridge/Theme/Tokens.swift
 //
-//   bun web/scripts/tokens.ts          rewrite all three
+//   bun web/scripts/tokens.ts          rewrite all four
 //   bun web/scripts/tokens.ts --check  exit 1 if any is stale (CI)
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -21,6 +22,7 @@ const OUT = {
   css: resolve(ROOT, "web/src/styles/tokens.css"),
   type: resolve(ROOT, "web/src/styles/type.css"),
   kotlin: resolve(ROOT, "android/app/src/main/kotlin/dev/starbridge/app/ui/theme/Tokens.kt"),
+  swift: resolve(ROOT, "ios/Starbridge/Theme/Tokens.swift"),
 };
 
 type Metrics = { size: number; lineHeight: number; letterSpacing: number };
@@ -182,6 +184,7 @@ const GENERATED = [
 ];
 const CSS_HEADER = `/* ${GENERATED[0]}\n   ${GENERATED[1]} */\n`;
 const KT_HEADER = `// ${GENERATED[0]}\n// ${GENERATED[1]}\n`;
+const SWIFT_HEADER = KT_HEADER;
 
 // Dark is the default. Light applies when the browser asks for it, unless the
 // page sets data-theme="dark" on <html>; data-theme="light" forces it (the
@@ -333,11 +336,74 @@ function tokensKt(d: Design): string {
   ].join("\n");
 }
 
+// #rrggbb[aa] -> Hex(0xRRGGBB, alpha)
+function swiftColor(hex: string): string {
+  const h = hex.slice(1).toUpperCase();
+  const alpha = h.length === 8 ? num(Number.parseInt(h.slice(6), 16) / 255) : "1";
+  return `Hex(0x${h.slice(0, 6)}, ${alpha})`;
+}
+
+// iOS sets type in SF Pro (DESIGN.md, "Starbridge design"): the roles keep their sizes and weights, and
+// Theme.swift scales them with Dynamic Type. `mono` is SF Mono.
+function tokensSwift(d: Design): string {
+  const names = Object.keys(d.colors.light);
+  const dims = (name: string, group: Record<string, number>, suffix = "") => [
+    `    enum ${name} {`,
+    ...Object.entries(group).map(
+      ([k, v]) => `        static let ${camel(k)}${suffix}: CGFloat = ${num(v)}`,
+    ),
+    "    }",
+    "",
+  ];
+  const role = ([name, r]: [string, Role]) =>
+    `        static let ${camel(name)} = TypeRole(size: ${num(r.size)}, weight: ${r.weight}, lineHeight: ${num(r.lineHeight)}, letterSpacing: ${num(r.letterSpacing)}, mono: ${r.font === "mono"}, tabular: ${r.tabular === true})`;
+  return [
+    SWIFT_HEADER,
+    "import CoreGraphics",
+    "",
+    "enum Tokens {",
+    "    /** Each colour as its light and dark value. */",
+    "    enum Colors {",
+    ...names.map(
+      (k) =>
+        `        static let ${camel(k)} = Pair(light: ${swiftColor(d.colors.light[k] ?? "")}, dark: ${swiftColor(d.colors.dark[k] ?? "")})`,
+    ),
+    "    }",
+    "",
+    "    /** Each provider's quota fill, by CodexBar provider id. */",
+    "    static let providers: [String: Pair] = [",
+    ...(() => {
+      const dark = new Map(providerDots(d, "dark"));
+      return providerDots(d, "light").map(
+        ([id, v]) =>
+          `        "${id}": Pair(light: ${swiftColor(v)}, dark: ${swiftColor(dark.get(id) ?? "")}),`,
+      );
+    })(),
+    "    ]",
+    "",
+    ...dims("Spacing", d.spacing),
+    ...dims("Radius", d.radius),
+    ...dims("Sizes", d.size),
+    "    enum Motion {",
+    ...Object.entries(d.motion).map(
+      ([k, v]) => `        static let ${camel(k)}: Double = ${num(v / 1000)}`,
+    ),
+    "    }",
+    "",
+    "    enum Typography {",
+    ...Object.entries(d.typography).map(role),
+    "    }",
+    "}",
+    "",
+  ].join("\n");
+}
+
 const design = load();
 const outputs: [string, string][] = [
   [OUT.css, tokensCss(design)],
   [OUT.type, typeCss(design)],
   [OUT.kotlin, tokensKt(design)],
+  [OUT.swift, tokensSwift(design)],
 ];
 
 if (process.argv.includes("--check")) {

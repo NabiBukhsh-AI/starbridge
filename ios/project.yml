@@ -1,0 +1,69 @@
+# The iPhone app's Xcode project: `xcodegen` writes Starbridge.xcodeproj from this file, which is
+# what to edit. README.md says how to build and test.
+name: Starbridge
+options:
+  bundleIdPrefix: dev.starbridge
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    DEVELOPMENT_TEAM: 3N63N7U9R3
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+packages:
+  StarbridgeProtocol:
+    path: StarbridgeProtocol
+targets:
+  Starbridge:
+    type: application
+    platform: iOS
+    sources:
+      - Starbridge
+    dependencies:
+      - package: StarbridgeProtocol
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.starbridge.ios
+        PRODUCT_NAME: Starbridge
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    info:
+      path: Starbridge/Info.plist
+      properties:
+        CFBundleDisplayName: Starbridge
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen:
+          UIColorName: ""
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        NSCameraUsageDescription: Starbridge scans the QR code that your other device shows, to add this iPhone to your account.
+        # GitHub sign-in comes back on starbridge://auth (PROTOCOL.md, "Auth").
+        CFBundleURLTypes:
+          - CFBundleURLName: dev.starbridge.ios
+            CFBundleURLSchemes:
+              - starbridge
+  StarbridgeTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - StarbridgeTests
+    dependencies:
+      - target: Starbridge
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: dev.starbridge.ios.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/Starbridge.app/Starbridge
+        BUNDLE_LOADER: $(TEST_HOST)
+schemes:
+  Starbridge:
+    build:
+      targets:
+        Starbridge: all
+        StarbridgeTests: [test]
+    test:
+      targets:
+        - StarbridgeTests

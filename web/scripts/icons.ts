@@ -76,4 +76,9 @@ writeFileSync(join(WEB, "src/app/apple-icon.png"), await png("square", 180));
 writeFileSync(join(WEB, "public/icon-192.png"), await png("tile", 192));
 writeFileSync(join(WEB, "public/icon-512.png"), await png("tile", 512));
 writeFileSync(join(WEB, "public/icon-maskable-512.png"), await png("canvas", 512));
+// iOS rounds the corners itself.
+writeFileSync(
+  join(WEB, "../ios/Starbridge/Assets.xcassets/AppIcon.appiconset/icon-1024.png"),
+  await png("square", 1024),
+);
 await browser.close();
