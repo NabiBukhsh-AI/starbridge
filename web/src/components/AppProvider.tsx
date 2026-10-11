@@ -15,6 +15,7 @@ import { api, backingOff } from "@/lib/api";
 import { desktop } from "@/lib/desktop";
 import { desktopState } from "@/lib/desktopState";
 import type { Boot, Ctx, Inbox, Quotas, Runs } from "@/lib/device";
+import { dropClosedDrafts } from "@/lib/drafts";
 import { newestWins } from "@/lib/newest";
 import { openItem } from "@/lib/opened";
 import { AnsweredFirst } from "@/lib/outcome";
@@ -148,6 +149,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("beforeunload", stay);
     return () => window.removeEventListener("beforeunload", stay);
   }, [unsent]);
+  useEffect(() => dropClosedDrafts(inbox.items), [inbox]);
   const [inboxLoaded, setInboxLoaded] = useState(false);
   const [pushed, setPushed] = useState(false);
   const [quotas, setQuotas] = useState<Quotas>();

@@ -10,7 +10,7 @@
   (`staleTimes.static`): a switch paints in one frame instead of a round trip to the server
   (80–150 ms at starbridge.run's 55 ms). A page of an older build reloads in full on its next
   navigation that reaches the server, and starbridge.run deploys many times a day; so a hidden page
-  asks `/build` every 5 minutes and reloads onto a new build, unless a reply is typed, an answer
+  asks `/build` every 5 minutes and reloads onto a new build, unless a reply is typed for an open question (#1189), an answer
   is still being sent (#1167) or it is off the three tabs, where a reload would lose work.
 - **Landing page HTML** (#694). A request for `/` without the session cookie gets the whole
   landing page from the server, with its own title, description and link preview
