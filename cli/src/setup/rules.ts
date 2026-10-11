@@ -37,7 +37,7 @@ export const QUESTION_TOOL: Record<Agent, string | undefined> = {
  */
 export const QUESTION_TOOL_NOTE: Partial<Record<Agent, string>> = {
   "claude-code":
-    "Its question becomes the card's title, so write it as the skill says for one: one sentence of at most 70 characters. It has no context field: put your findings in your message before the call, and what each pick does in its option's description.",
+    "Its question becomes the card's title, so write it as the skill says for one, in one sentence of at most 70 characters. It has no context field, so put your findings in your message before the call, and what each pick does in its option's description.",
 };
 
 export function renderRule(template: string, agent: Agent): string {
