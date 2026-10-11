@@ -41,6 +41,13 @@ Phone: a typo
   expect(parseNotes("No section.")).toBeUndefined();
 });
 
+test("no HTML comment survives, even one split around another or left open", () => {
+  const body = "## Release notes\n\n- Web: A <!<!-- x -->-- y --> fix.\n- Android: Kept. <!-- open";
+  const notes = parseNotes(body)?.notes.map((n) => n.text);
+  expect(notes).toEqual(["A  fix.", "Kept."]);
+  expect(notes?.join("")).not.toContain("<!--");
+});
+
 test("the body has a section per product with notes, in a fixed order, then every pull request folded", () => {
   const notes = render(
     [
