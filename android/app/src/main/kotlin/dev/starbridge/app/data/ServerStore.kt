@@ -195,7 +195,10 @@ class ServerStore(
     /** A sync that waits for the network, then retries until the server answers (#920). */
     private var catchUpJob: Job? = null
     override val pushHold = MutableStateFlow<Int?>(null)
-    /** Counts wipes, so a hold read or saved for the account before one never lands after it (#1192). */
+    /**
+     * Counts wipes, so a hold read or saved for the account before one never lands after it (#1192).
+     * Checked under `lock`, which every wipe holds.
+     */
     @Volatile private var wipes = 0
     @Volatile private var inFront = false
     private var presenceJob: Job? = null
@@ -1899,7 +1902,7 @@ class ServerStore(
         val wiped = wipes
         scope.launch {
             // A server without the setting shows no row.
-            runCatching { api().pushHold() }.onSuccess { if (wipes == wiped) pushHold.value = it }
+            runCatching { api().pushHold() }.onSuccess { lock.withLock { if (wipes == wiped) pushHold.value = it } }
         }
     }
 
@@ -1933,13 +1936,12 @@ class ServerStore(
         val wiped = wipes
         pushHold.value = seconds
         scope.launch {
-            runCatching { api().setPushHold(seconds) }
-                .onSuccess { if (wipes == wiped) pushHold.value = it }
-                .onFailure { e ->
-                    if (wipes != wiped) return@onFailure
-                    pushHold.value = was
-                    if (e is Exception) report(e)
-                }
+            val saved = runCatching { api().setPushHold(seconds) }
+            lock.withLock {
+                if (wipes != wiped) return@launch
+                saved.onSuccess { pushHold.value = it }.onFailure { pushHold.value = was }
+            }
+            (saved.exceptionOrNull() as? Exception)?.let { report(it) }
         }
     }
 
