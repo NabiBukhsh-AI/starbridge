@@ -14,7 +14,7 @@ pnpm --filter @starbridge/desktop start
 ```
 
 `STARBRIDGE_SERVER=http://localhost:3000` points a run at a local server; otherwise the app uses
-the server set from its menu bar icon (right-click, "Server"), starbridge.run by default.
+the server set from its menu bar icon (right-click, "Server: …"), starbridge.run by default.
 
 Tests: `pnpm test` (unit) and `pnpm e2e`, which launches the app on a stand-in page and checks the
 bridge, the menu bar icon and the notifications (`xvfb-run -a` on Linux). The `desktop` workflow
@@ -31,6 +31,8 @@ from the notifications; CI's
 The page finds `window.starbridgeDesktop` only on the configured server's origin:
 
 - `version`: the app's version, which the page sends as `starbridge-client: desktop/<version>`.
+- `titleBar`: `"inset"` when the window has no title bar, and the page leaves room for its
+  buttons.
 - `update({count, waiting, account, entries})`: the Needs-you count, how many of them an agent
   waits on, `"ready"`, `"signedOut"` or `"loading"`, and one entry per item to notify
   (`src/bridge.ts`). Send it whenever any changes.
