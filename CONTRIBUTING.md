@@ -71,7 +71,7 @@ the CLI it runs.
 `bun run build:bin`, in `cli/`, builds the standalone binaries (Linux, macOS and Windows, x64 and
 arm64). A `v*` tag runs `.github/workflows/release.yml`, which attaches them, the signed APK and
 App Bundle, `install.sh`, `install.ps1` and the signed `SHA256SUMS` to a GitHub Release,
-commits the formula to `T0mSIlver/homebrew-starbridge` and publishes to npm through Trusted Publishing, with no npm token. The signing key lives in the `MINISIGN_SECRET_KEY` Actions secret and, offline, with the maintainer.
+commits the formula to `T0mSIlver/homebrew-starbridge` and publishes to npm through Trusted Publishing, with no npm token. The signing key lives in the `MINISIGN_SECRET_KEY` secret of the `release` environment and, offline, with the maintainer.
 Then it uploads the App Bundle to Google Play's Alpha track, rcs included, or a final to production once
 the `PLAY_PRODUCTION` repository variable is true, signing in through
 workload identity federation with no key, once the `PLAY_WIF_PROVIDER` and `PLAY_SERVICE_ACCOUNT`
