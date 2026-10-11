@@ -23,7 +23,8 @@ For Android, in `android/`:
 
 Each package's README says how to run it: [server](server/README.md#run-from-source),
 [web](web/README.md), [CLI](cli/README.md), [mod](mod/README.md#develop),
-[desktop](desktop/README.md#develop) and [Android](android/README.md#build).
+[desktop](desktop/README.md#develop), [Android](android/README.md#build) and
+[iPhone](ios/README.md#build-and-test).
 [PROTOCOL.md](PROTOCOL.md) holds the wire format, [DESIGN.md](DESIGN.md) the look, [SPEC.md](SPEC.md) indexes the decisions, one file per area under `spec/`, and
 [cli/CONTRACT.md](cli/CONTRACT.md) the CLI commands and output that plugins and agents rely on.
 
@@ -71,7 +72,7 @@ the CLI it runs.
 `bun run build:bin`, in `cli/`, builds the standalone binaries (Linux, macOS and Windows, x64 and
 arm64). A `v*` tag runs `.github/workflows/release.yml`, which attaches them, the signed APK and
 App Bundle, `install.sh`, `install.ps1` and the signed `SHA256SUMS` to a GitHub Release,
-commits the formula to `T0mSIlver/homebrew-starbridge` and publishes to npm through Trusted Publishing, with no npm token. The signing key lives in the `MINISIGN_SECRET_KEY` Actions secret and, offline, with the maintainer.
+commits the formula to `T0mSIlver/homebrew-starbridge` and publishes to npm through Trusted Publishing, with no npm token. The signing key lives in the `MINISIGN_SECRET_KEY` secret of the `release` environment and, offline, with the maintainer.
 Then it uploads the App Bundle to Google Play's Alpha track, rcs included, or a final to production once
 the `PLAY_PRODUCTION` repository variable is true, signing in through
 workload identity federation with no key, once the `PLAY_WIF_PROVIDER` and `PLAY_SERVICE_ACCOUNT`

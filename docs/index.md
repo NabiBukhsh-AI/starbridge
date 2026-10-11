@@ -14,10 +14,10 @@ free server at starbridge.run, or [host your own](../server/README.md).
 ## Start
 
 1. **Get the app and sign in.** On Android, install the APK from
-   [GitHub Releases](https://github.com/T0mSIlver/starbridge/releases); anywhere else, open
-   [starbridge.run](https://starbridge.run). Sign in with GitHub. The first device you sign in on
-   creates your account's keys and shows your [recovery key](#recovery-key) once: save it. A
-   server that turned hostile could read a browser's keys through the page it sends, so to keep
+   [GitHub Releases](https://github.com/T0mSIlver/starbridge/releases); on a Mac, the desktop
+   app's DMG from the same page; anywhere else, open [starbridge.run](https://starbridge.run).
+   Sign in with GitHub. The first device you sign in on creates your account's keys and shows
+   your [recovery key](#recovery-key) once: save it. A server that turned hostile could read a browser's keys through the page it sends, so to keep
    them from the server, start in the Android app and add no browser
    ([FAQ](faq.md#what-does-the-server-see)).
 

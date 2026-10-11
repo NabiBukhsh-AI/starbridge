@@ -39,8 +39,8 @@ The limits:
 
 - The web app is code the server sends on each load, so a compromised server could send a page
   that uses or reads that browser's keys, approves permission prompts, or uses a pairing code
-  or recovery key typed into it. The Android app and the CLI are installed code. Where this
-  matters, use the Android app and no browser, scan machines' QR codes with the app, or host
+  or recovery key typed into it. The Mac app shows that same page. The Android app and the CLI
+  are installed code. Where this matters, use the Android app and no browser, scan machines' QR codes with the app, or host
   your own server; a self-hosted server still sends pushes through starbridge.run's relay
   unless it has its own VAPID keys and uses UnifiedPush
   ([Notifications](../server/README.md#notifications)).
@@ -78,9 +78,9 @@ the session with its command, such as `claude --continue`; the
 ## Which platforms?
 
 The CLI runs on Linux, macOS and Windows, x64 and arm64. Quotas need CodexBar, which has no
-Windows build, so a Windows machine uploads none. The app runs on Android, and the web app in any
-browser; on iOS 16.4 and later, add starbridge.run to the Home Screen from Safari to get
-notifications.
+Windows build, so a Windows machine uploads none. The app runs on Android, the desktop app on
+macOS, and the web app in any browser; on iOS 16.4 and later, add starbridge.run to the Home
+Screen from Safari to get notifications. A native iPhone app is in progress and not released.
 
 ## Why does Starbridge use CodexBar?
 
@@ -118,9 +118,9 @@ browsers. Self-hosting is free, under the MIT licence.
 The server deletes answered questions and their answers 7 days after the answer, permission
 prompts 7 days after they arrive, runs a day after their last update, and unanswered questions
 and quota snapshots after 30 days, or unanswered questions after 7 days once an account holds
-more than 1000. Delete account, in Settings on the web page or in the app, deletes everything
-the server holds for your account at once and signs out every device and machine. Backups keep
-deleted data for up to 2 weeks ([privacy page](https://starbridge.run/privacy)).
+more than 1000. Delete account, in Settings on the web page and the Mac app, and in the Android
+app from 0.1.5, deletes everything the server holds for your account at once and signs out every
+device and machine. Backups keep deleted data for up to 2 weeks ([privacy page](https://starbridge.run/privacy)).
 
 ## Why GitHub sign-in?
 

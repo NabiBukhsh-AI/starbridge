@@ -14,7 +14,7 @@ pnpm --filter @starbridge/desktop start
 ```
 
 `STARBRIDGE_SERVER=http://localhost:3000` points a run at a local server; otherwise the app uses
-the server set from its menu bar icon (right-click, "Server"), starbridge.run by default.
+the server set from its menu bar icon (right-click, "Server: …"), starbridge.run by default.
 
 Tests: `pnpm test` (unit) and `pnpm e2e`, which launches the app on a stand-in page and checks the
 bridge, the menu bar icon and the notifications (`xvfb-run -a` on Linux). The `desktop` workflow
@@ -31,6 +31,8 @@ from the notifications; CI's
 The page finds `window.starbridgeDesktop` only on the configured server's origin:
 
 - `version`: the app's version, which the page sends as `starbridge-client: desktop/<version>`.
+- `titleBar`: `"inset"` when the window has no title bar, and the page leaves room for its
+  buttons.
 - `update({count, waiting, account, entries})`: the Needs-you count, how many of them an agent
   waits on, `"ready"`, `"signedOut"` or `"loading"`, and one entry per item to notify
   (`src/bridge.ts`). Send it whenever any changes.
@@ -69,12 +71,14 @@ com.apple.widgetkit-extension -v` lists it.
 workflow when one is blown. The window loads a stand-in page there, so the network is not in the
 numbers. The Mac Mini column is main 12df3fee on the owner's Mac Mini (2026-10-09), with the same
 script: a real Mac uses more memory than the runner, so its budget is 400 MB, while CI gates at
-350 MB (owner's call, keeping the updater's ~23 MB).
+350 MB (owner's call, keeping the updater's ~23 MB). The runner column spans 104 runs from
+2026-10-08 to 10-11; a job on a slow runner takes about twice as long throughout, so the time budgets
+sit just above the slowest run (#1119).
 
 | | Budget | Runner | Mac Mini M2 |
 |---|---|---|---|
-| Cold start: process start to the window's first painted frame (median of 13 launches after a first) | 700 ms | 407–555 ms | 258–260 ms |
-| Warm open: the hidden window to its next frame, as from the menu bar | 50 ms | 7–49 ms | 15 ms |
+| Cold start: process start to the window's first painted frame (median of 13 launches after a first) | 1000 ms | 272–982 ms, median 452 | 258–260 ms |
+| Warm open: the hidden window to its next frame, as from the menu bar (median of 9) | 80 ms | 7–72 ms, median 29 | 15 ms |
 | Idle memory: every process's working set, page loaded | 350 MB on the runner, 400 MB on a Mac | 304–310 MB | 371–378 MB |
 | Download: the largest DMG | 140 MB | 133–134 MB | 134 MB |
 | Tab switch: click to the frame painting the new page, warm, with no request for the page (`test/stack.ts`) | 100 ms | 29–33 ms | 26–40 ms, behind a 55 ms round trip; 80–97 ms before (#1072) |

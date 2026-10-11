@@ -16,14 +16,16 @@ import { createInterface } from "node:readline";
 
 const DESKTOP = resolve(import.meta.dirname, "..");
 
-// From GitHub's macos-15 runner (arm64), packaged, 2026-10-09: cold medians 407–555 ms (single
-// launches from 290 ms to 1.5 s), warm 7–49 ms, 304 MB, 133 MB. Each budget leaves room for that
-// noise, not for growth.
+// From GitHub's macos-15 runner (arm64), packaged, 104 runs 2026-10-08 to 10-11: cold medians
+// 272–982 ms (median 452, 95th percentile 685), warm medians of 3 opens 7–72 ms (median 29, 95th
+// percentile 49). A whole job can land on a slow runner, every launch about twice as long:
+// 8eb7902a, a version bump, measured 982 ms and 71 ms (#1119). Each budget sits just above the
+// slowest run: a typical run fails once cold start grows 2.2 times, or a warm open 2.8 times.
 export const BUDGETS = {
   /** Process start to the window's first painted frame, median of the launches after the first. */
-  coldMs: 700,
-  /** Showing the hidden window to its next frame, as from the menu bar. */
-  warmMs: 50,
+  coldMs: 1000,
+  /** Showing the hidden window to its next frame, as from the menu bar, median of `OPENS`. */
+  warmMs: 80,
   /**
    * All processes' working sets, idle with the page loaded. 350 MB is the runner's gate; a real
    * Mac uses more, so its budget is 400 MB (owner, 2026-10-09: the Mac Mini M2 measured 371–378 MB
@@ -39,6 +41,8 @@ export const BUDGETS = {
  * 7 of them to move it: run 37949475260 failed on 6 counted, 3 of them slow (#924).
  */
 const RUNS = 14;
+/** Warm opens; 3 let two slow ones (85 and 72 ms, run 38102546726) set the median. */
+const OPENS = 9;
 
 type Mark = { name: string; at: number; ms?: number; mb?: number };
 
@@ -96,7 +100,7 @@ for (let i = 0; i < RUNS; i++) {
   if (i === 0) {
     // Hidden a second after loading; a second launch hands over and shows it.
     await new Promise((r) => setTimeout(r, 1_500));
-    for (let j = 0; j < 3; j++) {
+    for (let j = 0; j < OPENS; j++) {
       const opened = run.next("opened");
       const again = launch(dir);
       warm.push((await opened).ms as number);
