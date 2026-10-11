@@ -23,6 +23,9 @@ const nextConfig: NextConfig = {
     "/install.sh": ["../cli/install.sh"],
     "/install.ps1": ["../cli/install.ps1"],
   },
+  // The tabs prefetch their whole page (Shell.tsx) and keep it for an hour, so switching between
+  // them never waits on the server: their pages render on the client from the app's own data.
+  experimental: { staleTimes: { static: 3600 } },
   // The protocol package ships TypeScript source.
   transpilePackages: ["@starbridge/protocol"],
   // Tests import workspace packages the deploy image leaves out; `pnpm typecheck` covers them.

@@ -510,7 +510,7 @@ test("while disabled the hooks post nothing and print nothing", async () => {
   expect(await run(["config", "permissions", "off"], ctx)).toBe(0);
   expect(await hookPermission(ctx, request(), { agent: "claude-code" })).toBe(0);
   // The config listing only: the hook printed nothing.
-  expect(ctx.lines).toHaveLength(3);
+  expect(ctx.lines).toHaveLength(4);
   expect(ctx.lines[0]).toBe("permissions   off");
   expect(await server.opened("permission")).toEqual([]);
   const status = await new AgentClient(agentAddress(ctx.store.dir)).call<Status>(
@@ -789,6 +789,8 @@ test("a device answers Claude Code's picker, permissions on or off, and the sess
     agent: "claude-code",
     source: { session: SESSION, project: "starbridge" },
   });
+  // Posted in parallel, the cards keep the call's order in every inbox (#1079).
+  expect(Date.parse(sizes?.createdAt as string) - Date.parse(color?.createdAt as string)).toBe(1);
   expect(readFileSync(join(ctx.store.dir, PROMPTS_OPEN), "utf8")).toBe("open");
   await server.answer(color?.id as string, { choice: "Blue" });
   await server.answer(sizes?.id as string, { text: "S, L" });

@@ -25,7 +25,13 @@ export interface Settings {
   notificationsAsked: boolean;
   /** Whether updates include release candidates, not only finals (#1071). */
   releaseCandidates: boolean;
+  /** The page's last background colour, which the window shows until the page paints. */
+  background?: string;
 }
+
+/** A colour the page reports as its background: `#rrggbb` only. */
+export const parseBackground = (x: unknown): string | null =>
+  typeof x === "string" && /^#[0-9a-f]{6}$/i.test(x) ? x.toLowerCase() : null;
 
 export const DEFAULT_SHORTCUT = "Control+Alt+S";
 
@@ -52,6 +58,7 @@ export function readSettings(file: string, version = ""): Settings {
       typeof saved.releaseCandidates === "boolean"
         ? saved.releaseCandidates
         : version.includes("-rc."),
+    background: parseBackground(saved.background) ?? undefined,
   };
 }
 

@@ -97,6 +97,7 @@ class DevicesViewModel @Inject constructor(private val store: Store) : ViewModel
     fun refreshDirectory() = store.refreshDirectory()
     val notifyStates = store.notifyStates
     val deviceClients = store.deviceClients
+    val machinesBehind = store.machinesBehind
     fun loadNotifyStates() = store.loadNotifyStates()
     fun reportNotifications(on: Boolean) = store.reportNotifications(on)
     val actions = DeviceActions(store::lookUpPairing, store::approvePairing, store::closePairing, store::revoke, store::showCode)
@@ -131,6 +132,8 @@ fun DevicesScreen(
     notify: Map<String, String> = emptyMap(),
     /** The app each device said that from (#1019), by member id: its icon. */
     clients: Map<String, String> = emptyMap(),
+    /** The machines whose CLI is behind the latest release (#1050): "Update available", quietly. */
+    behind: Set<String> = emptySet(),
 ) {
     // A device or machine revoked elsewhere leaves the list without a restart: no push says so.
     LaunchedEffect(Unit) {
@@ -146,7 +149,7 @@ fun DevicesScreen(
     val twins = members.groupingBy { it.name }.eachCount().filterValues { it > 1 }.keys
     var revoking by rememberSaveable { mutableStateOf<String?>(null) }
     Page("Devices", modifier, onBack = onBack, titleGap = Spacing.s4) {
-        itemsIndexed(rows, key = { _, it -> it.id }) { i, it -> MemberRow(it, now, it.name in twins, groupShape(i, rows.size, outer = Spacing.s5), notify[it.id], clients[it.id]) { revoking = it.id } }
+        itemsIndexed(rows, key = { _, it -> it.id }) { i, it -> MemberRow(it, now, it.name in twins, groupShape(i, rows.size, outer = Spacing.s5), notify[it.id], clients[it.id], it.id in behind) { revoking = it.id } }
         if (recovery != null) item(key = "recovery") { RecoveryRow(recovery, onReplaceRecovery) }
         item {
             FilledTonalButton(
@@ -319,7 +322,7 @@ fun memberSym(member: Member, client: String?) = when {
  * shows its check code while `starbridge pair` waits for the owner to compare it (#939).
  */
 @Composable
-private fun MemberRow(member: Member, now: Instant, twin: Boolean, shape: Shape, notify: String?, client: String?, onRevoke: () -> Unit) {
+private fun MemberRow(member: Member, now: Instant, twin: Boolean, shape: Shape, notify: String?, client: String?, behind: Boolean, onRevoke: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     Surface(Modifier.fillMaxWidth(), shape = shape, color = scheme.surfaceContainer) {
         Row(Modifier.padding(Spacing.s4), verticalAlignment = Alignment.CenterVertically) {
@@ -352,6 +355,7 @@ private fun MemberRow(member: Member, now: Instant, twin: Boolean, shape: Shape,
                 NOTIFY_LABELS[notify]?.let {
                     Text(it, style = StarbridgeTheme.type.small, color = if (notify == "blocked") scheme.error else scheme.onSurfaceVariant)
                 }
+                if (behind) Text("Update available", style = StarbridgeTheme.type.small, color = scheme.onSurfaceVariant)
             }
             if (!member.current) {
                 TextButton(onClick = onRevoke, colors = ButtonDefaults.textButtonColors(contentColor = scheme.onSurface)) {

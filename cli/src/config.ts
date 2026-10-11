@@ -215,6 +215,11 @@ export interface AgentConfig {
   removedAgents?: string[];
   /** What this machine is, for its icon on devices: detected by pair and setup, or set. */
   machineKind?: MachineKind;
+  /**
+   * The agent's daily read of the latest release and the line saying it is out (#1050); on
+   * unless `starbridge config update-check off`.
+   */
+  updateCheck?: { enabled?: boolean };
   quota?: {
     /** The CodexBar providers to upload; none means no timer. */
     providers?: string[];
@@ -223,6 +228,16 @@ export interface AgentConfig {
     /** The `codexbar` binary; default `$STARBRIDGE_CODEXBAR`, else `codexbar` on the PATH. */
     codexbar?: string;
   };
+}
+
+/** What the agent last read of GitHub's latest release (#1050), in `latest.json`. */
+export interface LatestRelease {
+  /** When GitHub last answered, 200 or 304. */
+  checkedAt: string;
+  /** The latest release, without its `v`. */
+  version: string;
+  /** GitHub's ETag for it: a 304 answer to it costs no request from the hourly allowance. */
+  etag?: string;
 }
 
 /**
@@ -387,6 +402,15 @@ export class Store {
 
   state(): State {
     return this.read<State>("state.json") ?? { asked: {}, answers: {} };
+  }
+
+  /** The agent's last read of the latest release (#1050). */
+  latest(): LatestRelease | undefined {
+    return this.read<LatestRelease>("latest.json");
+  }
+
+  saveLatest(l: LatestRelease) {
+    this.write("latest.json", l);
   }
 
   /** Re-reads the state, applies `fn` and writes it back, under the lock. */

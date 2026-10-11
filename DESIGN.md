@@ -377,13 +377,13 @@ clients share colours, type and spacing. Change a value here, then run
 
 ## The look
 
-Direction C, "Beacon" (SPEC.md, "Brand"). Soft black and neutral greys
+Direction C, "Beacon" (spec/product.md, "Brand"). Soft black and neutral greys
 with no hue, large type, round cards, airy spacing. One
 accent: the amber of the icon's climber, which means "needs you" and nothing
 else. Everything else is black, white and grey, except the quota bars, which
 fill in each provider's lab colour.
 
-Design v2 (SPEC.md, "Brand") gives each surface a job: the landing page shows the
+Design v2 (spec/product.md, "Brand") gives each surface a job: the landing page shows the
 product (direction B), the web app is a quiet, dense control surface for any
 browser (A), and Android is full Material 3 Expressive (C).
 
@@ -392,7 +392,7 @@ guidelines: connected button groups for a decision's options, the navigation
 bar with its pill indicator (a navigation rail on wide screens), flexible top
 app bars, the expressive motion scheme (springs with overshoot), progress
 indicators with a gap and a stop mark for quota windows, the loading
-indicator, predictive back, haptics (SPEC.md, "Android"), and list and detail side by
+indicator, predictive back, haptics (spec/android.md), and list and detail side by
 side on wide screens. Stock components take their colours from these tokens
 through the theme.
 
@@ -546,6 +546,16 @@ it has no title. A session's title is words, in the reading face (#563).
   button in their dialog is red (`bad`).
 - Copy inside the UI is labels and states only, never a sentence explaining
   the screen.
+- A Settings row's title says what the setting does, explicitly enough to
+  stand alone: "Quiet other devices while you’re at a screen", not "Hold".
+  A subtitle carries only a fact the title can't: a hard limit, a surprise,
+  or how to undo a block. Never one that restates the title, the control or
+  its value ("Questions and permission prompts" under an on switch). One
+  short line. Check in the code what the setting does on the web, the desktop
+  app and Android before naming it, and hide a row a client can't honour. A
+  setting that needs another shows off and muted while that one is off, and
+  turning it on turns the other on first. One name per setting on every
+  client (#1061).
 - Light and dark are peers and follow the system setting; dark is the
   default where a platform reports no preference. Every screen ships in both.
 - Mobile width first. Tap targets are at least `size.tap`. Wider screens add a

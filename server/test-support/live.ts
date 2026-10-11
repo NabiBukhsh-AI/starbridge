@@ -10,6 +10,7 @@ import {
   checkCode,
   checkProof,
   type Directory,
+  type MachineReleases,
   open,
   openImages,
   openPairingRequest,
@@ -277,6 +278,11 @@ export class LiveServer {
   /** The members the server counts present now (#848). */
   present(): string[] {
     return this.s.deps.presence.present(this.owner.id);
+  }
+
+  /** Each machine's release as the phone reads it (#1050). */
+  async releases() {
+    return ((await this.phone("GET", "/releases")) as MachineReleases).machines;
   }
 
   /** The phone revokes a member. */

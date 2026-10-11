@@ -27,3 +27,8 @@ test("an app installed from a release candidate follows them until the owner say
   expect(read({}, "1.2.0-rc.3").releaseCandidates).toBe(true);
   expect(read({ releaseCandidates: false }, "1.2.0-rc.3").releaseCandidates).toBe(false);
 });
+
+test("the window keeps only a #rrggbb background from the page", () => {
+  expect(read({ background: "#F4F4F4" }).background).toBe("#f4f4f4");
+  expect(read({ background: "red; x" }).background).toBeUndefined();
+});

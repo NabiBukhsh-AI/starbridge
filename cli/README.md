@@ -66,9 +66,9 @@ question; steps 1 and 3 say when it asks more. A rerun repairs only what is miss
 3. When another machine of your account sent quotas in the last day, it says which and asks
    whether to send them from this one too; Enter says no. Otherwise it finds CodexBar, or asks
    to install it (Linux and macOS; CodexBar has no Windows build, so a Windows machine uploads
-   no quotas): with Homebrew if you have it, else CodexBar's latest release tarball from
-   GitHub, checked against the `.sha256` that release publishes, into `~/.local/opt/codexbar`.
-   It installs nothing when the checksum is missing or does not match. Then it asks which
+   no quotas): with Homebrew if you have it, else the CodexBar release this Starbridge release
+   pins, from GitHub, checked against the SHA-256 the pin names, into `~/.local/opt/codexbar`.
+   It installs nothing when the checksum does not match. Then it asks which
    providers' quotas to upload.
 4. It installs and starts the background service, `starbridge agent`, as a systemd user unit, a
    launchd agent, or on Windows a Scheduled Task that starts at logon without administrator
@@ -91,6 +91,17 @@ which `starbridge setup --refresh` then sets up.
 
 ### Update and uninstall
 
+Nothing updates the CLI by itself. Once a day the agent reads the latest release from GitHub,
+and when it is newer, `setup`, `pair`, `config` and `--version` end with one line on stderr:
+`Starbridge 0.2.0 is out (you have 0.1.4): run starbridge update`, or the Homebrew or npm
+command for those installs. `starbridge status` shows both versions, and your devices show
+"Update available" under the machine. `starbridge config update-check off` stops the check
+and the line; `STARBRIDGE_NO_UPDATE_CHECK=1` silences the line.
+
+The agents' integrations follow the CLI: `update` runs `setup --refresh`, which brings each
+agent's files to the new version, and the Claude Code plugins update themselves from the
+Starbridge marketplace.
+
 `starbridge update` installs the latest release over a script install, then runs `starbridge
 setup --refresh` with it and updates the Claude Code plugins. `--refresh` rewrites the files
 setup put into other tools (the background service's unit, the Codex skill and rule, opencode's
@@ -100,14 +111,16 @@ their own manager; then run `starbridge setup --refresh`. Each of those files st
 `Written by starbridge <version>` line: setup replaces and uninstall removes only files that have
 it, so remove the line from one to keep it as yours.
 
-`starbridge update` then moves a CodexBar that setup installed in `~/.local/opt/codexbar` to
-CodexBar's latest release, with the same checksum check; a CodexBar from Homebrew or the macOS
-app is left to them (`brew upgrade codexbar`). When a CodexBar release breaks, its providers show
-a quota error on your devices; `starbridge update --codexbar 0.71.1` installs that release
-instead, until a later `starbridge update` moves it to the latest again.
+`starbridge update` then moves a CodexBar that setup installed in `~/.local/opt/codexbar` to the
+release the new Starbridge release pins, with the same checksum check, and keeps one that is
+newer; a CodexBar from Homebrew or the macOS app is left to them (`brew upgrade codexbar`). When a
+CodexBar release breaks, its providers show a quota error on your devices; `starbridge update
+--codexbar 0.71.1` installs that release instead, checked only against the `.sha256` published
+beside it, until a later `starbridge update` moves an older one back to the pinned release.
 
 `starbridge uninstall` removes the background service, Starbridge from every harness and the binary,
-and asks your devices to revoke the machine. It deletes the keys only when you say so, or with `--purge`.
+and asks your devices to revoke the machine. It deletes the keys only when you say so, or with
+`--purge`; `--yes` takes every default without asking.
 
 ### Check a download
 
@@ -140,13 +153,13 @@ skill tells them when. `starbridge --help` lists every flag.
 starbridge pair
 ```
 
-It prints a code, a link and a QR code. Scan the QR code with the Starbridge Android app or your
-phone's camera, open the link in a browser where you are signed in, or type the code in
+It prints a code, a link and a QR code. Scan the QR code with the Starbridge Android app, open
+the link on your phone or in a browser where you are signed in, or type the code in
 Settings → Devices → Add a device, on your phone or in the web app, which works from a machine
 with no browser. The code expires in 10 minutes.
 
-The QR code is a `starbridge://` link that only the Android app opens, and it carries a check
-key with which the app confirms the machine's check code by itself. Approved any other way, the machine prints its check
+The QR code is text that only the Android app's scanner reads, and it carries a check key with
+which the app confirms the machine's check code by itself. Approved any other way, the machine prints its check
 code and asks whether the Android app shows the same beside it under Devices: press Enter if so, `n` if not.
 Where setup runs with no terminal, run `starbridge pair --confirm`, or `starbridge pair --reject`
 if the codes differ. A code that differs means a server read your pairing code and paired the
@@ -288,8 +301,8 @@ prompts, so that one prompt doesn't notify you twice.
 `starbridge agent` runs once per machine, as a user service. It holds the keys and the server
 connection, uploads quota snapshots and hands each session its answers. The other commands go
 through it when it runs, and to the server directly when it doesn't or when
-`STARBRIDGE_NO_AGENT=1` is set. Its flags (`--provider`, `--interval`) override `agent.json` in
-the config directory.
+`STARBRIDGE_NO_AGENT=1` is set. Its flags (`--provider`, `--interval`, `--codexbar`, `--no-quota`, `--log`)
+override `agent.json` in the config directory.
 
 ### Config
 

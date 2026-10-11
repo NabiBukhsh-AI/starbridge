@@ -69,6 +69,23 @@ test("a snoozed question leaves what needs you for Snoozed, the soonest back fir
   ]);
 });
 
+test("one tool call's questions list in the call's order, a millisecond apart (#1079)", () => {
+  const at = (createdAt: string, id: string) =>
+    question(id, { decision: { ...question(id).decision, createdAt } });
+  const inbox = [
+    at("2026-10-06T10:00:00.002Z", "third"),
+    at("2026-10-06T10:00:00Z", "older"),
+    at("2026-10-06T10:00:00.000Z", "first"),
+    at("2026-10-06T10:00:00.001Z", "second"),
+  ];
+  expect(needsYou(inbox, [], Date.parse("2026-10-06T12:00:00Z")).map((e) => e.id)).toEqual([
+    "older",
+    "first",
+    "second",
+    "third",
+  ]);
+});
+
 const zone = process.env.TZ;
 afterEach(() => {
   if (zone === undefined) delete process.env.TZ;

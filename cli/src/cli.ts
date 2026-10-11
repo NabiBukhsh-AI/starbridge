@@ -31,6 +31,7 @@ import {
   wait,
 } from "./decisions";
 import { hookAskUser, hookCursorSession, hookPermission, hookQuestion, hookSettle } from "./hook";
+import { updateLine } from "./latest";
 import { pair, sendConfirm } from "./pair";
 import { pushOnce, quotaPush } from "./quota";
 import { installKind, ReleaseError } from "./release";
@@ -177,15 +178,18 @@ const HELP = `starbridge: post decisions to your devices, report runs, upload qu
       The commands above go through it when it runs, and to the server directly when not
       (or with STARBRIDGE_NO_AGENT=1).
 
-  starbridge config [permissions on|off] [presence on|off] [machine-kind server|desktop|laptop|cloud]
+  starbridge config [permissions on|off] [presence on|off] [update-check on|off]
+                   [machine-kind server|desktop|laptop|cloud]
       Print this machine's settings, or change one. permissions: send its Claude Code
       permission prompts to your devices, where they can be allowed or denied; the prompt
       stays open at the keyboard and the first answer wins. Off by default; while off, the
       starbridge plugin's permission hook exits at once. presence: while this machine's
       screen is unlocked and had keyboard or mouse input in the last minute, notifications
       on your other devices wait a few seconds, so a question you answer here doesn't buzz
-      them; the server hears only yes or no. Off by default. machine-kind: the icon
-      devices show, detected by setup.
+      them; the server hears only yes or no. Off by default. update-check: the agent reads
+      the latest release from GitHub once a day, and commands you run say when it is newer
+      (STARBRIDGE_NO_UPDATE_CHECK=1 silences that line too). On by default. machine-kind: the
+      icon devices show, detected by setup.
 
   starbridge hook permission --agent claude-code|pi|opencode|antigravity [--wait 570s]
   starbridge hook settle --agent claude-code
@@ -294,7 +298,33 @@ async function orServer(ctx: Ctx, viaAgent: Promise<number>): Promise<number> {
   }
 }
 
+/**
+ * Commands a person runs, never an agent or a hook: after one, a terminal shows whether a newer
+ * release is out (#1050). `status` names it itself, and `update` is the cure.
+ */
+const PERSON_COMMANDS = new Set([
+  "setup",
+  "pair",
+  "config",
+  "--version",
+  "-v",
+  "help",
+  "--help",
+  "-h",
+  undefined,
+]);
+
 export async function run(argv: string[], ctx: Ctx): Promise<number> {
+  const code = await dispatch(argv, ctx);
+  const [command, ...rest] = argv;
+  if (ctx.terminal && PERSON_COMMANDS.has(command) && !rest.includes("--refresh")) {
+    const line = updateLine(ctx, installKind);
+    if (line) ctx.err(line);
+  }
+  return code;
+}
+
+async function dispatch(argv: string[], ctx: Ctx): Promise<number> {
   const [command, ...rest] = argv;
   try {
     await ready;

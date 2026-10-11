@@ -44,7 +44,11 @@ class Beacon(
         const val BEAT_MS = 30_000L
         /** How often the app checks whether it still counts. */
         const val CHECK_MS = 10_000L
-        /** The hold times offered, in seconds; 0 pushes at once. */
-        val HOLD_CHOICES = listOf(0, 15, 30, 60, 120)
+        /** No hold: every device's push goes at once (PUSH_HOLD_OFF). */
+        const val HOLD_OFF = 0
+        /** A hold that ends as soon as the owner leaves (PUSH_HOLD_ON_LEAVE, #1060). */
+        const val HOLD_ON_LEAVE = -1
+        /** The hold choices offered: off, or how long after the owner left the last screen. */
+        val HOLD_CHOICES = listOf(HOLD_OFF, HOLD_ON_LEAVE, 15, 30, 60)
     }
 }

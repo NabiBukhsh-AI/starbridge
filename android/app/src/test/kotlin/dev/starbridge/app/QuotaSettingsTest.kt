@@ -35,7 +35,7 @@ class QuotaSettingsTest {
         )
     }
 
-    // The same cases as the web's quotaSettings.test.ts (SPEC.md, "Quota order"). Wednesday noon.
+    // The same cases as the web's quotaSettings.test.ts (spec/items.md, "Quota order"). Wednesday noon.
     private val noon = local(7, 12)
     private fun win(provider: String, label: String, pace: Pace, resetsAt: Instant = local(12)) =
         week.copy(id = "$provider/$label", provider = provider, window = label, pace = pace, resetsAt = resetsAt, alert = pace is Pace.Unused)

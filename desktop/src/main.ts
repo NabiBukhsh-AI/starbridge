@@ -22,7 +22,13 @@ import { type Answer, type Entry, parseAnswered, parseState } from "./bridge";
 import { Notifier, type Shown } from "./notifier";
 import { linkPage, opensOutside, serverOrigin, staysInWindow } from "./origin";
 import { type Reading, SCREEN_CHECK_MS, Screen } from "./screen";
-import { parsePlace, readSettings, type Settings, writeSettings } from "./settings";
+import {
+  parseBackground,
+  parsePlace,
+  readSettings,
+  type Settings,
+  writeSettings,
+} from "./settings";
 import { browserSignIn, newSignIn, type SignIn, signInReturn, startsSignIn } from "./signin";
 import { mark, timing } from "./timing";
 import { snapshot, Widgets } from "./widgets";
@@ -145,8 +151,19 @@ async function ready(): Promise<void> {
     applyPlace();
     win?.webContents.send("place", place);
   });
+  // The page's background, so a slow load or a reload never shows another colour.
+  ipcMain.on("background", (e, x) => {
+    const background = fromPage(e) && parseBackground(x);
+    if (!background || background === settings.background) return;
+    settings.background = background;
+    save();
+    win?.setBackgroundColor(background);
+  });
   screen = new Screen(powerMonitor, tellScreen);
   setInterval(() => screen?.check(), SCREEN_CHECK_MS);
+  ipcMain.on("shown?", (e) => {
+    e.returnValue = e.sender === win?.webContents ? win.isVisible() && !win.isMinimized() : null;
+  });
   ipcMain.on("screen?", (e) => {
     e.returnValue = e.sender === win?.webContents ? screen?.read() : null;
   });
@@ -225,7 +242,9 @@ function createWindow(): void {
     ...(process.platform === "darwin"
       ? { titleBarStyle: "hiddenInset" as const, trafficLightPosition: { x: 12, y: 20 } }
       : {}),
-    backgroundColor: "#0c0c0c",
+    // The page's own background until it paints: its last one, else the system's theme's.
+    backgroundColor:
+      settings.background ?? (nativeTheme.shouldUseDarkColors ? "#0c0c0c" : "#f4f4f4"),
     webPreferences: {
       preload: join(ROOT, "dist", "preload.js"),
       partition: "persist:starbridge",
@@ -253,6 +272,10 @@ function createWindow(): void {
   win.on("hide", () => {
     if (settings.place === "menu") app.dock?.hide();
   });
+  // The page stays "visible" to itself while hidden (backgroundThrottling), so the app tells it.
+  const tellShown = () => win?.webContents.send("shown", !!win?.isVisible() && !win.isMinimized());
+  for (const event of ["show", "hide", "minimize", "restore"] as const)
+    win.on(event as "show", tellShown);
   // Offline at start, or the server restarting: try again, unless a newer navigation came first.
   let retry: NodeJS.Timeout | undefined;
   win.webContents.on("did-start-navigation", (d) => {
