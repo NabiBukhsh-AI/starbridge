@@ -206,7 +206,10 @@
   http(s) origin goes into the script. It checks `SHA256SUMS` with
   minisign, else OpenSSL 3, else Python 3 (#1032): RHEL 8 ships OpenSSL 1.1.1, whose command line
   has no Ed25519 check, and no minisign, but always a Python for dnf. With none of them it stops
-  and prints the command that installs minisign on that distribution; no flag skips the check. `starbridge update` replaces script installs
+  and prints the command that installs minisign on that distribution; no flag skips the check.
+  The signature's trusted comment must name the version it installs: `STARBRIDGE_VERSION`, else the
+  tag `releases/latest` redirects to. Downloads go over HTTPS only, but from a mirror on the
+  machine itself. `starbridge update` replaces script installs
   and points Homebrew and npm installs at their manager. Windows refuses to replace or delete a
   running `.exe` but lets it be renamed, so `update` moves it aside to `starbridge.exe.old` and
   the next update removes that; `uninstall` deletes the binary from a detached cmd.exe two seconds
