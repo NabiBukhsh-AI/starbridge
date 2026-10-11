@@ -135,6 +135,53 @@
       }
     },
     {
+      "name": "an item with a null re",
+      "item": {
+        "v": 1,
+        "kind": "decision",
+        "id": "dec_1",
+        "from": "devbox",
+        "boxes": [
+          {
+            "to": "phone",
+            "box": "CNFheAh8AgxcA_JlcB2d3rsYSophUb0oNBryiCNS2Q3Rx-zWRXBOSQQ_JSGjiIzyhSWi-IO7zKOc3hmf0S2QKXZc3DNZFB6cLyZ4KXaRJSAMplvVAoi6jfC-gE45KILWKad7jK-o0pFf0FMUH-rRQzizR48n9F4-U6Mk3dAzo5c3QdJTXX9e7zVx5hKYY6vz74rX8yUoO8-HLpz82sIxruf2-NbDCv2gFQxpYf_C2ok3OtwO7ChrBmtptfdc03D_sJihZRRBueLqEe2TKQfhxt5lHQcUtwNbU7AcWqpRWIW4C40OD89VsVmYoHc3d_VyRBjQFp-sJ-uzG6ezPwYsWBgFOTy6FznUhya1pSEVGU1zbmJTPe43AlGDEPkq43vI8FgE2gQPD5-ncYDsAfGr0c95uGEBYZNWWoX9ao6L0ZPIZSaxWVwlTXQUND_60KXaNVtw5bZlIWva4uATJ4xqkaqLrj3pG0PX1RSZROkCH21gxonfAtposyNAaX0wuKH_dDAW5AC9EA5ajCZm19pkaAxzaOVmpp0nrfCvvzSlfG8C9IZEqfsFXmjY-LBnEfnmWBLIqFklt9bf_GNHVEwx0vJTcBUirZkvTeW6TNs6jbfu9fEKv38NED9HY11Vb73k6w-9aqY5-wpE8ZSCLuk2yEQDGaGHIapXTnONitO8DFaR93veqBZ3vAVq8U0OAsYbGJuipuo5TwGQUoxwHGuU8Kwv8hOhO80MIdghyvtwVG9ZLuN2q4CpPW2POw8ijKdJoqmzz2A"
+          },
+          {
+            "to": "phone2",
+            "box": "kGdVBoohRJ93ptXsGuGkYOPx8qMmO3TFQ3q_eqiSlkV9_-mBoz5uWia2TpKjUFGaXpdiIMPIMk_460bniZwTqajbuan1ZLQKqJ98KiEAvvo9rDZccnAVK9I72_My4bKZ438ojAGa1-zA-_S-Wtvb2JMNa09E-KRx7OFI9RxiDjzITM1g6tpkdtpdJq41Txoetupm6UM0Hi20zcxPKHipZs_mmaLm72NQg530JDgBGYMvRXSW4gq1tIDCWvxs9sz41i2Svjlzc5jiX5FpPAw9rdNSgRERteB3CsHj0ypbb_7R5LFIfpazhOciMmM57oI1bqGB92degnSKtIItF5X_TzCYKJGoddEvlnFSe5lu3Bfc1JGKIDq6H5aLW-ASdj_lVQgxlRdZZlH3BQBRRQrHKbGaHf3BL70N1_8HNCY5hNr8tTzR4Z-GPBZmWgUpUSzhzyvp2OpqvnyGlGTHcyYxV5PDFAG4pcdIqwdsO22WxgyB7GFeanqoZE4RPSH6sY34Cyoy06mIf1dIs0iINmgtJ8pWAyXRTE9-U-jAW9ngzd4_w4O-JjtcHIJSsiOV2BUBHclL7WEb4z5zz-9d0YFNR037u15Ob1SC__1KV3npvzDPO9A6F_05odyMe6zatwYJmE3KGj2bQtoEjWaeEq9TulfHoC_DRBSjqSg2STJHPzCgOsMvBLBOPQl6GuOWU7fvycShMIu5VPmhhH6lUn5SG8W4fKO6283Xv1_2mHoEvczXVevW2CiY_h9Hmfo9v5mOu78sOAk"
+          }
+        ],
+        "re": null
+      },
+      "recipient": "phone",
+      "expect": {
+        "error": "bad-schema"
+      }
+    },
+    {
+      "name": "an envelope with a null recoverySig",
+      "item": {
+        "v": 1,
+        "kind": "decision",
+        "id": "dec_1",
+        "from": "devbox",
+        "boxes": [
+          {
+            "to": "phone",
+            "box": "835xw8bapaG5q52J1WwNgpeKTGV9vBA93bJDsY9-Wko1TWuc4xAX5kHBWA4itmriIDM4QOHPJ4pQbyz-TYscH9xvVER1UXXj91zhYLnTaWDykloRaGwKob7LkZyY8GG1s1rOmMLeVzndzr9DN9yTSSPWKXGgym9ck408xpDymhJGaiHSynD6Uxb09zejYD984897T1eJhqgbkjyyp8Xk29GjtyUb0JT8mfw0kyYMP_1VADhQkzGCxtmbwVCsN9lMB9l33mpr5AOmkQRL3IR9BTFFkHHR5hWeGz_sncovOKd6xd7h9PP8NgffuTCvbjA3ABAOboxMMOt8yNMzsb6IJisjZYQY1g4wG_2nqRHdibB5y6DFah4LWzllGDYapovDVWTb_kH94U3s2Bvzw389GFV5P6DyyEY9z-wY7O3kvSHPZECNQcZYuChE6F2rzEXxYyRApN0uCM5jujguIcaMmCONN9k9-05bOgDk8DgXCcFNB0hHSI7SBLq9zLWfYMmLGPOqy4nsN-mwHZJnDEjIlkCHs9Cwf2ZjxWFHkyE8XLbphwv6BiGAJF6fPceeKmuwFDySR6EGAq0YJTjkN0ozsQolfHuQRjZVix3TvuVxrgfbc5lLXwLxrDxftsur42T6QoklBEbOFn0WVInIYrt8LtTuIkkK61R53i7DrsBdSEGMPjCcRSw6ginNF0px98DIs5M9j1ycvRLPgeakmd2N12Mg51ouLu1vI3e75Oj_GlRmzNMNps73Izziff8XCc_ovbhqQZxZYidi226mQkX9HbGvttITtzeK"
+          },
+          {
+            "to": "phone2",
+            "box": "Qg-Cl3mN3exdz8JEvWZpw3b8tYMhnVz6HlCUC13AdyFFW2dhnILdzBMkcC-NTEZSw8lR-g6JhpMy4iBk4fBwPuYxmBXv_7AmuF0tVQrfrMOKnsZLHJvlxm1I98YiB7Y1Tm-K441OtsITpuxrGn8fCot89NvnXUc-fCpXeYUUn3a7hzE--hYGEwyoq59oWl6GEvh0oUKNrCGRhFf7zxprEF9F_b7GxbSAKb2Gs80VEQtZPdsi9rcTiMQbEpPGSi8UVVDvjTeixRf7Ua5cA9nInJmz-mtIK5AJrMqe75D2-Km3yDjNxRkudJKVNFKjBjkC2MlpM6HIZnjX6Re9yrrSvr0lOlhTVyBlRAwNBDj97Y88bSZVmtr7O_H_ddU_N_oXzRDYsQgRHlwmUooshxfFnHUMtrm0ODS7oK2iU9Rd9o5N7Bfl_N181ODpj_CYLoOGRLlbhKpIbRm2-kNjue-ZW8KDTRx0EGgf5MUG9ImJASQCI_E0Q2VmYqCYyR3dGjXKrHA5hsYz5hVEIC391v0lhtTZYCpNY0NBIA9kbvcxjxOi1H53gNUjmsytajhLaQMVkA4q6I4X4bM41X6_XCikixnsZi5NuKVDzJohxvLi1C2EpJU_lYbTECYM09gs5hIrBmjqq0eFjmGZ6jMIS7BPNnBiOwv6bhrUg71mNwXJmGjKoCVaZ52xXWN7ysIbZY_FShIWKxPbUNH6SsZfq2nYYZQJriY9wvnAdcVZWMaMUj_XNTiZFJ-UKC6Jm5d1mtdRpSwRvl2YFkERcqiZnYfdo2tmpDali_7t"
+          }
+        ]
+      },
+      "recipient": "phone",
+      "expect": {
+        "error": "bad-schema"
+      }
+    },
+    {
       "name": "an item that is quiet: false",
       "item": {
         "v": 1,

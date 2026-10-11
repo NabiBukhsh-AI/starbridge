@@ -7,6 +7,7 @@ import dev.starbridge.app.protocol.ProtocolJson
 import dev.starbridge.app.protocol.SealedItem
 import dev.starbridge.app.protocol.SignedEnvelope
 import dev.starbridge.app.protocol.envelopeJson
+import dev.starbridge.app.protocol.parseSealedItem
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
@@ -15,6 +16,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.boolean
@@ -267,9 +269,12 @@ class Api(private val http: OkHttpClient, private val server: String, private va
         call("POST", "/items", ProtocolJson.encodeToJsonElement(item))
     }
 
-    suspend fun items(kind: String, after: String): ItemPage = get("/items?kind=$kind&after=$after")
+    suspend fun items(kind: String, after: String): ItemPage {
+        val page = call("GET", "/items?kind=$kind&after=$after").second!!.jsonObject
+        return ItemPage(listedItems(page.getValue("items")), page["cursor"]?.jsonPrimitive?.content ?: "")
+    }
 
-    suspend fun item(id: String): Listed = get("/items/$id")
+    suspend fun item(id: String): Listed = listed(call("GET", "/items/$id").second!!)
 
     suspend fun deleteItem(id: String) {
         call("DELETE", "/items/$id")
@@ -280,7 +285,22 @@ class Api(private val http: OkHttpClient, private val server: String, private va
         call("POST", "/quota/ask?wait=$waitSeconds", client = longPoll(waitSeconds))
     }
 
-    suspend fun quota(): List<Listed> = call("GET", "/quota").second!!.jsonObject.getValue("items").let { ProtocolJson.decodeFromJsonElement(it) }
+    suspend fun quota(): List<Listed> = listedItems(call("GET", "/quota").second!!.jsonObject.getValue("items"))
+
+    /** A listed item, its sealed item read as packages/protocol reads it ([parseSealedItem]). */
+    private fun listed(json: JsonElement): Listed {
+        val item = parseSealedItem(json.jsonObject.getValue("item"))
+        return ProtocolJson.decodeFromJsonElement<Listed>(json).copy(item = item)
+    }
+
+    /** Leaves out an item its schema refuses, as iOS does: one item never hides the rest (#1146). */
+    private fun listedItems(items: JsonElement): List<Listed> = items.jsonArray.mapNotNull {
+        try {
+            listed(it)
+        } catch (e: ProtocolException) {
+            null
+        }
+    }
 
     /** Returns the subscription id. [keys] carries RFC 8291's p256dh and auth for UnifiedPush. */
     suspend fun subscribe(type: String, endpoint: String, keys: Pair<String, String>? = null): String =

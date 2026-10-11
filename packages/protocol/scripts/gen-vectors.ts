@@ -451,6 +451,15 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
         ],
         expect: { error: "bad-schema" },
       },
+      {
+        // A null refuses the entry rather than reading as absent (#505, #1146).
+        name: "entry with a null recoverySig",
+        entries: [
+          ...chain.slice(0, -1),
+          { ...chain[chain.length - 1], recoverySig: null } as unknown as SignedEnvelope,
+        ],
+        expect: { error: "bad-schema" },
+      },
     ];
   }
 
@@ -883,6 +892,27 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
       item: { ...decisionItem, boxes: [{ to: "phone", box: "AAAAA" }] },
       recipient: "phone",
       expect: { error: "cannot-open" },
+    },
+    // A null refuses the item rather than reading as absent (#505, #1146).
+    {
+      name: "an item with a null re",
+      item: { ...decisionItem, re: null },
+      recipient: "phone",
+      expect: { error: "bad-schema" },
+    },
+    {
+      name: "an envelope with a null recoverySig",
+      item: rawSeal(
+        "decision",
+        decisionItem.id,
+        {
+          ...signedDecision,
+          recoverySig: null,
+        } as unknown as SignedEnvelope,
+        devices,
+      ),
+      recipient: "phone",
+      expect: { error: "bad-schema" },
     },
     {
       name: "an item that is quiet: false",
