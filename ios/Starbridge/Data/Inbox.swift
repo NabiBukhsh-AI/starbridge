@@ -200,7 +200,10 @@ struct SavedRun: Codable, Equatable {
     /** When its machine last said anything about it. */
     var lastNews: Date { Dates.parse(body.at) ?? .distantPast }
 
-    /** Running with no update for RUN_STALE_MS: its machine is gone. */
+    /** Ended with a non-zero exit code. */
+    var failed: Bool { (body.exit?.code ?? 0) != 0 }
+
+        /** Running with no update for RUN_STALE_MS: its machine is gone. */
     var lost: Bool { body.exit == nil && Date().timeIntervalSince(lastNews) * 1000 > Double(RUN_STALE_MS) }
 }
 
