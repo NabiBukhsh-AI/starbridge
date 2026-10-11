@@ -19,12 +19,12 @@ opens an issue for each client the row says should follow.
 | Permission prompts, answer from the device (Allow / Deny) | yes | yes | yes | yes (#1122: Allow, Deny with a note, offered scopes) |
 | Runs (section, progress, dismiss) | yes | yes | yes | yes (#1122; the section #1170) |
 | Quotas tab | yes | yes | yes | yes (#1234: read with the inbox every 10 s while the app is open, since APNs carries no snapshots; Order is a page under Settings → Quotas) |
-| Quota alerts per window (settings) | yes | yes | yes | not yet |
+| Quota alerts per window (settings) | yes | yes | yes | yes (#1235: Settings → Quotas → Alerts, as Android's page) |
 | Widgets | n/a | yes (#894: Needs you, Quotas) | yes (#1031: Needs you only; no Quotas widget by owner's choice) | not yet |
 | Notification: questions | yes (Web Push) | yes | yes | yes (#1137: a service extension opens the sealed box in place of the server's placeholder; delivery on a device waits for TestFlight) |
 | Notification: permission prompts | yes (taps open the page; no Allow/Deny) | yes (Allow / Deny buttons) | yes (no Allow/Deny; opens window) | yes (#1137: Deny answers from the notification; Allow opens the prompt, which shows the whole input first) |
 | Notification: runs | yes (#1064: pass or fail, while a page is open; runs skip Web Push) | yes (Live Update on Android 16) | yes (#1064: pass or fail, the page's own, shown by the app) | no (APNs gets no runs, as Web Push) |
-| Notification: quota alerts | yes (only while a page is open) | yes (low-importance channel) | yes (the page's own, shown by the app) | no (APNs gets no quota snapshots, as Web Push) |
+| Notification: quota alerts | yes (only while a page is open) | yes (low-importance channel) | yes (the page's own, shown by the app) | yes (#1235: only while the app is open, as the web, since APNs gets no quota snapshots; quiet, in Notification Center) |
 | Answer from a notification: option buttons | yes (only if every option fits the browser's action limit) | yes (at most 3 options) | yes | yes (#1137: at most 3, the agent's default first) |
 | Answer from a notification: typed reply | no (service worker has no input action) | yes (RemoteInput "Your answer") | yes (Reply button) | yes (#1137: Reply, or Answer for a question without options) |
 | Presence (holds other devices' pushes) | yes (#848) | yes (#848) | yes (#945, uses Mac lock/idle) | not yet |
