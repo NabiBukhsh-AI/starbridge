@@ -28,8 +28,8 @@
   terminates it, so the agent also removes the file on SIGHUP (its console closing), SIGBREAK and
   any exit, and setup removes it after ending the agent; a stale `agent.port` stays possible
   after a hard kill, which the `pid` check covers.
-  `icacls` gives the file to its user only, as the 0600 mode does the socket. The service is a Scheduled Task
-  at the user's logon, registered from a marked XML file in `%LOCALAPPDATA%\starbridge` with the
+  `icacls` gives the file to its user only, as the 0600 mode does the socket; when it fails, the
+  agent does not serve (#1209). The service is a Scheduled Task at the user's logon, registered from a marked XML file in `%LOCALAPPDATA%\starbridge` with the
   ScheduledTasks cmdlets: it needs no administrator, unlike a Windows service, and restarts on
   failure, unlike the `Run` registry key. It runs the agent under `conhost.exe --headless`, since
   a console program opens a window, with no time limit, since a task stops after 3 days by

@@ -871,7 +871,7 @@ is 0700, the socket 0600. Types: `cli/src/agent/api.ts`.
 On Windows (#552), Node and Bun read a socket path as a named pipe, which other local users can
 open, so the agent listens on a free port on 127.0.0.1 instead. It writes `agent.port`,
 `{port, token, pid}`, into the config directory through a temporary file that `icacls` makes
-readable by its user only. `token` is 32 random bytes, new at each start, and never crosses the
+readable by its user only; when that fails, the agent does not serve. `token` is 32 random bytes, new at each start, and never crosses the
 wire. Each request sends a fresh 16-byte nonce as `starbridge-nonce: <32 hex>` and
 `authorization: Starbridge <sha256hex("<token>:client:<nonce>")>`; the agent answers any other
 with 401 `{error: "unauthorized"}`, and every answer to a proven request carries
