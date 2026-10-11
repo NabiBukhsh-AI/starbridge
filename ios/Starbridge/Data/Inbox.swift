@@ -69,24 +69,51 @@ struct SavedDecision: Codable, Equatable {
     }
 }
 
-/** An image of a question, opened: its bytes base64url, and the shape its body names. */
+/**
+ * An image of a question, opened: the shape its body names, its bytes in a file of their own
+ * beside the saved state, so the state the app rewrites and the notification extension reads
+ * stays small.
+ */
 struct SavedImage: Codable, Equatable {
     let type: String
     let width: Int
     let height: Int
     let alt: String?
-    let data: String
+    /** The file's name in `SavedImage.directory`. */
+    let file: String
 
-    init(_ image: ShownImage) {
+    /** Where the images live: an `images` folder beside the saved state, set by the store. */
+    nonisolated(unsafe) static var directory = FileManager.default.temporaryDirectory.appendingPathComponent("images")
+
+    /** Writes `image`'s bytes as the `index`th image of question `decision`; nil when it cannot. */
+    init?(_ image: ShownImage, decision: String, index: Int) {
         type = image.type
         width = image.width
         height = image.height
         alt = image.alt
-        data = toB64(image.data)
+        file = "\(decision).\(index)"
+        do {
+            try FileManager.default.createDirectory(at: Self.directory, withIntermediateDirectories: true)
+            try Data(image.data).write(to: Self.directory.appendingPathComponent(file), options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        } catch {
+            return nil
+        }
     }
 
-    var bytes: Data { Data((try? fromB64(data)) ?? []) }
+    var bytes: Data { (try? Data(contentsOf: Self.directory.appendingPathComponent(file))) ?? Data() }
     var aspect: CGFloat { height > 0 ? CGFloat(width) / CGFloat(height) : 1 }
+
+    /** A question's images that open from `item`'s blobs, each written to its file. */
+    static func keep(_ item: SealedItem, _ d: Decision) -> [SavedImage] {
+        Images.open(item, images: d.images).enumerated().compactMap { SavedImage($1, decision: d.id, index: $0) }
+    }
+
+    /** Deletes the files of questions no longer kept. */
+    static func prune(keeping decisions: [SavedDecision]) {
+        let kept = Set(decisions.flatMap { $0.images.map(\.file) })
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        for name in names where !kept.contains(name) { try? FileManager.default.removeItem(at: directory.appendingPathComponent(name)) }
+    }
 }
 
 /** A machine's permission prompt as this iPhone keeps it. */

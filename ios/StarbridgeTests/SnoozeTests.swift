@@ -24,6 +24,8 @@ final class SnoozeTests: XCTestCase {
         XCTAssertEqual(SnoozeTimes.start(at(11, 0, 0), at(11, 14, 40), calendar), at(11, 16, 0))
         XCTAssertEqual(SnoozeTimes.start(at(11, 0, 0), at(11, 14, 0), calendar), at(11, 15, 0))
         XCTAssertEqual(SnoozeTimes.start(at(13, 0, 0), at(11, 14, 10), calendar), at(13, 9, 0))
+        // Late in the evening, today's last half hour rather than tomorrow.
+        XCTAssertEqual(SnoozeTimes.start(at(11, 0, 0), at(11, 22, 35), calendar), at(11, 23, 30))
         XCTAssertEqual(SnoozeTimes.days(at(11, 14, 0), calendar).count, 8)
     }
 

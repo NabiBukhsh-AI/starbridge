@@ -136,13 +136,14 @@ extension InboxView {
         case .none:
             return [FeedGroup(title: "", items: feed)]
         case .machine:
+            // Runs keep their section above (#835).
             var order: [String] = []
             var byMachine: [String: [FeedItem]] = [:]
-            for item in feed {
+            for item in feed where !item.isRun {
                 if byMachine[item.machine] == nil { order.append(item.machine) }
                 byMachine[item.machine, default: []].append(item)
             }
-            return order.map { FeedGroup(title: $0, items: byMachine[$0]!) }
+            return [FeedGroup(title: "", items: feed.filter(\.isRun))].filter { !$0.items.isEmpty } + order.map { FeedGroup(title: $0, items: byMachine[$0]!) }
         case .waiting:
             let runs = feed.filter(\.isRun)
             let waiting = feed.filter { !$0.isRun && $0.waits }

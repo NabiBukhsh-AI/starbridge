@@ -31,7 +31,10 @@ enum SnoozeTimes {
             let ahead = now.addingTimeInterval(3600)
             let minute = calendar.component(.minute, from: ahead)
             let up = minute == 0 ? 0 : minute <= 30 ? 30 - minute : 60 - minute
-            return calendar.date(bySetting: .second, value: 0, of: ahead.addingTimeInterval(TimeInterval(up * 60))) ?? ahead
+            let start = calendar.date(bySetting: .second, value: 0, of: ahead.addingTimeInterval(TimeInterval(up * 60))) ?? ahead
+            // Late in the evening that would be tomorrow: today's last half hour instead.
+            if !calendar.isDate(start, inSameDayAs: day) { return calendar.date(bySettingHour: 23, minute: 30, second: 0, of: day) ?? start }
+            return start
         }
         return calendar.date(bySettingHour: 9, minute: 0, second: 0, of: day) ?? day
     }

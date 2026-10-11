@@ -67,6 +67,7 @@ final class Store {
         self.disk = disk
         self.deviceName = deviceName
         self.http = http
+        SavedImage.directory = disk.url.deletingLastPathComponent().appendingPathComponent("images")
         saved = disk.load() ?? Saved(server: Self.defaultServer)
         do {
             secrets = try vault.load()
@@ -99,7 +100,8 @@ final class Store {
     func save(_ newSaved: Saved? = nil, _ newSecrets: Secrets? = nil) throws {
         // The secrets first: a saved state naming keys the vault lacks could not resume.
         if let newSecrets { try vault.save(newSecrets) }
-        if let newSaved {
+        // A sync that changed nothing writes nothing: the file is read by the notification extension too.
+        if let newSaved, newSaved != saved {
             do {
                 try disk.save(newSaved)
             } catch {
@@ -678,6 +680,7 @@ final class Store {
         tooOld = nil
         withheldWhy = nil
         persist(Saved(server: saved.server), Secrets())
+        try? FileManager.default.removeItem(at: SavedImage.directory)
     }
 
     /** Leaves the account: removes this iPhone from the devices unless it is the last one. */
