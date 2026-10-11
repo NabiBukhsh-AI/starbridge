@@ -33,8 +33,8 @@ npm install -g starbridge
 
 A rerun repairs only what is missing.
 
-1. Pairs the machine ([Pair](#pair)) with `--server`, `STARBRIDGE_SERVER`, the server whose
-   install script you ran, or https://starbridge.run.
+1. Pairs the machine ([Pair](#pair)) with the first of `--server`, `STARBRIDGE_SERVER`, the
+   server whose install script you ran, the machine's current server, or https://starbridge.run.
 2. Installs Starbridge in each harness it finds
    ([What setup installs](../docs/tell-your-agents.md#what-setup-installs)). A failed install
    prints the command that retries it.
@@ -63,7 +63,7 @@ Once a day the background service reads the latest release; when it is newer, `s
 | Command | Effect |
 |---|---|
 | `starbridge update` | Installs the latest release over a script install, then runs `setup --refresh` and updates the Claude Code plugins. Homebrew and npm installs update through their manager; then run `setup --refresh`. |
-| `starbridge update --codexbar <version>` | Installs that CodexBar release instead of the pinned one ([Do you trust CodexBar's code?](../docs/faq.md#do-you-trust-codexbar-s-code)). |
+| `starbridge update --codexbar <version>` | When the pinned CodexBar release breaks and your devices show quota errors, installs that release instead, until a later `starbridge update` ([Do you trust CodexBar's code?](../docs/faq.md#do-you-trust-codexbar-s-code)). |
 | `starbridge config update-check off` | Stops the daily check; `STARBRIDGE_NO_UPDATE_CHECK=1` silences the line. |
 | `starbridge uninstall` | Removes the background service, Starbridge from every harness and the binary, and asks your devices to revoke the machine. Asks before deleting the keys (`--purge` doesn't ask). |
 | `starbridge uninstall --agent <name>` | Removes Starbridge from one harness; setup leaves it out until `setup --agent <name>`. |
