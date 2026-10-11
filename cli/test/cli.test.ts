@@ -802,9 +802,9 @@ test("Antigravity's Stop hook holds a waiting turn for its answer and hands it o
 test("config turns permission prompts on and off", async () => {
   const ctx = await paired(server);
   expect(await run(["config"], ctx)).toBe(0);
-  expect(ctx.lines.at(-4)).toBe("permissions   off");
+  expect(ctx.lines.at(-5)).toBe("permissions   off");
   expect(await run(["config", "permissions", "on"], ctx)).toBe(0);
-  expect(ctx.lines.at(-4)).toBe("permissions   on");
+  expect(ctx.lines.at(-5)).toBe("permissions   on");
   expect(await run(["config", "permissions", "maybe"], ctx)).toBe(1);
 });
 

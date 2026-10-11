@@ -91,12 +91,19 @@ which `starbridge setup --refresh` then sets up.
 
 ### Update and uninstall
 
-Nothing updates the CLI by itself. Once a day the agent reads the latest release from GitHub,
-and when it is newer, `setup`, `pair`, `config` and `--version` end with one line on stderr:
+Once a day the agent reads the latest release from GitHub. On a CLI installed by `install.sh` or
+`install.ps1`, a newer release installs by itself: the agent runs `starbridge update` within two
+hours of reading it, at a moment when no question, permission prompt or run is in flight on the
+machine. A failed update keeps the old version and tries again the next day.
+`starbridge config updates off` stops that; then, as on Homebrew and npm installs, `setup`,
+`pair`, `config` and `--version` end with one line on stderr when a newer release is out:
 `Starbridge 0.2.0 is out (you have 0.1.4): run starbridge update`, or the Homebrew or npm
-command for those installs. `starbridge status` shows both versions, and your devices show
-"Update available" under the machine. `starbridge config update-check off` stops the check
-and the line; `STARBRIDGE_NO_UPDATE_CHECK=1` silences the line.
+command. `starbridge status` shows both versions, whether updates are automatic, what holds the
+next one, the last update and the last failure with its reason; `~/.config/starbridge/update.log`
+holds the last automatic update's output. Your devices show "Update available" under a machine
+that is behind, else when it last updated and to what. `starbridge config update-check off`
+stops the check, the line and the automatic updates; `STARBRIDGE_NO_UPDATE_CHECK=1` does the same
+where it is set.
 
 The agents' integrations follow the CLI: `update` runs `setup --refresh`, which brings each
 agent's files to the new version, and the Claude Code plugins update themselves from the
