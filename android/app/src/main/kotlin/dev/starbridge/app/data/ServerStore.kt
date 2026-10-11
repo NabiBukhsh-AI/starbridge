@@ -75,6 +75,7 @@ import java.time.temporal.ChronoUnit
 import kotlin.math.roundToInt
 import dev.starbridge.app.protocol.Decision as DecisionBody
 import dev.starbridge.app.protocol.Member as DirectoryMember
+import dev.starbridge.app.protocol.takeCodePoints
 
 /** Shows and clears notifications; the app's is [dev.starbridge.app.push.Notifier]. */
 interface Alerts {
@@ -496,7 +497,7 @@ class ServerStore(
     private fun newMember(): DirectoryMember {
         val boxKeys = sodium.boxKeyPair()
         val signKeys = sodium.signKeyPair()
-        val member = DirectoryMember(newId("d_"), "device", deviceName.take(100).ifBlank { "Android" }, toB64(boxKeys.public), toB64(signKeys.public))
+        val member = DirectoryMember(newId("d_"), "device", deviceName.takeCodePoints(100).ifBlank { "Android" }, toB64(boxKeys.public), toB64(signKeys.public))
         // The keys reach the disk before the server hears of them, so a crash cannot strand them.
         // New keys end any recovery attempt that made the ones they replace.
         persist(saved.copy(recovering = null), secrets.copy(boxPk = member.boxPk, boxSk = toB64(boxKeys.secret), signPk = member.signPk, signSk = toB64(signKeys.secret)))
@@ -1227,7 +1228,7 @@ class ServerStore(
             put("behavior", if (allow) "allow" else "deny")
             put("scope", chosen)
             put("inputHash", p.body.inputHash)
-            if (!allow) message?.trim()?.takeIf { it.isNotEmpty() }?.let { put("message", it.take(500)) }
+            if (!allow) message?.trim()?.takeIf { it.isNotEmpty() }?.let { put("message", it.takeCodePoints(500)) }
             // Lets the machine notice a server holding back entries, such as a revocation.
             directory?.let { d -> putJsonObject("dir") { put("length", d.length); put("head", d.head) } }
         }
