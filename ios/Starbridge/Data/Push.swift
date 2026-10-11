@@ -11,15 +11,9 @@ import UserNotifications
 extension Store {
     /** Asks once to notify, then registers for pushes; says on the server whether it notifies. */
     func enableNotifications() async {
-        let center = UNUserNotificationCenter.current()
-        let granted = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
-        let state = await center.notificationSettings().authorizationStatus
-        try? await api().notificationState(state == .denied ? "blocked" : granted ? "on" : "off")
-        // The categories without per-question buttons; the extension adds each question's own.
-        let categories = await center.notificationCategories()
-        if !categories.contains(where: { $0.identifier == "permission" }) {
-            center.setNotificationCategories(categories.union([Notify.category("permission", Notify.permissionActions)]))
-        }
+        let (granted, denied) = await Notify.authorize()
+        try? await api().notificationState(denied ? "blocked" : granted ? "on" : "off")
+        await Notify.register("permission", Notify.permissionActions)
         if granted { UIApplication.shared.registerForRemoteNotifications() }
     }
 
@@ -110,24 +104,14 @@ extension Store {
 
     /** The item's notification again, quiet, saying how its answer ended. */
     private func replace(_ id: String, with note: String, kind: String = "decision", title: String? = nil, source: Source? = nil) async {
-        let content = UNMutableNotificationContent()
-        if let title = title ?? decision(id)?.body.question { content.title = title }
-        if let source = source ?? decision(id)?.body.source { content.subtitle = Notify.header(source) }
-        content.body = note
-        content.interruptionLevel = .passive
-        content.userInfo = ["p": ["v": 1, "kind": kind, "id": id]]
-        await Self.removeDelivered(about: id)
-        try? await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
+        let shownTitle = title ?? decision(id)?.body.question
+        let subtitle = (source ?? decision(id)?.body.source).map(Notify.header)
+        await Notify.removeDelivered(about: id)
+        await Notify.post(id, kind: kind, title: shownTitle, subtitle: subtitle, body: note)
     }
 
     /** Closes every notification about item `id`: answered, settled, or snoozed elsewhere. */
-    static func removeDelivered(about id: String) async {
-        let center = UNUserNotificationCenter.current()
-        let ids = await center.deliveredNotifications()
-            .filter { $0.request.identifier == id || Notify.payload($0.request.content.userInfo).flatMap(Notify.item) == id }
-            .map(\.request.identifier)
-        center.removeDeliveredNotifications(withIdentifiers: ids)
-    }
+    static func removeDelivered(about id: String) async { await Notify.removeDelivered(about: id) }
 
     /**
      * A background push: an answer from anywhere, a settled notice or a snooze closes its

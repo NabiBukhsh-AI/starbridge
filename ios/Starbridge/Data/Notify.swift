@@ -178,6 +178,36 @@ enum Notify {
         return kr == KERN_SUCCESS ? info.phys_footprint : 0
     }
 
+    // The notification center's calls live here, off the main actor, so only Sendable values cross
+    // into it: Swift 6.1 refuses its non-Sendable results reaching the main actor's store.
+
+    /** Asks once to notify: whether it may, and whether the owner refused. */
+    static func authorize() async -> (granted: Bool, denied: Bool) {
+        let center = UNUserNotificationCenter.current()
+        let granted = (try? await center.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+        return (granted, await center.notificationSettings().authorizationStatus == .denied)
+    }
+
+    /** Closes every notification about item `id`: answered, settled, or snoozed elsewhere. */
+    static func removeDelivered(about id: String) async {
+        let center = UNUserNotificationCenter.current()
+        let ids = await center.deliveredNotifications()
+            .filter { $0.request.identifier == id || payload($0.request.content.userInfo).flatMap(item) == id }
+            .map(\.request.identifier)
+        center.removeDeliveredNotifications(withIdentifiers: ids)
+    }
+
+    /** A quiet notification about item `id`, saying how its answer ended; a tap opens it. */
+    static func post(_ id: String, kind: String, title: String?, subtitle: String?, body: String) async {
+        let content = UNMutableNotificationContent()
+        if let title { content.title = title }
+        if let subtitle { content.subtitle = subtitle }
+        content.body = body
+        content.interruptionLevel = .passive
+        content.userInfo = ["p": ["v": 1, "kind": kind, "id": id]]
+        try? await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
+    }
+
     /** `content` rewritten as `shown` says; its category is registered already. */
     static func apply(_ shown: Shown, to content: UNMutableNotificationContent) {
         content.title = shown.title
