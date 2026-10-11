@@ -249,6 +249,15 @@ enum Dates {
 }
 
 extension Decision {
-    /** The options, the agent's default first (spec/items.md, #191). */
-    var ordered: [String] { recommended.map { r in [r] + options.filter { $0 != r } } ?? options }
+    /**
+     * The options, the agent's default first (spec/items.md, #191). Compared by code points, as
+     * the schema does: Swift's == would equate "é" and "e\u{301}", two options.
+     */
+    var ordered: [String] {
+        guard let r = recommended else { return options }
+        return [r] + options.filter { !sameOption($0, r) }
+    }
 }
+
+/** The same option, by code points, as the schema compares them. */
+func sameOption(_ a: String, _ b: String?) -> Bool { b.map { Array(a.unicodeScalars) == Array($0.unicodeScalars) } ?? false }

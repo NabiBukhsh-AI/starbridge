@@ -532,7 +532,7 @@ extension Store {
         guard let d = decision(id) else { throw Notice(message: "No such question.") }
         if let answer = d.answer { return .answered(answer) }
         if d.answeredAt != nil { return .elsewhere }
-        if let choice, !d.body.options.contains(choice) { throw Notice(message: "Not one of the options.") }
+        if let choice, !d.body.options.contains(where: { sameOption($0, choice) }) { throw Notice(message: "Not one of the options.") }
         let done = choice == nil && text == nil
         // Done is for a question answered on its own page that takes it (#539).
         let page = d.body.done == true ? d.body.answerIn : nil
