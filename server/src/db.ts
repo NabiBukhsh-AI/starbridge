@@ -232,7 +232,13 @@ ALTER TABLE members ADD COLUMN cli_latest TEXT;
 /** Which APNs environment an iPhone's push token belongs to: production unless set. */
 const V7 = "ALTER TABLE push_subscriptions ADD COLUMN environment TEXT;";
 
-export const MIGRATIONS = [V1, V2, V3, V4, V5, V6, V7];
+/**
+ * Which account a revoked device's session belonged to (#1104), so deleting the account deletes
+ * it too. Rows from before stay unset and expire with their sessions.
+ */
+const V8 = "ALTER TABLE revoked_sessions ADD COLUMN account_id TEXT;";
+
+export const MIGRATIONS = [V1, V2, V3, V4, V5, V6, V7, V8];
 
 /** The `user_version` this server brings a database to. */
 export const SCHEMA_VERSION = MIGRATIONS.length;

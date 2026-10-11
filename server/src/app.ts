@@ -17,6 +17,7 @@ import { Presence, releaseHolds } from "./presence";
 import { Push } from "./push";
 import { RateLimiter } from "./ratelimit";
 import { sweepStorage } from "./retention";
+import { accountRoutes } from "./routes/account";
 import { authRoutes } from "./routes/auth";
 import { bindRoutes } from "./routes/bind";
 import { directoryRoutes } from "./routes/directory";
@@ -109,6 +110,7 @@ export async function createApp(config: Config, fetchFn: typeof fetch = fetch) {
   const v1 = new Hono<Env>()
     .use(clientVersion)
     .route("/", authRoutes)
+    .route("/", accountRoutes)
     .route("/", bindRoutes)
     .route("/", directoryRoutes)
     .route("/", pairingRoutes)

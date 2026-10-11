@@ -2305,6 +2305,40 @@ async function main() {
   // Notifications hold decrypted questions: none outlive the sign-out (#311).
   if ((await pageC.evaluate(NOTIFICATIONS)).length > 0)
     throw new Error("signing out left notifications on screen");
+
+  step("delete the account: typed confirmation, then a new sign-in starts a new account (#1104)");
+  const d = await ff.newContext({ permissions: ["notifications"] });
+  await watchCsp(d);
+  const pageD = await signIn(d);
+  // The join screen can render again as sign-in settles, back on its code: click until the
+  // key field stays.
+  const keyField = pageD.getByLabel("Your recovery key");
+  for (let i = 0; !(await keyField.isVisible()); i++) {
+    if (i === 5) throw new Error("the recovery key field never opened");
+    await pageD.getByRole("button", { name: "Use the recovery key" }).click();
+    await keyField.waitFor({ timeout: 5_000 }).catch(() => {});
+  }
+  await keyField.fill(newKey);
+  await pageD.getByRole("button", { name: "Recover" }).click();
+  await pageD.getByRole("heading", { name: "Inbox" }).waitFor({ timeout: 30_000 });
+  await pageD
+    .getByRole("navigation", { name: "Main" })
+    .getByRole("link", { name: "Settings" })
+    .click();
+  await pageD.getByRole("button", { name: "Delete account" }).click();
+  const dialog = pageD.getByRole("dialog");
+  const confirm = dialog.getByRole("button", { name: "Delete account" });
+  if (await confirm.isEnabled()) throw new Error("Delete account worked before typing delete");
+  await dialog.getByLabel("Type delete to confirm").fill("delete");
+  await confirm.click();
+  await pageD
+    .getByRole("heading", { name: /Know the moment your agent is stuck/ })
+    .waitFor({ timeout: 30_000 });
+  await d.clearCookies();
+  await pageD.goto(ORIGIN);
+  await pageD.getByRole("link", { name: SIGN_IN }).click();
+  // The same GitHub user gets an account with no devices, not the deleted one's recovery screen.
+  await pageD.getByRole("heading", { name: "Set up your account" }).waitFor({ timeout: 30_000 });
 }
 
 try {

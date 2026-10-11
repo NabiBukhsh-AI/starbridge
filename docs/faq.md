@@ -118,8 +118,9 @@ browsers. Self-hosting is free, under the MIT licence.
 The server deletes answered questions and their answers 7 days after the answer, permission
 prompts 7 days after they arrive, runs a day after their last update, and unanswered questions
 and quota snapshots after 30 days, or unanswered questions after 7 days once an account holds
-more than 1000. Backups keep deleted data for up to 2 weeks. The
-[privacy page](https://starbridge.run/privacy) says how to delete your account.
+more than 1000. Delete account, in Settings on the web page or in the app, deletes everything
+the server holds for your account at once and signs out every device and machine. Backups keep
+deleted data for up to 2 weeks ([privacy page](https://starbridge.run/privacy)).
 
 ## Why GitHub sign-in?
 

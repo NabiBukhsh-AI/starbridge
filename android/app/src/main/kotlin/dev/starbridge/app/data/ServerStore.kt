@@ -2163,6 +2163,12 @@ class ServerStore(
         wipe(null)
     }
 
+    /** A failed delete is reported and forgets nothing, so the owner can try again. */
+    override fun deleteAccount() = run {
+        api().deleteAccount()
+        wipe(null)
+    }
+
     fun say(message: String) {
         notice.value = message
     }

@@ -1097,9 +1097,23 @@ export async function signOut(stale: Ctx): Promise<void> {
   );
   if (ctx && others.length > 0) await revoke(ctx, ctx.device.id).catch(() => {});
   await api.logout().catch(() => {});
+  await forget(stale.account);
+}
+
+/**
+ * Deletes the account on the server (#1104), which signs out every device and machine, then
+ * forgets it here as Sign out does. A failed delete throws and forgets nothing.
+ */
+export async function deleteAccount(ctx: Ctx): Promise<void> {
+  await api.deleteAccount();
+  await forget(ctx.account);
+}
+
+/** Drops this browser's push subscription, and its keys and what it answered for `account`. */
+async function forget(account: string): Promise<void> {
   const reg = await registration();
   await (await reg?.pushManager.getSubscription())?.unsubscribe().catch(() => {});
-  for (const kind of store.ACCOUNT_KINDS) await store.del(kind, stale.account);
+  for (const kind of store.ACCOUNT_KINDS) await store.del(kind, account);
   await store.del("current");
   // Last: a push the service worker was still opening finds no keys now.
   await closeNotifications();

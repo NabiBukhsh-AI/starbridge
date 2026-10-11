@@ -370,6 +370,11 @@
   color: var(--bad);
 }
 
+.typed {
+  display: grid;
+  gap: var(--s2);
+}
+
 @media (max-width: 599px) {
   .segment {
     min-height: var(--size-tap);

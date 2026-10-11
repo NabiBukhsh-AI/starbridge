@@ -34,3 +34,12 @@
   (#569). Dogfood builds sign with the release key instead, opted into by a gitignored
   `local.properties` line on the maintainer's machine and refused under CI; other debug builds keep
   the debug key, and their sign-in falls back to the `starbridge://auth` button.
+- **Account deletion** (#1104). App Store guideline 5.1.1(v) requires an app that makes accounts
+  to delete them from inside the app, and Play asks the same, so Settings on the web page (and
+  so the desktop app) and on Android has Delete account, which works once the owner types
+  "delete". `DELETE /v1/account` removes every row of the account in one transaction and signs
+  out all its sessions and machines. Any signed-in session may delete, paired or not: whoever
+  signs in must be able to, and the GitHub sign-in behind a session controls the account anyway.
+  The deleting client forgets the account's keys as Sign out does; other devices keep theirs
+  until they sign in again, find a new empty account, and offer to remove them. Backups keep
+  the data for up to 2 weeks, as /privacy says.

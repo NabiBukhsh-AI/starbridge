@@ -241,6 +241,7 @@ export const api = {
   ownerSignIn: (token: string) =>
     call<{ session: string }>("POST", "/auth/owner", { body: { token } }),
   logout: () => call<void>("POST", "/auth/logout"),
+  deleteAccount: () => call<void>("DELETE", "/account"),
   challenge: async () => (await call<{ nonce: string }>("GET", "/auth/challenge")).nonce,
   bind: (member: string, sig: string) =>
     call<{ member: string }>("POST", "/auth/bind", { body: { member, sig } }),

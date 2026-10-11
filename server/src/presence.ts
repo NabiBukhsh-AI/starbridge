@@ -69,6 +69,12 @@ export class Presence {
       if (at + PUSH_HOLD_MAX * 1000 < now) this.left.delete(account);
   }
 
+  /** Forgets a deleted account (#1104). */
+  forget(account: string): void {
+    this.accounts.delete(account);
+    this.left.delete(account);
+  }
+
   private leave(account: string, at: number): void {
     this.accounts.delete(account);
     this.left.set(account, at);
