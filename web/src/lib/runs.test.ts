@@ -58,16 +58,21 @@ test("durations and progress read at a glance", () => {
   expect(progressText({ done: 42, total: 100, unit: "percent" })).toBe("42%");
 });
 
-test("a run notifies once when it passes or fails, and again when it ends again", () => {
+test("a run notifies once when it passes or fails, again when it ends again, and not when old", () => {
   const runs = [
     item("passed", { exit: { code: 0, at: at(5_000) } }),
     item("failed", { exit: { code: 1, at: at(5_000) } }),
     item("running", { at: at(5_000) }),
     item("shown", { exit: { code: 0, at: at(5_000) } }),
     item("again", { exit: { code: 0, at: at(9_000) } }),
+    item("old", { exit: { code: 0, at: at(9_000 - SHOWN_AFTER_MS - 1) } }),
   ];
   const shown = [runKey(runs[3] as RunItem), `again/${at(5_000)}`];
-  expect(runsToNotify(runs, shown).map((i) => i.run.id)).toEqual(["passed", "failed", "again"]);
+  expect(runsToNotify(runs, shown, T0 + 9_000).map((i) => i.run.id)).toEqual([
+    "passed",
+    "failed",
+    "again",
+  ]);
 });
 
 test("a run's notification says how it ended, where, and why", () => {

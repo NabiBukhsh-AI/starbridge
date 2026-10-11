@@ -427,8 +427,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Runs dismissed on this page, with the update dismissed: a read that started before the
   // DELETE must not bring one back, while a newer update from its machine does.
   const dismissed = useRef(new Map<string, string>());
-  // Whether this account's runs were read yet: the first read notifies nothing.
-  const runsRead = useRef(false);
+  // The account whose runs were read last: an account's first read notifies nothing.
+  const runsRead = useRef<string>(undefined);
   const refreshRuns = useCallback(async () => {
     const fresh = await current();
     if (!fresh) return;
@@ -436,15 +436,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const next = await holding(() => d.loadRuns(fresh));
     if (!next) return;
     setRuns(undismissed(next, dismissed.current));
-    const first = !runsRead.current;
-    runsRead.current = true;
+    const first = runsRead.current !== fresh.account;
+    runsRead.current = fresh.account;
     await notifyRuns(next.items, first);
   }, [current, holding]);
 
   const runLive = !!runs?.items.some((i) => runState(i.run, Date.now()) === "running");
   useEffect(() => {
     if (!ctx) return;
-    runsRead.current = false;
     const read = single(refreshRuns);
     let last = 0;
     const tick = () => {

@@ -40,9 +40,15 @@ export function progressText(p: NonNullable<RunItem["run"]["progress"]>): string
   return p.unit === "percent" ? `${p.done}%` : `${p.done}/${p.total}`;
 }
 
-/** The runs to notify about, as on Android: each that passed or failed, once. A lost run notifies nothing. */
-export function runsToNotify(items: RunItem[], shown: string[]): RunItem[] {
-  return items.filter((i) => i.run.exit && !shown.includes(runKey(i)));
+/**
+ * The runs to notify about, as on Android: each that passed or failed, once. A lost run notifies
+ * nothing, and one that ended before the page shows it ([SHOWN_AFTER_MS]) is old news.
+ */
+export function runsToNotify(items: RunItem[], shown: string[], now: number): RunItem[] {
+  return items.filter(
+    (i) =>
+      i.run.exit && now - Date.parse(i.run.exit.at) <= SHOWN_AFTER_MS && !shown.includes(runKey(i)),
+  );
 }
 
 /** One key per run's end, so a run its machine runs again under the same id notifies again. */

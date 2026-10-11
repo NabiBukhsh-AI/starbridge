@@ -27,7 +27,7 @@ export async function notifyRuns(items: RunItem[], first: boolean): Promise<void
   if (!writable(raw)) return;
   const kept = readStored(SHOWN, raw)?.shown;
   const shown = Array.isArray(kept) ? (kept as string[]) : [];
-  const fresh = runsToNotify(items, shown);
+  const fresh = runsToNotify(items, shown, Date.now());
   if (fresh.length === 0) return;
   try {
     localStorage.setItem(SHOWN, stored({ shown: [...shown, ...fresh.map(runKey)].slice(-200) }));
