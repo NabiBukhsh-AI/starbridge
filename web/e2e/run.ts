@@ -2262,8 +2262,15 @@ async function main() {
   const d = await ff.newContext({ permissions: ["notifications"] });
   await watchCsp(d);
   const pageD = await signIn(d);
-  await pageD.getByRole("button", { name: "Use the recovery key" }).click();
-  await pageD.getByLabel("Your recovery key").fill(newKey);
+  // The join screen can render again as sign-in settles, back on its code: click until the
+  // key field stays.
+  const keyField = pageD.getByLabel("Your recovery key");
+  for (let i = 0; !(await keyField.isVisible()); i++) {
+    if (i === 5) throw new Error("the recovery key field never opened");
+    await pageD.getByRole("button", { name: "Use the recovery key" }).click();
+    await keyField.waitFor({ timeout: 5_000 }).catch(() => {});
+  }
+  await keyField.fill(newKey);
   await pageD.getByRole("button", { name: "Recover" }).click();
   await pageD.getByRole("heading", { name: "Inbox" }).waitFor({ timeout: 30_000 });
   await pageD
