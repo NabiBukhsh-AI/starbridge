@@ -41,6 +41,11 @@ export class Watch {
     if (status === 429) this.limited.set(address, (this.limited.get(address) ?? 0) + 1);
   }
 
+  /** Forgets a deleted account's refusals, so no log line names it (#1104). */
+  forget(account: string): void {
+    this.refusedAccounts.delete(account);
+  }
+
   /** The refusals since the last call, as one log line, or null when nothing was refused. */
   flush(): string | null {
     if (this.refusals.size === 0) return null;

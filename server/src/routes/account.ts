@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { deleteCookie } from "hono/cookie";
 import { randomToken, requireCaller, SESSION_COOKIE } from "../auth";
 import type { Deps, Env } from "../env";
+import { forgetChallenges } from "./bind";
 
 /**
  * Tables holding an account's rows, children first. The triggers on `items` leave `item_totals`
@@ -16,6 +17,7 @@ export const ACCOUNT_TABLES = [
   "joins",
   "pairings",
   "machine_tokens",
+  "revoked_sessions",
   "sessions",
   "members",
   "directory",
@@ -29,7 +31,7 @@ export const ACCOUNT_TABLES = [
 export function deleteAccount(
   db: Database,
   account: string,
-): { members: string[]; joins: string[]; rendezvous: string[] } | null {
+): { members: string[]; joins: string[]; rendezvous: string[]; sessions: string[] } | null {
   return db.transaction(() => {
     if (!db.query("SELECT 1 FROM accounts WHERE id = ?").get(account)) return null;
     const ids = (sql: string) => (db.query(sql).all(account) as { id: string }[]).map((r) => r.id);
@@ -37,14 +39,20 @@ export function deleteAccount(
       members: ids("SELECT id FROM members WHERE account_id = ?"),
       joins: ids("SELECT id FROM joins WHERE account_id = ?"),
       rendezvous: ids("SELECT rendezvous AS id FROM pairings WHERE account_id = ?"),
+      sessions: ids("SELECT token_hash AS id FROM sessions WHERE account_id = ?"),
     };
     for (const table of ACCOUNT_TABLES)
       db.query(`DELETE FROM ${table} WHERE account_id = ?`).run(account);
-    // A subject is the account id, or the account id, a slash and a member id.
-    db.query(
-      `UPDATE usage_events SET subject = ?2 || substr(subject, length(?1) + 1)
-       WHERE subject = ?1 OR substr(subject, 1, length(?1) + 1) = ?1 || '/'`,
-    ).run(account, randomToken("gone_"));
+    // A subject is the account id, or the account id, a slash and a member id. Each distinct one
+    // gets its own random stand-in, which names neither.
+    const subjects = db
+      .query(
+        `SELECT DISTINCT subject FROM usage_events
+         WHERE subject = ?1 OR substr(subject, 1, length(?1) + 1) = ?1 || '/'`,
+      )
+      .all(account) as { subject: string }[];
+    const rename = db.query("UPDATE usage_events SET subject = ? WHERE subject = ?");
+    for (const { subject } of subjects) rename.run(randomToken("gone_"), subject);
     db.query("DELETE FROM accounts WHERE id = ?").run(account);
     return waits;
   })();
@@ -61,6 +69,8 @@ function forgetAccount(
   deps.usage.forget(account);
   deps.limiter.forget(account);
   deps.quotaAsks.delete(account);
+  deps.watch.forget(account);
+  forgetChallenges(waits.sessions);
   for (const m of waits.members) deps.answers.wake(`${account}/${m}`);
   deps.quotas.wake(account);
   deps.joins.wake(`account:${account}`);

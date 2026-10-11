@@ -17,6 +17,7 @@ import {
   at,
   makeServer,
   pair,
+  revoke,
   type Server,
   setupAccount,
   signIn,
@@ -36,15 +37,14 @@ function rowsNaming(s: Server, account: string): string[] {
   return found;
 }
 
-function count(s: Server, table: string): number {
-  return (s.deps.db.query(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n;
-}
-
 /** An account with a second device, a machine, a decision and its answer, a push target, settings and an open join. */
 async function busyAccount(s: Server, session?: string) {
   const acct = await setupAccount(s, "phone", session);
   const laptop = await pair(s, acct, "laptop", "device", await signIn(s));
   const devbox = await pair(s, acct, "devbox", "machine");
+  // A revoked device leaves its session in revoked_sessions.
+  await pair(s, acct, "tablet", "device", await signIn(s));
+  expect((await revoke(s, acct, "tablet")).status).toBe(201);
   const body: Decision = {
     v: 1,
     id: `d-${acct.id}`,
@@ -138,8 +138,12 @@ test("deleting the account leaves no row naming it and signs out every session a
 
   expect(rowsNaming(s, acct.id)).toEqual([]);
   expect(rowsNaming(s, "a_other")).toEqual(before);
-  // Today's activity still counts, under a subject that names no account.
-  expect(count(s, "usage_events")).toBeGreaterThan(0);
+  // Today's activity still counts, under subjects that name neither the account nor a member.
+  const subjects = s.deps.db
+    .query("SELECT DISTINCT subject FROM usage_events WHERE subject LIKE 'gone_%'")
+    .all() as { subject: string }[];
+  expect(subjects.length).toBeGreaterThan(3);
+  for (const { subject } of subjects) expect(subject).not.toContain("/");
   for (const token of [acct.device.token, laptop.token, devbox.token, joiner])
     expect((await s.call("GET", "/v1/me", { token })).status).toBe(401);
   expect(s.deps.presence.present(acct.id)).toEqual([]);

@@ -229,7 +229,13 @@ ALTER TABLE members ADD COLUMN cli_version TEXT;
 ALTER TABLE members ADD COLUMN cli_latest TEXT;
 `;
 
-export const MIGRATIONS = [V1, V2, V3, V4, V5, V6];
+/**
+ * Which account a revoked device's session belonged to (#1104), so deleting the account deletes
+ * it too. Rows from before stay unset and expire with their sessions.
+ */
+const V7 = "ALTER TABLE revoked_sessions ADD COLUMN account_id TEXT;";
+
+export const MIGRATIONS = [V1, V2, V3, V4, V5, V6, V7];
 
 /** The `user_version` this server brings a database to. */
 export const SCHEMA_VERSION = MIGRATIONS.length;
