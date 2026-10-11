@@ -7,6 +7,11 @@ final class MemoryVault: Vault, @unchecked Sendable {
     var secrets = Secrets()
     func load() throws -> Secrets { secrets }
     func save(_ secrets: Secrets) throws { self.secrets = secrets }
+    var aside: [String: Secrets] = [:]
+    func setAside(_ tag: String) throws {
+        aside[tag] = secrets
+        secrets = Secrets()
+    }
 }
 
 /**

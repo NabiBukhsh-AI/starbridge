@@ -68,12 +68,19 @@ final class Store {
         self.deviceName = deviceName
         self.http = http
         SavedImage.directory = disk.url.deletingLastPathComponent().appendingPathComponent("images")
-        saved = disk.load() ?? Saved(server: Self.defaultServer)
+        let (loaded, aside) = disk.loadOrMoveAside()
+        saved = loaded ?? Saved(server: Self.defaultServer)
         do {
+            // The keys describe the device the unreadable file held: they go aside with it, and the app starts signed out.
+            if let aside { try vault.setAside(aside) }
             secrets = try vault.load()
         } catch {
             secrets = Secrets()
             notice = "\(error)"
+        }
+        if aside != nil {
+            secrets = Secrets()
+            notice = "This iPhone’s saved state couldn’t be read, so you’re signed out. Sign in again."
         }
         if saved.joining != nil { waitForApproval() }
         if saved.digitJoin != nil { waitForDigitJoin() }
