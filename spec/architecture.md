@@ -14,7 +14,7 @@ agent sessions --CLI--> starbridge agent (one per machine) --HTTPS--> server <--
 | `plugin`, `mod` | Claude Code's two plugins: `starbridge` (skill and hooks) and `starbridge-mod`, split so that builds refusing mods keep the rest. `mod/pi` and `mod/opencode` hold the Pi extension and opencode plugin |
 | `web` | Next.js; decrypts in the browser |
 | `android` | Kotlin and Compose |
-| `ios` | `StarbridgeProtocol`, the Swift port of `packages/protocol`; the SwiftUI app to come |
+| `ios` | the SwiftUI app (XcodeGen) on `StarbridgeProtocol`, the Swift port of `packages/protocol` |
 | `deploy` | the hosted instance |
 | `demo` | the program behind the Play reviewers' demo server |
 | `evals` | the skill eval and the load test |

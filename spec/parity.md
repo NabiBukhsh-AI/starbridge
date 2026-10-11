@@ -32,7 +32,7 @@ opens an issue for each client the row says should follow.
 | Recovery key: copy / save | yes (Copy the key; saved checkbox) | yes (copy to clipboard, #817; save) | yes (as web) | not yet |
 | Devices list (notifies state, app icon, Revoke) | yes | yes | yes | not yet |
 | Pairing: show QR for a new phone | yes | yes | yes | not yet |
-| Pairing: scan a QR | no (no scanner in web) | yes (Play services code scanner) | no (as web) | not yet |
+| Pairing: scan a QR | no (no scanner in web) | yes (Play services code scanner) | no (as web) | yes, to join this iPhone (VisionKit, #1105); a machine's QR not yet |
 | Pairing: link (`/pair#code`) | yes | yes (App Link and `starbridge://pair`) | yes (`starbridge://pair`) | not yet |
 | Pairing: typed code | yes | yes | yes | not yet |
 | Keyboard shortcuts (J K 1-4 A D /) | yes (from 1100 px) | no (only Enter to send, Esc in Find) | yes (as web) | not yet |

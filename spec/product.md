@@ -53,7 +53,9 @@ notification with buttons and a typed reply is the product and Safari offers nei
 piece is `ios/StarbridgeProtocol` (#1083): it ports the protocol by hand on swift-sodium, the
 libsodium both other ports call, and passes every vector file, so the three clients agree byte for
 byte; its tests fail when a vector file goes unread. It builds and tests on Linux as well, where
-agents develop it. Until the app ships, the home-screen web app is the iOS path. The plan and the
+agents develop it. The app on top of it (#1105) so far signs in and joins the account as
+Android does (sign-in.md), and sets type in SF Pro, not Google Sans Flex
+(DESIGN.md). Until the app ships, the home-screen web app is the iOS path. The plan and the
 approaches weighed are in the planning repo's
 [research/ios-app.md](https://github.com/T0mSIlver/starbridge-planning/blob/main/research/ios-app.md).
 
