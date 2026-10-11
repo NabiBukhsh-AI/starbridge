@@ -31,7 +31,8 @@
   private-range check, and is sent only if its subscription and device are still active (#260).
   An IPv6 address that embeds an IPv4 one (IPv4-compatible, IPv4-mapped, IPv4-translated, NAT64,
   6to4) is judged by that IPv4 address, since a translator on a self-hoster's network can route it
-  there (#1095).
+  there (#1095). Teredo and ISATAP addresses are refused whole: both are deprecated, and no push
+  service uses them.
 - A server's VAPID key can change, as when a self-hoster leaves the relay for their own keys
   (#567). Each page boot compares the browser's subscription key with the server's and subscribes
   again when they differ. The server drops a Web Push subscription its push service refuses with

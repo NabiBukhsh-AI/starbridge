@@ -209,6 +209,10 @@ test("subscriptions to private or plain-HTTP addresses are refused unless allowe
     "https://[::ffff:0:10.0.0.1]/x",
     "https://[::ffff:0:7f00:1]/x",
     "https://[0:0:0:0:ffff:0:a9fe:a9fe]/x",
+    "https://[2001:0:4136:e378:8000:63bf:f5ff:fffe]/x",
+    "https://[2001::1]/x",
+    "https://[2001:db8::5efe:10.0.0.1]/x",
+    "https://[2606:4700::200:5efe:808:808]/x",
     "https://[::10.0.0.1]/x",
     "https://[::a00:1]/x",
     "https://[64:ff9b::10.0.0.1]/x",
@@ -227,6 +231,8 @@ test("subscriptions to private or plain-HTTP addresses are refused unless allowe
     "https://[64:ff9b::808:808]/x",
     "https://[2002:808:808::1]/x",
     "https://[::ffff:0:808:808]/x",
+    "https://[2001:4860::8888]/x",
+    "https://[2606:4700::5efe]/x",
   ])
     expect(checkTarget(wp(e), false)).toBeUndefined();
   expect(checkTarget(wp("http://10.0.0.5:8080/up"), true)).toBeUndefined();

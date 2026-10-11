@@ -85,6 +85,10 @@ function privateV6(ip: string): boolean {
   // Local-use NAT64 (64:ff9b:1::/48) places the IPv4 address by prefix length, so refuse it whole.
   if (a === 0x64 && b === 0xff9b && c === 1) return true;
   if (a === 0x2002) return privateV4(v4(b, c));
+  // Teredo (2001:0::/32) and ISATAP (interface ID 0:5efe or 200:5efe and an IPv4 address) are
+  // deprecated, so no push service uses them: refused whole.
+  if (a === 0x2001 && b === 0) return true;
+  if (f === 0x5efe && (e === 0 || e === 0x200)) return true;
   return (a & 0xfe00) === 0xfc00 || (a & 0xffc0) === 0xfe80;
 }
 
