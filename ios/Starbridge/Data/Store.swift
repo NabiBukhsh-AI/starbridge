@@ -37,13 +37,28 @@ final class Store {
     private(set) var secrets: Secrets
     private(set) var busy = false
     var notice: String?
+    /** Answers tapped and not yet in the outbox, by decision id: the card leaves at the tap (#895). */
+    var tapped: [String: String] = [:]
+    /** Answers the server refused, by decision id, with why: the question comes back (#895). */
+    var notSent: [String: String] = [:]
+    /** The server refuses this release (426): the oldest one it serves. */
+    var tooOld: String?
+    /** Why nothing from the machines shows: the server holds back entries a machine has seen (#362). */
+    var withheldWhy: String?
+    /** Replies typed and not sent, by decision id, while the app runs (#992). */
+    var drafts: [String: String] = [:]
+
+    /** Decisions this iPhone's answer lost to another device's, until the machine says which won. */
+    @ObservationIgnored var lost: Set<String> = []
+    @ObservationIgnored var queue: Task<Void, Never>?
+    @ObservationIgnored var pollTask: Task<Void, Never>?
 
     @ObservationIgnored private let vault: Vault
     @ObservationIgnored private let disk: Disk
     @ObservationIgnored private let deviceName: String
-    @ObservationIgnored private let http: URLSession
+    @ObservationIgnored let http: URLSession
     @ObservationIgnored private var joinTask: Task<Void, Never>?
-    @ObservationIgnored private var directory: Directory?
+    @ObservationIgnored var directory: Directory?
 
     init(vault: Vault = KeychainVault(), disk: Disk = .standard, deviceName: String, http: URLSession = .shared) {
         self.vault = vault
@@ -72,14 +87,14 @@ final class Store {
 
     var me: SavedMember? { saved.me }
 
-    private func api(_ session: String? = nil) -> Api { Api(server: saved.server, session: session ?? secrets.session, http: http) }
+    func api(_ session: String? = nil) -> Api { Api(server: saved.server, session: session ?? secrets.session, http: http) }
 
     /**
      * Stores the state, or throws and changes nothing: for keys and steps that must not go on
      * without being stored. A recovery key shown without its first entry stored would be confirmed
      * for an account it never belonged to.
      */
-    private func save(_ newSaved: Saved? = nil, _ newSecrets: Secrets? = nil) throws {
+    func save(_ newSaved: Saved? = nil, _ newSecrets: Secrets? = nil) throws {
         // The secrets first: a saved state naming keys the vault lacks could not resume.
         if let newSecrets { try vault.save(newSecrets) }
         if let newSaved {
@@ -95,7 +110,7 @@ final class Store {
     }
 
     /** Stores the state; a failure shows as a notice, and the app goes on with it in memory. */
-    private func persist(_ newSaved: Saved? = nil, _ newSecrets: Secrets? = nil) {
+    func persist(_ newSaved: Saved? = nil, _ newSecrets: Secrets? = nil) {
         do {
             try save(newSaved, newSecrets)
         } catch {
@@ -107,7 +122,7 @@ final class Store {
     }
 
     /** Runs one step the owner asked for, showing it busy and its failure as a notice. */
-    private func run(_ step: @escaping () async throws -> Void) async {
+    func run(_ step: @escaping () async throws -> Void) async {
         if busy { return }
         busy = true
         notice = nil
@@ -119,11 +134,27 @@ final class Store {
         }
     }
 
+    /**
+     * Runs `body` after every change started before it, as Android's lock does: a sync reads the
+     * saved lists, waits on the server, and writes them back, which an answer must not cut into.
+     */
+    func serial<T: Sendable>(_ body: @escaping @MainActor () async throws -> T) async throws -> T {
+        let previous = queue
+        let task = Task { @MainActor in
+            _ = await previous?.value
+            return try await body()
+        }
+        queue = Task { _ = await task.result }
+        return try await task.value
+    }
+
     func describe(_ error: Error) -> String {
-        switch error {
+        if let e = error as? ApiError, e.status == 426 { tooOld = e.minimum ?? "a newer release" }
+        return switch error {
         case let n as Notice: n.message
         case let e as ApiError where e.status == 401: "The server signed this iPhone out. Sign in again."
         case let e as ApiError where e.status == 429: "Too many tries. Wait a minute and try again."
+        case let e as ApiError where e.status == 426: "Update Starbridge: this server needs \(e.minimum ?? "a newer release") or later."
         case let e as ApiError: "The server refused: \(e)"
         case let e as URLError where e.code == .cancelled: "Cancelled."
         case is URLError: "Can't reach \(saved.server). Check the connection and try again."
@@ -134,15 +165,15 @@ final class Store {
         }
     }
 
-    private func now() -> String {
+    func now() -> String {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime]
         return f.string(from: Date())
     }
 
-    private func newId(_ prefix: String) -> String { prefix + toB64(Sodium.randomBytes(9)) }
+    func newId(_ prefix: String) -> String { prefix + toB64(Sodium.randomBytes(9)) }
 
-    private var signKey: SecretKey {
+    var signKey: SecretKey {
         get throws {
             guard let sk = secrets.signSk else { throw Notice(message: "This iPhone has no keys. Sign out and set it up again.") }
             return SecretKey(try fromB64(sk))
@@ -223,6 +254,8 @@ final class Store {
         } catch let e as ApiError where e.status == 401 {
             throw Notice(message: "Sign-in failed: the server did not accept the session.")
         }
+        // This server serves this release, whatever another one said.
+        tooOld = nil
         if let mine = saved.me, saved.pin != nil, saved.joining == nil, saved.digitJoin == nil, secrets.signSk != nil, me.account == saved.account {
             // Still a device: bind the new session with its signing key (PROTOCOL.md, "Auth").
             if let member = me.member, member != mine.id { throw Notice(message: "This session already belongs to another device.") }
@@ -631,10 +664,17 @@ final class Store {
 
     // --- Signing out --------------------------------------------------------------
 
-    private func wipe() {
+    func wipe() {
         joinTask?.cancel()
         joinTask = nil
+        pollTask?.cancel()
+        pollTask = nil
         directory = nil
+        tapped = [:]
+        notSent = [:]
+        drafts = [:]
+        tooOld = nil
+        withheldWhy = nil
         persist(Saved(server: saved.server), Secrets())
     }
 

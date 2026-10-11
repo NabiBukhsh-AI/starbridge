@@ -2,7 +2,8 @@
 
 The native iPhone app: SwiftUI on [`StarbridgeProtocol`](StarbridgeProtocol), the Swift port of
 `packages/protocol`. So far it signs in, sets up an empty account's first device, joins an account
-that has one, and recovers one with the recovery key; the inbox comes next (the plan is
+that has one, recovers one with the recovery key, and shows the inbox, where it answers questions
+and permission prompts; notifications come next (the plan is
 in the planning repo's `research/ios-app.md`).
 
 - **Sign-in** goes through the browser with PKCE, as on Android (PROTOCOL.md, "Auth"):
@@ -16,6 +17,11 @@ in the planning repo's `research/ios-app.md`).
   compare digits with it (PROTOCOL.md, "Joining by digits").
 - **Keys** and the session are one keychain item, readable after the first unlock and never
   copied to another device; the rest of the state is a file in Application Support.
+- **The inbox** follows spec/clients.md: runs, then permission prompts, then questions whose agent
+  waits, then the rest; Snoozed and History closed at the bottom. With no push yet, the app reads
+  the server every 10 s while it is in front.
+- **Answers** are signed, sealed and kept in an outbox before they are posted, as on Android
+  (#329): one tapped offline is sent once the server can be reached.
 - **Design tokens** are `Starbridge/Theme/Tokens.swift`, written from DESIGN.md by
   `bun web/scripts/tokens.ts`; type is SF Pro, scaled with Dynamic Type.
 
@@ -33,7 +39,9 @@ xcodebuild -project Starbridge.xcodeproj -scheme Starbridge -destination "platfo
 ```
 
 `JoinTests` joins an account on a real server, playing the device that approves, and
-`FirstDeviceTests` sets up the first device, recovers on a second iPhone, then deletes the account.
+`FirstDeviceTests` sets up the first device, recovers on a second iPhone, then deletes the account,
+and `InboxTests` plays a machine whose question, prompt and run the app lists and answers, online
+and offline, then deletes the account.
 They run when the test process gets a self-hosted server with no device yet, started from the repository root with
 `PORT=18731 DB_PATH=/tmp/sb.db OWNER_TOKEN=test bun run server/src/main.ts`:
 

@@ -6,6 +6,8 @@ struct ApiError: Error, CustomStringConvertible {
     let status: Int
     let error: String?
     let detail: String?
+    /** For 426 `client-too-old`: the oldest release the server serves. */
+    var minimum: String?
 
     var description: String { [error ?? "HTTP \(status)", detail].compactMap(\.self).joined(separator: ": ") }
 }
@@ -22,6 +24,18 @@ struct JoinView {
     let approverKey: String?
     let joinerKey: String?
     let approval: JSON?
+}
+
+/** One item of a list: the sealed item, where the list stands after it, and when it was answered. */
+struct Listed {
+    let item: SealedItem
+    let receivedAt: String?
+    let answeredAt: String?
+}
+
+struct ItemsPage {
+    let items: [Listed]
+    let cursor: String
 }
 
 /** The server's /v1 routes this app calls so far. */
@@ -50,7 +64,7 @@ struct Api {
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         let json = data.isEmpty ? nil : try? JSON.parse(String(decoding: data, as: UTF8.self))
         guard (200..<300).contains(status) else {
-            throw ApiError(status: status, error: json?["error"]?.string, detail: json?["detail"]?.string)
+            throw ApiError(status: status, error: json?["error"]?.string, detail: json?["detail"]?.string, minimum: json?["minimum"]?.string)
         }
         return (status, json)
     }
@@ -137,4 +151,26 @@ struct Api {
     func revealJoin(id: String, key: String) async throws { _ = try await call("POST", "/joins/\(id)/reveal", ["key": .string(key)]) }
 
     func cancelJoin(id: String) async throws { _ = try await call("DELETE", "/joins/\(id)") }
+
+    // --- Items -----------------------------------------------------------------
+
+    private func listed(_ json: JSON) throws -> Listed {
+        Listed(item: try SealedItem(json: try field(json, "item")), receivedAt: json["receivedAt"]?.string, answeredAt: json["answeredAt"]?.string)
+    }
+
+    /** A page of items of `kinds` after `cursor`, 100 at most (PROTOCOL.md, "Items"). */
+    func items(_ kinds: String, after cursor: String) async throws -> ItemsPage {
+        var q = URLComponents()
+        q.queryItems = [URLQueryItem(name: "kind", value: kinds), URLQueryItem(name: "after", value: cursor)]
+        let body = try await call("GET", "/items?" + (q.percentEncodedQuery ?? "")).1
+        guard let list = try field(body, "items").array else { throw ProtocolError(.badSchema, "items is not a list") }
+        // One item this app cannot read never hides the rest.
+        return ItemsPage(items: list.compactMap { try? listed($0) }, cursor: try string(body, "cursor"))
+    }
+
+    func item(_ id: String) async throws -> Listed { try listed(try await call("GET", "/items/\(id)").1 ?? .null) }
+
+    func postItem(_ item: JSON) async throws { _ = try await call("POST", "/items", item) }
+
+    func deleteItem(_ id: String) async throws { _ = try await call("DELETE", "/items/\(id)") }
 }

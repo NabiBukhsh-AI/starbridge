@@ -42,8 +42,42 @@ struct Saved: Codable, Equatable {
     var pendingGenesis: String?
     /** While recovering: the member whose keys this iPhone made, until the chain holds it. */
     var recovering: SavedMember?
+    /** Where the decision and prompt lists left off. */
+    var cursor = ""
+    var promptCursor = ""
+    var decisions: [SavedDecision] = []
+    var prompts: [SavedPrompt] = []
+    var runs: [SavedRun] = []
+    /** Runs dismissed here, with the update they hid, until a newer one comes. */
+    var dismissedRuns: [String: String] = [:]
+    var outbox: [QueuedAnswer] = []
+    var heads: [SavedHead] = []
 
     init(server: String) { self.server = server }
+
+    /** A field a newer release added reads as its default, so an update keeps the saved state. */
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        server = try c.decode(String.self, forKey: .server)
+        account = try c.decodeIfPresent(String.self, forKey: .account)
+        accountExists = try c.decodeIfPresent(Bool.self, forKey: .accountExists) ?? false
+        me = try c.decodeIfPresent(SavedMember.self, forKey: .me)
+        pinLength = try c.decodeIfPresent(Int.self, forKey: .pinLength)
+        pinHead = try c.decodeIfPresent(String.self, forKey: .pinHead)
+        entries = try c.decodeIfPresent([String].self, forKey: .entries) ?? []
+        joining = try c.decodeIfPresent(String.self, forKey: .joining)
+        digitJoin = try c.decodeIfPresent(DigitJoin.self, forKey: .digitJoin)
+        pendingGenesis = try c.decodeIfPresent(String.self, forKey: .pendingGenesis)
+        recovering = try c.decodeIfPresent(SavedMember.self, forKey: .recovering)
+        cursor = try c.decodeIfPresent(String.self, forKey: .cursor) ?? ""
+        promptCursor = try c.decodeIfPresent(String.self, forKey: .promptCursor) ?? ""
+        decisions = (try c.decodeIfPresent([Lossy<SavedDecision>].self, forKey: .decisions) ?? []).compactMap(\.value)
+        prompts = (try c.decodeIfPresent([Lossy<SavedPrompt>].self, forKey: .prompts) ?? []).compactMap(\.value)
+        runs = (try c.decodeIfPresent([Lossy<SavedRun>].self, forKey: .runs) ?? []).compactMap(\.value)
+        dismissedRuns = try c.decodeIfPresent([String: String].self, forKey: .dismissedRuns) ?? [:]
+        outbox = (try c.decodeIfPresent([Lossy<QueuedAnswer>].self, forKey: .outbox) ?? []).compactMap(\.value)
+        heads = try c.decodeIfPresent([SavedHead].self, forKey: .heads) ?? []
+    }
 
     var pin: Pin? {
         get { pinLength.flatMap { length in pinHead.map { Pin(length: length, head: $0) } } }

@@ -7,17 +7,7 @@ struct SetupView: View {
     let store: Store
 
     var body: some View {
-        step
-            .foregroundStyle(Tokens.Colors.fg.color)
-            .alert("Starbridge", isPresented: showsNotice) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(store.notice ?? "")
-            }
-    }
-
-    private var showsNotice: Binding<Bool> {
-        Binding(get: { store.notice != nil }, set: { if !$0 { store.notice = nil } })
+        step.foregroundStyle(Tokens.Colors.fg.color)
     }
 
     @ViewBuilder private var step: some View {
@@ -34,7 +24,8 @@ struct SetupView: View {
         case let .joiningByDigits(digits, true):
             WaitingStep(store: store, title: "Compare digits", text: "Approve on your other device.", digits: digits)
         case let .recoveryKey(key): RecoveryKeyStep(store: store, key: key)
-        case .ready: ReadyStep(store: store)
+        // The app shows the inbox instead.
+        case .ready: EmptyView()
         }
     }
 }
@@ -427,20 +418,6 @@ private struct WaitingStep: View {
         } bottom: {
             if let onMatch { Button("They match", action: onMatch).buttonStyle(Primary()) }
             Button("Cancel") { Task { await store.cancelJoin() } }.buttonStyle(Secondary())
-        }
-    }
-}
-
-/** Joined. The inbox takes this screen's place in the next step of the iOS plan. */
-private struct ReadyStep: View {
-    let store: Store
-
-    var body: some View {
-        Step {
-            Title(text: "This iPhone is in your account")
-            Lede(text: "It joined as \(store.me?.name ?? "iPhone").")
-        } bottom: {
-            LinkButton(text: "Sign out") { Task { await store.signOut() } }
         }
     }
 }
