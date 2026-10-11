@@ -64,7 +64,7 @@ let left = false;
 /** The GitHub sign-in sent to the browser, until its link comes back. */
 let signIn: SignIn | null = null;
 /** A release downloaded, which installs on quit or from Restart to Update. */
-let update: { install(): void } | null = null;
+let update: { install(): void; check(): void } | null = null;
 let updateReady = false;
 /** Links that arrived before the window existed. */
 const early: string[] = [];
@@ -103,7 +103,7 @@ function start(): void {
 
 async function ready(): Promise<void> {
   mark("ready");
-  settings = readSettings(SETTINGS);
+  settings = readSettings(SETTINGS, app.getVersion());
   origin = process.env.STARBRIDGE_SERVER
     ? (serverOrigin(process.env.STARBRIDGE_SERVER) ?? settings.server)
     : settings.server;
@@ -113,7 +113,7 @@ async function ready(): Promise<void> {
   });
 
   const ses = session.fromPartition("persist:starbridge");
-  // The page copies codes and keys, and shows quota alerts as web notifications; items notify
+  // The page copies codes and keys, and shows quota alerts and ended runs as web notifications; items notify
   // through the bridge instead. It gets nothing else.
   const allowed = ["clipboard-sanitized-write", "notifications"];
   ses.setPermissionRequestHandler((wc, permission, done) =>
@@ -219,10 +219,13 @@ function checkForUpdates(): void {
     const { startUpdates } = require(
       join(ROOT, "dist", "updater.js"),
     ) as typeof import("./updater");
-    update = startUpdates(() => {
-      updateReady = true;
-      paintDockMenu();
-    });
+    update = startUpdates(
+      () => {
+        updateReady = true;
+        paintDockMenu();
+      },
+      () => settings.releaseCandidates,
+    );
   }, 5_000);
 }
 
@@ -393,6 +396,21 @@ function menu(forTray = true): Menu {
         paintDockMenu();
       },
     },
+    ...(app.isPackaged
+      ? [
+          {
+            label: "Get Release Candidates",
+            type: "checkbox" as const,
+            checked: settings.releaseCandidates,
+            click: () => {
+              settings.releaseCandidates = !settings.releaseCandidates;
+              save();
+              paintDockMenu();
+              update?.check();
+            },
+          },
+        ]
+      : []),
     { label: `Server: ${new URL(origin).host}…`, click: showServer },
     ...(updateReady ? [{ label: "Restart to Update", click: installUpdate }] : []),
     ...(forTray

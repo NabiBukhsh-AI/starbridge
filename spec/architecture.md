@@ -8,12 +8,13 @@ agent sessions --CLI--> starbridge agent (one per machine) --HTTPS--> server <--
 
 | Path | What |
 |---|---|
-| `packages/protocol` | zod schemas, signing and sealing on libsodium, quota pace and alerts, JSON test vectors the Kotlin client also passes |
+| `packages/protocol` | zod schemas, signing and sealing on libsodium, quota pace and alerts, JSON test vectors the Kotlin and Swift ports also pass |
 | `server` | Hono on Bun with `bun:sqlite`, one Docker image; `RELAY_MODE` also makes it the push relay |
 | `cli` | the `starbridge` command and `starbridge agent` |
 | `plugin`, `mod` | Claude Code's two plugins: `starbridge` (skill and hooks) and `starbridge-mod`, split so that builds refusing mods keep the rest. `mod/pi` and `mod/opencode` hold the Pi extension and opencode plugin |
 | `web` | Next.js; decrypts in the browser |
 | `android` | Kotlin and Compose |
+| `ios` | `StarbridgeProtocol`, the Swift port of `packages/protocol`; the SwiftUI app to come |
 | `deploy` | the hosted instance |
 | `demo` | the program behind the Play reviewers' demo server |
 | `evals` | the skill eval and the load test |

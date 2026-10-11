@@ -39,7 +39,14 @@ export function parseNotes(
   body: string,
   pr?: number,
 ): { notes: Note[]; unknown: string[] } | undefined {
-  const lines = body.replace(/<!--[\s\S]*?-->/g, "").split(/\r?\n/);
+  // Removes comments until none is left, since removing one can join the pieces of another, then
+  // an unclosed one with the rest of the body.
+  let text = body;
+  for (let prev = ""; prev !== text; ) {
+    prev = text;
+    text = text.replace(/<!--[\s\S]*?-->/g, "");
+  }
+  const lines = text.replace(/<!--[\s\S]*$/, "").split(/\r?\n/);
   const start = lines.findIndex((l) => /^#{1,6}\s+release notes?\s*$/i.test(l.trim()));
   if (start < 0) return undefined;
   const notes: Note[] = [];

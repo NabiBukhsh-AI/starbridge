@@ -22,7 +22,7 @@ opens an issue for each client the row says should follow.
 | Widgets | n/a | yes (#894: Needs you, Quotas) | yes (#1031: Needs you only; no Quotas widget by owner's choice) | not yet |
 | Notification: questions | yes (Web Push) | yes | yes | not yet |
 | Notification: permission prompts | yes (taps open the page; no Allow/Deny) | yes (Allow / Deny buttons) | yes (no Allow/Deny; opens window) | not yet |
-| Notification: runs | no (runs skip Web Push) | yes (Live Update on Android 16) | no (only Needs-you items notify) | not yet |
+| Notification: runs | yes (#1064: pass or fail, while a page is open; runs skip Web Push) | yes (Live Update on Android 16) | yes (#1064: pass or fail, the page's own, shown by the app) | not yet |
 | Notification: quota alerts | yes (only while a page is open) | yes (low-importance channel) | yes (the page's own, shown by the app) | not yet |
 | Answer from a notification: option buttons | yes (only if every option fits the browser's action limit) | yes (at most 3 options) | yes | not yet |
 | Answer from a notification: typed reply | no (service worker has no input action) | yes (RemoteInput "Your answer") | yes (Reply button) | not yet |
