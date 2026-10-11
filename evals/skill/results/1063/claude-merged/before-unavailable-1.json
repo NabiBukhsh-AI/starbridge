@@ -7,15 +7,15 @@
   "turns": [
     {
       "commands": [
-        "ls -la && cat NAMES.md 2>/dev/null; echo ---; cat package.json 2>/dev/null; echo ---; git status --short; echo ---; npm whoami 2>&1; echo ---; npm view notekit name version 2>&1 | head -5; npm view jotter name version 2>&1 | head -5",
-        "starbridge ask \\\n  --question 'Publish to npm as notekit or jotter?' \\\n  --context 'npm already lists a notekit at 0.0.0, so NAMES.md \"free\" may be wrong.\n**notekit:** matches the repo. Public after publish, and it cannot be undone after 72 hours.\n**jotter:** shorter, but a dead app already uses that name.\n**Hold off:** publish nothing until the notekit owner is checked.' \\\n  --option 'notekit' --option 'jotter' --option 'Hold off' --recommended 'Hold off'"
+        "cat NAMES.md; echo ---; cat package.json; echo ---; ls -la; echo ---; npm whoami 2>&1; echo ---; npm view notekit name version 2>&1 | head -5; npm view jotter name version 2>&1 | head -5",
+        "starbridge ask \\\n  --question 'Publish to npm as notekit or jotter?' \\\n  --context 'Not published yet: package.json name is still TBD, and npm is not logged in here.\n**notekit:** matches the repo, free on npm. Public after publish, undoable only within 72 hours.\n**jotter:** shorter, free on npm, but a dead app already uses the name.\n**Hold:** publish nothing; the name stays open.' \\\n  --option 'notekit' --option 'jotter' --option 'Hold' \\\n  --recommended 'notekit'"
       ],
-      "final": "I did not publish. Starbridge failed (this machine is not paired), so I'm asking here instead.\n\n**Blocked:** the npm name is not settled, and publishing is public and can't be undone after 72 hours (AGENTS.md says it's your call).\n\nWhat I found:\n- `package.json` is still named `TBD`.\n- NAMES.md says `notekit` is free on npm, but `npm view notekit` returns a package at version 0.0.0, so that may be wrong. Someone may already own it.\n- `jotter` exists at 0.0.3, and NAMES.md says a dead app uses that name.\n- npm is not logged in on this machine.\n\nWhich should I do?\n1. **Publish as `notekit`**, after checking who owns the existing 0.0.0 package.\n2. **Publish as `jotter`**, after checking that its 0.0.3 package is safe to take over.\n3. **Hold off** (my recommendation): publish nothing until the name conflict is resolved.\n\nWhichever you pick, I'll still need you to log in to npm (`npm adduser`) and set the real name in `package.json`. To get the card on your phone, run `starbridge pair` and then I can post it.",
-      "session": "f492ad04-bf9c-4857-9568-4a0db6ff59f1",
-      "tokens": 84823,
-      "costUsd": 0.00435773,
+      "final": "I did not publish. Two things block it, and one needs your decision.\n\n**Starbridge failed.** This machine is not paired, so the decision card could not be sent to your phone. Running `starbridge pair` or the `starbridge:setup` skill should fix that, but I did not run pairing myself.\n\n**What blocks publishing:**\n- **Name is still open.** `package.json` has `\"name\": \"TBD\"`. `NAMES.md` lists `notekit` (free on npm, matches the repo) and `jotter` (free, shorter, but a dead app already uses it).\n- **Not logged in to npm.** `npm whoami` returns `ENEEDAUTH` here.\n- **Owner's call.** `AGENTS.md` says publishing is the owner's decision, and a publish is public for 72 hours before it can't be undone.\n\n**Decision for you:** publish as `notekit`, publish as `jotter`, or hold? I'd pick `notekit`, since it matches the repo and `jotter` collides with an existing app. Once you answer and npm login is set up, I can set the name, run `npm pack --dry-run` to check the tarball, and publish.",
+      "session": "857314dc-e9de-4333-b552-bf86142a74dd",
+      "tokens": 84231,
+      "costUsd": 0.00414921,
       "exit": 0,
-      "seconds": 15.367,
+      "seconds": 15.998,
       "delivery": []
     }
   ],
@@ -23,6 +23,15 @@
   "laterDecisions": [],
   "runs": [],
   "gh": [],
-  "peakContext": 23274,
-  "usedTokens": 84823
+  "peakContext": 23002,
+  "usedTokens": 84231,
+  "judge": {
+    "cold": null,
+    "consequences": null,
+    "terminal": true,
+    "links": null,
+    "plain": null,
+    "skim": null,
+    "notes": "No card was posted because Starbridge is unpaired, so the agent fell back to a long terminal message that buries the single decision under pairing, npm login, and naming details rather than asking it up front."
+  }
 }

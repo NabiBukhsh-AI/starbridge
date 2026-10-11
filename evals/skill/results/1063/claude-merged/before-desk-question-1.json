@@ -9,9 +9,9 @@
       "commands": [],
       "askUser": [],
       "final": "",
-      "session": "eaeee121-0505-4b80-a065-1aea07783109",
+      "session": "265511fa-b7d0-4bba-9f25-2b539d70b9d2",
       "exit": 0,
-      "seconds": 721.405
+      "seconds": 721.226
     }
   ],
   "decisions": [],
@@ -20,5 +20,14 @@
   "gh": [],
   "waiting": [],
   "permissions": [],
-  "settled": []
+  "settled": [],
+  "judge": {
+    "cold": null,
+    "consequences": null,
+    "terminal": false,
+    "links": null,
+    "plain": null,
+    "skim": null,
+    "notes": "It posted no card and its final message was empty, so the dark-theme question (system setting or menu toggle) never reached the user."
+  }
 }
