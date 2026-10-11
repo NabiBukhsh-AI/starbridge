@@ -63,7 +63,7 @@ returns the answer at once. In `codex exec`, the agent waits with `starbridge wa
 **Permission prompts.** Starbridge doesn't race them: Codex asks the Starbridge hook before it
 opens its own prompt, so each prompt shows in one place. With `starbridge config presence on`, a
 prompt stays at the keyboard while you are at this machine and goes to your devices while you
-are away. Without presence, a prompt goes to your devices for up to 10 minutes, then to the
+are away. Without presence, a prompt goes to your devices for up to 9.5 minutes, then to the
 keyboard.
 
 **Setup.** At its next launch after setup, Codex asks you once to trust the Starbridge plugin's
@@ -165,7 +165,8 @@ still asks, since the command it wraps can be anything.
 - **Cursor:** the skill, in `~/.cursor/skills/starbridge`, and hooks that bring the rules and
   bring your answer back. Their scripts go in `~/.cursor/starbridge`, and their entries in your
   `~/.cursor/hooks.json` beside your own. A chat started after setup has them. The allow rules go
-  in `cursor-agent`'s `~/.cursor/cli-config.json`.
+  in `cursor-agent`'s `cli-config.json`: in `$CURSOR_CONFIG_DIR`, else
+  `$XDG_CONFIG_HOME/cursor`, else `~/.cursor`.
 - **Antigravity** (the app, the IDE and `agy`): the Starbridge plugin, in
   `~/.gemini/config/plugins/starbridge`, with the rules and the skill. The allow rules go in
   `~/.gemini/antigravity-cli/settings.json` and apply outside `--sandbox`, when the command is
