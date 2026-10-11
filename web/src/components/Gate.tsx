@@ -9,6 +9,7 @@ import type { FirstDevice as PreparedDevice, RecoveryEntry } from "@/lib/device"
 import { hasPairCode, holdPairCode } from "@/lib/pairLink";
 import { useGitHubSignIn } from "@/lib/signInMethods";
 import { useApp } from "./AppProvider";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { Icon } from "./icons";
 import { Landing } from "./Landing";
 import { QrCode } from "./QrCode";
@@ -232,6 +233,13 @@ function FirstDevice({ account, unsaved }: { account: string; unsaved?: string }
 }
 
 /**
+ * Why deleting is the way out for someone with no device and no recovery key (#1117): no one
+ * else holds a key that reads the account's data or vouches for a new device.
+ */
+const DELETE_UNPAIRED =
+  "Your questions and answers are end-to-end encrypted: without one of your devices or the recovery key, nobody can read them or add this one, not even the server. Deleting the account lets you start over. It signs out every phone, browser and machine, and can't be undone.";
+
+/**
  * The account has devices: one of them scans this browser's QR code (or types its code), which
  * compares nothing; comparing digits is the fallback, and the recovery key the last resort.
  */
@@ -244,6 +252,7 @@ function Join({ account, stale }: { account: string; stale: boolean }) {
   const [matched, setMatched] = useState(false);
   const confirm = useRef<() => void>(undefined);
   const [typedKey, setTypedKey] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [typed, setTyped] = useState<RecoveryEntry>({ complete: false, status: "" });
   const cancel = useRef<() => void>(undefined);
   // Each join started counts up; one that resolves after the owner moved on cancels itself.
@@ -322,9 +331,18 @@ function Join({ account, stale }: { account: string; stale: boolean }) {
       {mode === "code" && (
         <>
           <p className={`t-small ${s.lede}`}>
-            Scan with a phone or browser signed in to Starbridge.
+            On a device you already use, open Add a device, then scan or type this code.
           </p>
-          {!code && !error && <span className={`skeleton ${s.qrBone}`} aria-hidden />}
+          {/* The code's line is held while it loads: the page is centred, so a line that came
+              later would move the links below as someone taps them (#1118). */}
+          {!code && !error && (
+            <>
+              <span className={`skeleton ${s.qrBone}`} aria-hidden />
+              <p className={`t-snippet ${s.held}`} aria-hidden>
+                XXXX-XXXX-XXXX-XXXX-XXXX-XXXX
+              </p>
+            </>
+          )}
           {code && (
             <>
               <div className={s.qr}>
@@ -356,7 +374,7 @@ function Join({ account, stale }: { account: string; stale: boolean }) {
               ? `Approve ${name.trim()} on your other device.`
               : digits
                 ? "Does your other device show the same digits?"
-                : `Open Starbridge on a signed-in device: it asks whether to let ${name.trim()} join.`}
+                : `Open Starbridge on a device you already use: it asks whether to let ${name.trim()} join.`}
           </p>
           {digits && (
             <div className={`t-heading ${s.digits}`} data-testid="join-digits">
@@ -444,6 +462,22 @@ function Join({ account, stale }: { account: string; stale: boolean }) {
         <button type="button" className={`t-meta ${s.link}`} onClick={() => switchTo("key")}>
           Use the recovery key
         </button>
+      )}
+      <button type="button" className={`t-meta ${s.link}`} onClick={() => setDeleting(true)}>
+        Delete account
+      </button>
+      {deleting && (
+        <ConfirmDialog
+          title="Delete your account?"
+          text={DELETE_UNPAIRED}
+          action="Delete account"
+          typed="delete"
+          onClose={() => setDeleting(false)}
+          onConfirm={async () => {
+            await (await load()).deleteAccount(account);
+            location.assign("/");
+          }}
+        />
       )}
       <Error_ error={error} />
     </FirstRunPage>
