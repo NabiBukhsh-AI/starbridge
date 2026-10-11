@@ -1989,6 +1989,17 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
       { name: "by a device", body: settledBody, valid: true },
       ...withHead(settledBody),
       {
+        name: "a device's deny on a permission",
+        body: { ...settledBody, behavior: "deny" },
+        valid: true,
+      },
+      // A behavior other than allow or deny is refused, not shown (#1144).
+      {
+        name: "a behavior that is neither allow nor deny",
+        body: { ...settledBody, behavior: "ask" },
+        valid: false,
+      },
+      {
         name: "at the keyboard",
         body: { ...settledBody, outcome: "keyboard", device: undefined },
         valid: true,
