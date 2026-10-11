@@ -278,7 +278,9 @@ export function NeedRow({
                   down.current = { x: e.clientX, y: e.clientY };
                 }}
                 onClick={(e) => {
+                  // A double click selects a word: its second click leaves the row as it is.
                   const d = down.current;
+                  if (e.detail > 1) return;
                   if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) < DRAG) onSelect();
                 }}
               >
