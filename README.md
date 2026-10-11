@@ -25,16 +25,19 @@ Launch week: [known issues](https://github.com/T0mSIlver/starbridge/issues?q=is%
 
 - **Android:** the signed APK from [GitHub Releases](https://github.com/T0mSIlver/starbridge/releases),
   or add the repository to [Obtainium](https://apps.obtainium.imranr.dev/redirect?r=obtainium://add/https://github.com/T0mSIlver/starbridge)
-  to get updates. The APK is signed with the same key as the Google Play build, so a Play install
-  later updates it in place.
+  to get each release; with Obtainium's "Include prereleases" on, you also get each release
+  candidate. The APK is signed with the same key as the Google Play build, so a Play install later
+  updates it in place.
 - **macOS:** the desktop app from [GitHub Releases](https://github.com/T0mSIlver/starbridge/releases/latest),
   the `arm64` DMG for Apple silicon or the `x64` one for Intel. It is signed and notarized, adds a
   menu bar light and a notification per question with its options as buttons, and updates itself.
+  Check Get Release Candidates in its menu bar icon's menu to also get each release candidate.
 - **Google Play:** in closed testing, and looking for testers. Join
   [the group](https://groups.google.com/g/starbridge-testers), then
-  [opt in](https://play.google.com/apps/testing/dev.starbridge.app).
+  [opt in](https://play.google.com/apps/testing/dev.starbridge.app). Testers get each release
+  candidate and each release.
 - **iOS:** add [starbridge.run](https://starbridge.run) to the Home Screen from Safari to get
-  notifications, on iOS 16.4 and later. A native app is planned.
+  notifications, on iOS 16.4 and later. A native iPhone app is in progress and not released.
 - **Any browser:** [starbridge.run](https://starbridge.run).
 
 ## Install the CLI
@@ -95,7 +98,9 @@ the agent waits with `starbridge wait` before it ends its turn.
 [What each harness supports](https://starbridge.run/docs/tell-your-agents#what-each-harness-supports)
 lists the version and setup each one needs.
 
-Tested for 0.1.0: Claude Code on macOS, Linux and Windows 11; Codex, opencode and Pi on Linux.
+CI runs the CLI's tests on Linux and macOS, and its platform tests on Windows, on every change
+to the CLI.
+A release publishes nothing until its APK passes a smoke test on an Android emulator.
 
 ## Docs
 
