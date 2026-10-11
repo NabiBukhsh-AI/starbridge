@@ -909,6 +909,12 @@ test("bidi and invisible characters reach devices as escapes (#357)", () => {
   );
 });
 
+test("a lone surrogate in a tool call reaches devices as U+FFFD, which iOS can read (#1090)", () => {
+  const p = build("Bash", { command: "echo \ud83d", description: "Say \ude80" });
+  expect(p.summary).toBe("echo \ufffd");
+  expect(p.description).toBe("Say \ufffd");
+});
+
 test("a picker card whose hook died unsettled stops holding the open mark after a day", () => {
   const asked = {
     question: "Which color?",

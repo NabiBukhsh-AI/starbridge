@@ -63,7 +63,10 @@ Besides the web app's trust in its server:
   zod does, not UTF-16 units: an emoji is one (#1082).
 - **Signed envelope** `{v, kind, signer, body, sig}`: `body` is JSON text kept exactly as signed;
   `sig` is Ed25519 over `"starbridge/v1/<kind>" NUL signer NUL body`. Verifiers check the
-  signature before they parse `body`.
+  signature before they parse `body`. A body with a lone UTF-16 surrogate (`"\ud800"` with no
+  pair) in any string or key is `bad-schema`, and signers refuse one: Swift cannot hold it, so
+  the iOS app would read other text than was signed. A machine replaces each one in an agent's
+  text with U+FFFD before signing (#1090).
 - **Sealed item** `{v, kind, id, from, re?, wakeAt?, quiet?, reseal?, blobs?, boxes: [{to, box}]}`:
   a signed envelope sealed with `crypto_box_seal` to each recipient, and for a decision its
   images' blobs. `kind`, `id`, `from`, `re`,

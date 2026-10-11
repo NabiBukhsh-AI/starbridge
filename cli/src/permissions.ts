@@ -20,7 +20,7 @@ import {
   parseWith,
   SealedItem,
   type Settled,
-  seal,
+  toWellFormed,
   visible,
 } from "@starbridge/protocol";
 import { antigravityTitle } from "./antigravity";
@@ -40,6 +40,7 @@ import {
 import { OPENCODE_TITLE } from "./opencode";
 import { piSessionTitle } from "./pi";
 import { projectName } from "./project";
+import { seal } from "./seal";
 
 /**
  * What Claude Code's `PermissionRequest` hook gets on stdin (fields Starbridge reads). The Pi
@@ -378,7 +379,8 @@ export function buildPermission(
     },
   };
   try {
-    return { permission: parseWith(PermissionSchema, permission), updates };
+    // Agents' text, cut to length, can hold a lone surrogate, which the protocol refuses (#1090).
+    return { permission: parseWith(PermissionSchema, toWellFormed(permission)), updates };
   } catch (e) {
     throw e instanceof ProtocolError ? new UsageError(`bad permission: ${e.message}`) : e;
   }

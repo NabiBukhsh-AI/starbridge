@@ -15,7 +15,7 @@ import {
   SealedItem,
   type SessionLink,
   type Settled,
-  seal,
+  toWellFormed,
   verifyDirectory,
   type Waiting,
 } from "@starbridge/protocol";
@@ -43,6 +43,7 @@ import { OPENCODE_ANSWERS, OPENCODE_SESSION, OPENCODE_TITLE } from "./opencode";
 import { acceptPermissionAnswer } from "./permissions";
 import { PI_ANSWERS, piSessionTitle } from "./pi";
 import { projectName } from "./project";
+import { seal } from "./seal";
 
 export interface AskInput {
   question?: string;
@@ -259,7 +260,8 @@ function agentOf(input: AskInput, env: Ctx["env"]): { agent?: Agent } {
 
 function checked(decision: unknown): Decision {
   try {
-    return parseWith(Decision, decision);
+    // Agents' text, cut to length, can hold a lone surrogate, which the protocol refuses (#1090).
+    return parseWith(Decision, toWellFormed(decision));
   } catch (e) {
     throw e instanceof ProtocolError ? new UsageError(`bad decision: ${e.message}`) : e;
   }

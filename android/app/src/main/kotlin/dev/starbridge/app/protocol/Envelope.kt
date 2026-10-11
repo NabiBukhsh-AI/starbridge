@@ -26,6 +26,7 @@ class Opened<T>(val signer: Member, val body: T, val bodyText: String)
 class Envelopes(private val sodium: Sodium) {
     /** Signs [body], JSON text kept exactly as it will be sent. */
     fun sign(kind: String, body: JsonObject, signer: String, signKey: ByteArray): SignedEnvelope {
+        wellFormed(body)
         val text = body.toString()
         val sig = sodium.sign(signatureMessage(kind, signer, text), signKey)
         return SignedEnvelope(1, kind, signer, text, toB64(sig))

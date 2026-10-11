@@ -17,6 +17,7 @@ import {
   forgetHeads,
   formatPairingCode,
   fromB64,
+  type ItemKind,
   joinCommitment,
   joinerKeys,
   joinRequest,
@@ -29,6 +30,7 @@ import {
   openPairingRequest,
   ProtocolError,
   pairingKey,
+  parseBody,
   parseContext,
   parsePairingCode,
   readable,
@@ -356,6 +358,9 @@ describe("schemas.json", () => {
       });
     }
   }
+  for (const c of v.text as { name: string; kind: ItemKind; text: string; valid: boolean }[])
+    test(`${c.kind} text: ${c.name}`, () =>
+      expect(errorCode(() => parseBody(c.kind, c.text))).toBe(c.valid ? "ok" : "bad-schema"));
 });
 
 /** Whether `actual` holds `expected`: objects by their keys, arrays whole, null as absent. */

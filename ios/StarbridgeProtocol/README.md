@@ -22,9 +22,8 @@ Bodies are read and written through `JSON`, which parses as `JSON.parse` and wri
 package signs is the text the TypeScript would sign. The schemas check what zod checks; lengths
 count code points and times follow zod's `iso.datetime({ offset: true })`.
 
-One difference remains: a Swift `String` cannot hold a lone UTF-16 surrogate, which a JavaScript
-string can, so a `\ud800` escape reads here as U+FFFD. A decision option holding one shows
-changed, and an answer naming it would not match the machine's option.
+A Swift `String` cannot hold a lone UTF-16 surrogate, which a JavaScript string can, so the
+protocol refuses one in every port (#1090): a `\ud800` escape with no pair is `bad-schema` here.
 
 ## Test
 
