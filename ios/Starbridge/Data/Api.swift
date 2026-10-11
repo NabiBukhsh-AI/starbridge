@@ -124,15 +124,19 @@ struct Api {
         return (status, json)
     }
 
-    /** `Retry-After` in seconds, from seconds or an HTTP date; nil when unreadable. */
+    /** `Retry-After` in seconds, from seconds or an HTTP date in any of its three forms; nil when unreadable. */
     static func retryAfter(_ value: String) -> TimeInterval? {
         let v = value.trimmingCharacters(in: .whitespaces)
-        if let seconds = TimeInterval(v), seconds >= 0 { return seconds }
+        if let seconds = TimeInterval(v) { return seconds.isFinite && seconds >= 0 ? seconds : nil }
         let f = DateFormatter()
         f.locale = Locale(identifier: "en_US_POSIX")
         f.timeZone = TimeZone(identifier: "GMT")
-        f.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
-        return f.date(from: v).map { max(0, $0.timeIntervalSinceNow) }
+        // IMF-fixdate, then the obsolete RFC 850 and asctime forms (RFC 9110, section 5.6.7).
+        for format in ["EEE, dd MMM yyyy HH:mm:ss zzz", "EEEE, dd-MMM-yy HH:mm:ss zzz", "EEE MMM d HH:mm:ss yyyy"] {
+            f.dateFormat = format
+            if let date = f.date(from: v) { return max(0, date.timeIntervalSinceNow) }
+        }
+        return nil
     }
 
     private func field(_ json: JSON?, _ key: String) throws -> JSON {

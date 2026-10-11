@@ -72,7 +72,13 @@ final class ApiTests: XCTestCase {
         f.dateFormat = "EEE, dd MMM yyyy HH:mm:ss 'GMT'"
         let soon = try? XCTUnwrap(Api.retryAfter(f.string(from: Date().addingTimeInterval(120))))
         XCTAssertEqual(soon ?? 0, 120, accuracy: 2)
+        XCTAssertEqual(Api.retryAfter("Wednesday, 21-Oct-15 07:28:00 GMT"), 0)
+        XCTAssertEqual(Api.retryAfter("Wed Oct 21 07:28:00 2015"), 0)
+        f.dateFormat = "EEE MMM d HH:mm:ss yyyy"
+        XCTAssertEqual(Api.retryAfter(f.string(from: Date().addingTimeInterval(120))) ?? 0, 120, accuracy: 2)
         XCTAssertNil(Api.retryAfter("soon"))
+        XCTAssertNil(Api.retryAfter("inf"))
+        XCTAssertNil(Api.retryAfter("-5"))
     }
 }
 
