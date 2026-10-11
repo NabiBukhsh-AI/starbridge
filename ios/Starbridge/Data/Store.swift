@@ -554,7 +554,7 @@ final class Store {
     func recover(_ key: String) async {
         await run { [self] in
             let seed: SecretKey
-            do {
+            do throws(RecoveryKeyError) {
                 seed = try RecoveryKeys.seed(key)
             } catch {
                 throw Notice(message: RecoveryKeyText.problem(error.reading) ?? "That is not a recovery key.")
