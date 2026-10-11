@@ -49,6 +49,13 @@ line, the safe side: at worst a prompt repeats an answer the agent already read.
   and ranks after Codex, Pi and opencode, which sessions start for reviews, and before Claude Code;
   its card title is the one Antigravity generates, read from
   `~/.gemini/<product>/annotations/<id>.pbtxt` (#960).
+- **A Claude Code session's name** (#970, #1181). `ask` sends the name the owner or Claude Desktop
+  gave the session. Claude Code names the rest itself: `<directory>-<hex>` (`nameSource:
+  "derived"`, `bridge-cse-<id>` under Remote Control), which says nothing, and later sometimes the
+  first prompt cut at about 50 characters with "..." (`"auto"`). For those and for an unnamed
+  session, `ask` titles the card with the first sentence of the session's first prompt, cut on a
+  word boundary to 60 characters, read from its transcript past command, system, tool-result,
+  compaction and peer lines. It reads up to that line and sends nothing else from the prompt.
 - **Cursor** (#955) gives its agent's commands `CURSOR_AGENT=1`, so `ask` names the agent
   `cursor`. `cursor-agent` also gives them `CURSOR_CONVERSATION_ID`, the session; the IDE does
   not (2026.10), so a question from an IDE chat names no session. Codex, Pi, opencode and
