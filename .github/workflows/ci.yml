@@ -25,106 +25,176 @@ permissions:
 # Jobs run on GitHub-hosted runners by default. The repository variable RUNNER points them at
 # self-hosted runners instead, and DOCKER_RUNNER the image builds below.
 #
-# A pull request runs only the jobs its files can affect. A job that cannot be affected still
-# starts and passes in seconds, so its check reports success, which a skipped workflow would
-# not. Main runs everything: deploy.yml deploys once all of CI passes.
+# A run tests only what its files can affect: a pull request's files against its base, a push's
+# since the commit before it (the changes job). A job that cannot be affected is skipped, which
+# counts as passing; a skipped workflow would not. deploy.yml deploys once all of CI passes.
 jobs:
-  # One job, so the workspace installs once instead of three times.
-  checks:
-    name: test, typecheck, lint
-    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 15
+  # Which jobs a run's files can affect. A push compares github.event.before with the pushed
+  # commit, so a merge that touches only the Android or desktop app or docs skips the rest. A
+  # push whose before is missing (a new branch) or not in the history, a dispatched run, and a
+  # failure of this job run everything. GitHub's runner, whatever vars.RUNNER says: every job
+  # waits for this one, and self-hosted runners can all be busy.
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      checks: ${{ steps.open.outputs.all == 'true' || steps.filter.outputs.checks == 'true' || steps.filter.outputs.android_read == 'true' }}
+      e2e: ${{ steps.open.outputs.all == 'true' || steps.filter.outputs.e2e == 'true' || steps.filter.outputs.pages == 'true' }}
+      desktop: ${{ steps.open.outputs.all == 'true' || steps.filter.outputs.desktop == 'true' }}
+      cli: ${{ steps.open.outputs.all == 'true' || steps.filter.outputs.cli == 'true' || steps.filter.outputs.android_read == 'true' }}
+      images: ${{ steps.open.outputs.all == 'true' || steps.filter.outputs.images == 'true' }}
     steps:
-      - id: changes
-        if: github.event_name == 'pull_request'
+      # The pushed commit and its parent, which is github.event.before for a squash merge. A push
+      # of more commits finds no before here and runs everything. Trees only, enough to diff names.
+      - if: github.event_name == 'push'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          filter: blob:none
+      - id: all
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          all=false
+          case "${{ github.event_name }}" in
+            pull_request) ;;
+            push) git cat-file -e "$BEFORE^{commit}" 2>/dev/null || all=true ;;
+            *) all=true ;;
+          esac
+          echo "all=$all" >> "$GITHUB_OUTPUT"
+      - id: filter
+        if: steps.all.outputs.all != 'true'
+        continue-on-error: true
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         with:
+          # Ignored on a pull request, which compares with its base.
+          base: ${{ github.event.before }}
           predicate-quantifier: some-with-excludes
           filters: |
-            run:
+            checks:
               - '**'
               - '!android/**'
               - '!.github/workflows/android.yml'
-            # web's tests check it against DESIGN.md (web/scripts/tokens.ts).
-            tokens:
+            # Android files other suites read: web's tests check Tokens.kt against DESIGN.md
+            # (web/scripts/tokens.ts), the CLI's the app's version (cli/test/version.test.ts).
+            android_read:
               - 'android/app/src/main/kotlin/dev/starbridge/app/ui/theme/Tokens.kt'
-      - id: scope
-        run: echo "run=${{ github.event_name != 'pull_request' || steps.changes.outputs.run == 'true' || steps.changes.outputs.tokens == 'true' }}" >> "$GITHUB_OUTPUT"
-      - if: steps.scope.outputs.run == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: steps.scope.outputs.run == 'true'
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+              - 'android/app/build.gradle.kts'
+            # Not the apps, the evals, and Markdown no page renders.
+            e2e:
+              - '**'
+              - '!android/**'
+              - '!desktop/**'
+              - '!.github/workflows/android.yml'
+              - '!.github/workflows/desktop.yml'
+              - '!evals/**'
+              - '!**/*.md'
+            # /docs renders docs/*.md, cli/README.md and server/README.md (web/src/lib/docs.ts).
+            pages:
+              - 'docs/*.md'
+              - 'cli/README.md'
+              - 'server/README.md'
+            desktop:
+              - '**'
+              - '!android/**'
+              - '!.github/workflows/android.yml'
+              - '!evals/**'
+              - '!docs/**'
+              - '!**/*.md'
+            # The CLI's suite reads the plugin and mod and runs the server, never web or the apps.
+            cli:
+              - '**'
+              - '!android/**'
+              - '!desktop/**'
+              - '!web/**'
+              - '!evals/**'
+              - '!docs/**'
+              - '!deploy/**'
+              - '!demo/**'
+              - '!*.md'
+              - '!.github/workflows/android.yml'
+              - '!.github/workflows/desktop.yml'
+            images:
+              - '**/Dockerfile'
+              - '**/*.Dockerfile'
+              - '.dockerignore'
+              - '**/package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'deploy/compose.yaml'
+              - 'deploy/demo/**'
+              - '.github/workflows/ci.yml'
+      # A failed comparison runs everything too.
+      - id: open
+        run: echo "all=${{ steps.all.outputs.all == 'true' || steps.filter.outcome == 'failure' }}" >> "$GITHUB_OUTPUT"
+
+  # One job, so the workspace installs once instead of three times.
+  checks:
+    name: test, typecheck, lint
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.checks == 'true') }}
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
           # Per job: runners on one machine would share ~/setup-pnpm and clobber each other.
           dest: ${{ runner.temp }}/setup-pnpm
-      - if: steps.scope.outputs.run == 'true'
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.2
-      - if: steps.scope.outputs.run == 'true'
-        run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
         timeout-minutes: 5
         # A store that stays on the runner between jobs. Its default, under the job's temp
         # folder, is emptied after each job, so every install downloaded every package.
         env:
           pnpm_config_store_dir: ${{ runner.tool_cache }}/pnpm-store
-      - if: steps.scope.outputs.run == 'true'
-        run: pnpm lint
-      - if: steps.scope.outputs.run == 'true'
-        run: pnpm typecheck
-      - if: steps.scope.outputs.run == 'true'
-        run: pnpm test
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
 
-  # The whole product on one machine (web/e2e/run.ts). Each screenshot also fails on layout
-  # breakage: a page wider than the window, clipped, spilled or overlapping text (web/e2e/layout.ts).
+  # The whole product on one machine (web/e2e/run.ts), in three parts side by side, each with its
+  # own server and browser (E2E_SHARD). Each screenshot also fails on layout breakage: a page wider
+  # than the window, clipped, spilled or overlapping text (web/e2e/layout.ts). GitHub's runners,
+  # whatever vars.RUNNER says: the parts wait on timers more than they compute, and three at once
+  # would fill the self-hosted runners that the other jobs and pull requests share.
   e2e:
-    name: end to end
-    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    name: end to end (${{ matrix.shard }})
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.e2e == 'true') }}
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [inbox, snooze, devices]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     # actions: the tested step lists artifacts.
     permissions:
       contents: read
-      pull-requests: read
       actions: read
     steps:
-      # Not affected: the Android app, the evals, and Markdown no page renders. /docs renders
-      # docs/*.md, cli/README.md and server/README.md (web/src/lib/docs.ts).
-      - id: changes
-        if: github.event_name == 'pull_request'
-        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
-        with:
-          predicate-quantifier: some-with-excludes
-          filters: |
-            code:
-              - '**'
-              - '!android/**'
-              - '!.github/workflows/android.yml'
-              - '!evals/**'
-              - '!**/*.md'
-            pages:
-              - 'docs/*.md'
-              - 'cli/README.md'
-              - 'server/README.md'
-      # A merge to main skips the run when a run of this workflow already passed on the same tree
+      # A merge to main skips a part when a run of this workflow already passed it on the same tree
       # (#878): most often the pull request's own last run, on its merge with the main commit it
       # was then merged onto, since a squash merge of an unchanged base yields the same tree. A
       # tree holds every file, ci.yml included, so the run that passed tested exactly what main
-      # now holds, with the same steps. Each passing run uploads an artifact named after its tree.
+      # now holds, with the same steps. Each passing part uploads an artifact named after its tree.
       # Only this repository's branches count: a fork's pull request runs its own ci.yml and could
       # upload any name. Anything else, an expired artifact or a failed API call, runs it again.
       - id: tested
         if: github.event_name == 'push'
         env:
           GH_TOKEN: ${{ github.token }}
-          TREE: ${{ github.event.head_commit.tree_id }}
+          NAME: e2e-passed-${{ matrix.shard }}-${{ github.event.head_commit.tree_id }}
         # Not gh: some self-hosted runners lack it (dell2-2).
         run: |
           n=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H 'Accept: application/vnd.github+json' \
-            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts?name=e2e-passed-$TREE&per_page=100" |
+            "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts?name=$NAME&per_page=100" |
             jq '[.artifacts[] | select((.expired | not) and .workflow_run.head_repository_id == .workflow_run.repository_id)] | length') || n=0
           echo "passed=$([ "${n:-0}" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - id: scope
-        run: echo "run=${{ github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && steps.tested.outputs.passed != 'true') || steps.changes.outputs.code == 'true' || steps.changes.outputs.pages == 'true' }}" >> "$GITHUB_OUTPUT"
+        run: echo "run=${{ steps.tested.outputs.passed != 'true' }}" >> "$GITHUB_OUTPUT"
       - if: steps.scope.outputs.run == 'true'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - if: steps.scope.outputs.run == 'true'
@@ -158,12 +228,14 @@ jobs:
           if [ -d "$cache" ] && [ "$(du -sm "$cache" | cut -f1)" -gt 2048 ]; then rm -rf "$cache"; fi
           mkdir -p "$cache" web/.next
           ln -sfn "$cache" web/.next/cache
-      # A run takes ~5 min. At 10 the watchdog prints what is still running and stops it.
+      # A part takes up to ~4 min, the snooze's 2-minute wait for its time included. At 7 the
+      # watchdog prints what is still running and stops it.
       - if: steps.scope.outputs.run == 'true'
-        run: .github/watchdog.sh 600 xvfb-run -a node web/e2e/run.ts
-        timeout-minutes: 11
+        run: .github/watchdog.sh 420 xvfb-run -a node web/e2e/run.ts
+        timeout-minutes: 8
         env:
           TMPDIR: ${{ runner.temp }}
+          E2E_SHARD: ${{ matrix.shard }}
       # What a later merge of the same tree looks up (the tested step above). It holds the commit
       # that passed; overwrite, since a re-run attempt uploads it again.
       - id: tree
@@ -174,14 +246,14 @@ jobs:
       - if: steps.scope.outputs.run == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: e2e-passed-${{ steps.tree.outputs.tree }}
+          name: e2e-passed-${{ matrix.shard }}-${{ steps.tree.outputs.tree }}
           path: ${{ runner.temp }}/e2e-passed
           retention-days: 7
           overwrite: true
       - if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: e2e-failure
+          name: e2e-failure-${{ matrix.shard }}
           path: ${{ runner.temp }}/starbridge-e2e-failure.png
           if-no-files-found: ignore
 
@@ -190,52 +262,29 @@ jobs:
   # vars.RUNNER says: Electron needs the desktop libraries the hosted image has.
   desktop-e2e:
     name: desktop end to end
+    needs: changes
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.desktop == 'true') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    permissions:
-      contents: read
-      pull-requests: read
     steps:
-      - id: changes
-        if: github.event_name == 'pull_request'
-        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
-        with:
-          predicate-quantifier: some-with-excludes
-          filters: |
-            code:
-              - '**'
-              - '!android/**'
-              - '!.github/workflows/android.yml'
-              - '!evals/**'
-              - '!docs/**'
-              - '!**/*.md'
-      - id: scope
-        run: echo "run=${{ github.event_name != 'pull_request' || steps.changes.outputs.code == 'true' }}" >> "$GITHUB_OUTPUT"
-      - if: steps.scope.outputs.run == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - if: steps.scope.outputs.run == 'true'
-        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
           dest: ${{ runner.temp }}/setup-pnpm
-      - if: steps.scope.outputs.run == 'true'
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.2
-      - if: steps.scope.outputs.run == 'true'
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           package-manager-cache: false
-      - if: steps.scope.outputs.run == 'true'
-        run: pnpm install --frozen-lockfile
+      - run: pnpm install --frozen-lockfile
         timeout-minutes: 5
-      - if: steps.scope.outputs.run == 'true'
-        working-directory: desktop
+      - working-directory: desktop
         run: |
           pnpm exec install-electron
           pnpm run build
-      - if: steps.scope.outputs.run == 'true'
-        run: .github/watchdog.sh 600 xvfb-run -a node desktop/test/stack.ts
+      - run: .github/watchdog.sh 600 xvfb-run -a node desktop/test/stack.ts
         timeout-minutes: 11
         env:
           TMPDIR: ${{ runner.temp }}
@@ -249,58 +298,33 @@ jobs:
   # Builds the deployed images, without pushing them, when a pull request can change their base
   # images or dependencies: a change that breaks a build fails here, not at the deploy (#430).
   # Source changes outside these paths that a Dockerfile copies (docs/ for web, cli/ for the demo)
-  # are not covered. On a push, main's deploy builds them on the server. Set
-  # DOCKER_RUNNER when RUNNER's runners have no Docker: a gate on the usual runners picks one of
-  # its runners only when there is something to build, so main's CI never waits on them.
-  images-scope:
-    name: images scope
-    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 5
-    outputs:
-      build: ${{ github.event_name == 'workflow_dispatch' || steps.changes.outputs.images == 'true' }}
-    steps:
-      - id: changes
-        if: github.event_name == 'pull_request'
-        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
-        with:
-          filters: |
-            images:
-              - '**/Dockerfile'
-              - '**/*.Dockerfile'
-              - '.dockerignore'
-              - '**/package.json'
-              - 'pnpm-lock.yaml'
-              - 'pnpm-workspace.yaml'
-              - 'deploy/compose.yaml'
-              - 'deploy/demo/**'
-              - '.github/workflows/ci.yml'
-
+  # are not covered. On a push, main's deploy builds them on the server. Set DOCKER_RUNNER when
+  # RUNNER's runners have no Docker.
   images:
     name: images
-    needs: images-scope
-    runs-on: ${{ needs.images-scope.outputs.build == 'true' && vars.DOCKER_RUNNER || vars.RUNNER || 'ubuntu-latest' }}
+    needs: changes
+    if: github.event_name != 'push' && needs.changes.outputs.images == 'true'
+    runs-on: ${{ vars.DOCKER_RUNNER || vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 30
     env:
-      BUILD: ${{ needs.images-scope.outputs.build }}
       # Tagged per run, so runs on one host never share a tag; removed after.
       TAG: ci-${{ github.run_id }}
     steps:
-      - if: env.BUILD == 'true'
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       # One step each, so one broken image does not hide another. --pull as the deploy does, so a
       # stale local copy of a base image cannot pass here and fail there; Caddy's is not pulled
       # there either.
-      - if: env.BUILD == 'true' && !cancelled()
+      - if: ${{ !cancelled() }}
         run: docker build --pull -f server/Dockerfile -t starbridge-server:$TAG .
-      - if: env.BUILD == 'true' && !cancelled()
+      - if: ${{ !cancelled() }}
         run: docker build --pull -f web/Dockerfile -t starbridge-web:$TAG .
-      - if: env.BUILD == 'true' && !cancelled()
+      - if: ${{ !cancelled() }}
         run: docker build --pull -f deploy/demo/Dockerfile -t starbridge-demo:$TAG .
-      - if: env.BUILD == 'true' && !cancelled()
+      - if: ${{ !cancelled() }}
         run: docker build -f deploy/caddy.Dockerfile -t starbridge-caddy:$TAG deploy
       # A self-hosted runner's disk may be shared with other work: keep the build cache to 3 GB, as
       # deploy/host/apply.sh does on the server. BuildKit keeps records a running build uses.
-      - if: always() && env.BUILD == 'true'
+      - if: always()
         run: |
           docker image rm -f starbridge-server:$TAG starbridge-web:$TAG starbridge-demo:$TAG starbridge-caddy:$TAG >/dev/null 2>&1 || true
           docker builder prune -f --keep-storage 3GB >/dev/null || true
@@ -311,7 +335,8 @@ jobs:
   # repository skips the job.
   windows:
     name: CLI on Windows
-    if: ${{ !github.event.repository.private }}
+    needs: changes
+    if: ${{ !cancelled() && !github.event.repository.private && (needs.changes.result != 'success' || needs.changes.outputs.cli == 'true') }}
     runs-on: windows-latest
     timeout-minutes: 20
     defaults:
@@ -338,7 +363,8 @@ jobs:
   # a hang names its file well before the job limit.
   macos:
     name: CLI on macOS
-    if: ${{ !github.event.repository.private }}
+    needs: changes
+    if: ${{ !cancelled() && !github.event.repository.private && (needs.changes.result != 'success' || needs.changes.outputs.cli == 'true') }}
     runs-on: macos-latest
     timeout-minutes: 20
     defaults:
@@ -364,7 +390,7 @@ jobs:
   # checks never show on it; a commit status does. dependabot-lockfile.yml set it to pending.
   status:
     name: status
-    needs: [checks, e2e, images-scope, images]
+    needs: [changes, checks, e2e, images]
     if: always() && github.event_name == 'workflow_dispatch'
     runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
