@@ -13,12 +13,14 @@ import dev.starbridge.app.data.Secrets
 import dev.starbridge.app.data.ServerStore
 import dev.starbridge.app.data.Vault
 import dev.starbridge.app.protocol.Directories
+import dev.starbridge.app.protocol.DirectoryEntry
 import dev.starbridge.app.protocol.Envelopes
 import dev.starbridge.app.protocol.Joins
 import dev.starbridge.app.protocol.Member
 import dev.starbridge.app.protocol.Pairings
 import dev.starbridge.app.protocol.ProtocolJson
 import dev.starbridge.app.protocol.RecoveryKeys
+import dev.starbridge.app.protocol.SignedEnvelope
 import dev.starbridge.app.protocol.Sodium
 import dev.starbridge.app.protocol.envelopeJson
 import dev.starbridge.app.protocol.recoverySignSeed
@@ -49,7 +51,8 @@ import org.robolectric.annotation.Config
 
 /**
  * Recovery against a scripted server that commits the first append but loses its reply (#274):
- * the retry finds the member already in the chain and keeps the keys the session was bound to.
+ * the retry finds the member already in the chain and keeps the keys the session was bound to,
+ * unless a device rather than the recovery key added it (#1132).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -72,69 +75,108 @@ class RecoveryRetryTest {
 
     @Test
     fun aRetryAfterALostReplyKeepsTheFirstKeys() {
-        val account = "acct"
-        val seed = sodium.random(16)
-        val key = RecoveryKeys.encode(seed, sodium)
-        val lost = Member("lost", "device", "Lost phone", toB64(sodium.boxKeyPair().public), toB64(sodium.signKeyPair().public))
-        val lostSign = sodium.signKeyPair()
-        val genesis = directories.genesisEntry(account, lost.copy(signPk = toB64(lostSign.public)), lostSign.secret, sodium.signSeedKeyPair(recoverySignSeed(seed, sodium)), "2026-10-05T12:00:00Z")
-        val entries = mutableListOf<JsonElement>(envelopeJson(genesis))
+        val r = Rig()
+        // The first append commits, but the connection drops in the middle of its reply. Not a
+        // 503, which clients retry quietly (#250), and not before the reply starts, which OkHttp
+        // retries: either way the phone never sees it fail.
+        r.start { entry -> r.entries += entry }
 
-        var appends = 0
-        http.dispatcher = object : Dispatcher() {
-            override fun dispatch(request: RecordedRequest): MockResponse {
-                val path = request.url.encodedPath
-                return when {
-                    path == "/v1/directory" && request.method == "GET" -> {
-                        val from = request.url.queryParameter("from")!!.toInt()
-                        json(buildJsonObject { put("entries", buildJsonArray { entries.drop(from).forEach { add(it) } }) })
-                    }
-                    path == "/v1/directory" -> {
-                        appends++
-                        val entry = ProtocolJson.parseToJsonElement(request.body!!.utf8()).jsonObject.getValue("entry")
-                        entries += entry
-                        val dir = directories.verify(entries, account, null)
-                        val reply = json(buildJsonObject { put("length", dir.length); put("head", dir.head) }, 201)
-                        // The first append commits, but the connection drops in the middle of its
-                        // reply. Not a 503, which clients retry quietly (#250), and not before the
-                        // reply starts, which OkHttp retries: either way the phone never sees it fail.
-                        if (appends == 1) reply.newBuilder().onResponseBody(SocketEffect.ShutdownConnection).build() else reply
-                    }
-                    else -> MockResponse(404, okhttp3.Headers.headersOf(), "")
-                }
+        r.store.recover(r.key)
+        until { r.appends == 1 && !r.store.busy.value }
+        r.store.recover(r.key)
+        until { r.store.phase.value == Phase.Ready }
+
+        assertEquals(1, r.appends)
+        val chain = directories.verify(r.entries, r.account, null)
+        val added = chain.members.values.single { it.member.id != r.lost.id }.member
+        assertEquals(added.id, r.disk.saved()!!.me!!.id)
+        assertEquals(added.boxPk, r.disk.secrets().boxPk)
+        assertEquals(added.signPk, r.disk.secrets().signPk)
+    }
+
+    /**
+     * A server holding the lost device's key drops the first attempt's `recover` entry and serves
+     * a fork where that device added the same member with the same keys (#1132): the retry makes
+     * new keys and recovers with them, so the lost device leaves.
+     */
+    @Test
+    fun aMemberAnotherDeviceAddedIsNotReused() {
+        val r = Rig()
+        r.start { entry ->
+            if (r.appends == 1) {
+                val body = ProtocolJson.decodeFromString(DirectoryEntry.serializer(), ProtocolJson.decodeFromJsonElement(SignedEnvelope.serializer(), entry).body)
+                val dir = directories.verify(r.entries, r.account, null)
+                r.entries += envelopeJson(directories.addEntry(dir, r.lost.id, r.lostSign.secret, body.member!!, "2026-10-05T12:01:00Z"))
+            } else {
+                r.entries += entry
             }
         }
-        http.start()
 
-        val identity = object : Vault {
-            override fun wrap(plain: ByteArray) = plain
-            override fun unwrap(wrapped: ByteArray) = wrapped
+        r.store.recover(r.key)
+        until { r.appends == 1 && !r.store.busy.value }
+        r.store.recover(r.key)
+        until { r.store.phase.value == Phase.Ready }
+
+        assertEquals(2, r.appends)
+        val chain = directories.verify(r.entries, r.account, null)
+        assertEquals(false, chain.members.getValue(r.lost.id).active)
+        val me = r.disk.saved()!!.me!!
+        assertEquals(listOf(me.id), chain.members.values.filter { it.active }.map { it.member.id })
+        assertEquals(me.signPk, r.disk.secrets().signPk)
+    }
+
+    /** An account whose only device is lost, a scripted server for it, and a phone that recovers it. */
+    private inner class Rig {
+        val account = "acct"
+        private val seed = sodium.random(16)
+        val key = RecoveryKeys.encode(seed, sodium)
+        val lostSign = sodium.signKeyPair()
+        val lost = Member("lost", "device", "Lost phone", toB64(sodium.boxKeyPair().public), toB64(lostSign.public))
+        val entries = mutableListOf<JsonElement>(envelopeJson(directories.genesisEntry(account, lost, lostSign.secret, sodium.signSeedKeyPair(recoverySignSeed(seed, sodium)), "2026-10-05T12:00:00Z")))
+        var appends = 0
+        lateinit var disk: Disk
+        lateinit var store: ServerStore
+
+        /** [onAppend] files each posted entry; the first append's reply is lost. */
+        fun start(onAppend: (JsonElement) -> Unit) {
+            http.dispatcher = object : Dispatcher() {
+                override fun dispatch(request: RecordedRequest): MockResponse {
+                    val path = request.url.encodedPath
+                    return when {
+                        path == "/v1/directory" && request.method == "GET" -> {
+                            val from = request.url.queryParameter("from")!!.toInt()
+                            json(buildJsonObject { put("entries", buildJsonArray { entries.drop(from).forEach { add(it) } }) })
+                        }
+                        path == "/v1/directory" -> {
+                            appends++
+                            onAppend(ProtocolJson.parseToJsonElement(request.body!!.utf8()).jsonObject.getValue("entry"))
+                            val dir = directories.verify(entries, account, null)
+                            val reply = json(buildJsonObject { put("length", dir.length); put("head", dir.head) }, 201)
+                            if (appends == 1) reply.newBuilder().onResponseBody(SocketEffect.ShutdownConnection).build() else reply
+                        }
+                        else -> MockResponse(404, okhttp3.Headers.headersOf(), "")
+                    }
+                }
+            }
+            http.start()
+            val identity = object : Vault {
+                override fun wrap(plain: ByteArray) = plain
+                override fun unwrap(wrapped: ByteArray) = wrapped
+            }
+            disk = Disk(tmp.newFolder(), identity)
+            val server = http.url("/").toString().trimEnd('/')
+            disk.save(Saved(server, account = account, accountExists = true))
+            disk.save(Secrets(session = "s"))
+            val alerts = object : Alerts {
+                override fun decision(decision: Decision, silent: Boolean) {}
+                override fun cancel(id: String) {}
+                override fun join(id: String, name: String) {}
+                override fun prompt(prompt: Prompt) {}
+                override fun cancelPrompt(prompt: Prompt) {}
+                override fun run(run: Run) {}
+            }
+            store = ServerStore(disk, OkHttpClient(), sodium, envelopes, directories, Pairings(sodium), Joins(sodium), alerts, "Phone", server, false, scope)
         }
-        val disk = Disk(tmp.newFolder(), identity)
-        val server = http.url("/").toString().trimEnd('/')
-        disk.save(Saved(server, account = account, accountExists = true))
-        disk.save(Secrets(session = "s"))
-        val alerts = object : Alerts {
-            override fun decision(decision: Decision, silent: Boolean) {}
-            override fun cancel(id: String) {}
-            override fun join(id: String, name: String) {}
-            override fun prompt(prompt: Prompt) {}
-            override fun cancelPrompt(prompt: Prompt) {}
-            override fun run(run: Run) {}
-        }
-        val store = ServerStore(disk, OkHttpClient(), sodium, envelopes, directories, Pairings(sodium), Joins(sodium), alerts, "Phone", server, false, scope)
-
-        store.recover(key)
-        until { appends == 1 && !store.busy.value }
-        store.recover(key)
-        until { store.phase.value == Phase.Ready }
-
-        assertEquals(1, appends)
-        val chain = directories.verify(entries, account, null)
-        val added = chain.members.values.single { it.member.id != lost.id }.member
-        assertEquals(added.id, disk.saved()!!.me!!.id)
-        assertEquals(added.boxPk, disk.secrets().boxPk)
-        assertEquals(added.signPk, disk.secrets().signPk)
     }
 
     private fun until(pred: () -> Boolean) {
