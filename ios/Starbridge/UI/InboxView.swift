@@ -208,12 +208,21 @@ private struct PromptCard: View {
             Card(amber: true) {
                 MetaRow(source: prompt.body.source, time: Dates.parse(prompt.body.createdAt).map { Times.waited($0, context.date) } ?? "", clock: true)
                 HStack(alignment: .top, spacing: Tokens.Spacing.s2) {
-                    Image(systemName: "lock.shield").foregroundStyle(Tokens.Colors.accent.color).accessibilityHidden(true)
-                    Text(prompt.body.summary).type(Tokens.Typography.subtitle)
+                    Image(systemName: "terminal").foregroundStyle(Tokens.Colors.accent.color).accessibilityHidden(true)
+                    Text(prompt.body.description.map(visible) ?? prompt.body.tool).type(Tokens.Typography.action)
                 }
+                // The whole input when it fits a line, else the summary; Allow covers only what shows (#356).
+                Text(prompt.fitsRow ? prompt.fullInput : visible(prompt.body.summary))
+                    .type(Tokens.Typography.code)
+                    .lineLimit(prompt.fitsRow ? nil : 3)
+                    .padding(Tokens.Spacing.s3)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(RoundedRectangle(cornerRadius: Tokens.Radius.md).fill(Tokens.Colors.surface.color))
                 HStack(spacing: Tokens.Spacing.s2) {
                     OptionButton(label: "Deny", strong: false, amber: true, height: 40) { Task { await store.answerPrompt(prompt.id, allow: false) } }
-                    OptionButton(label: "Allow", strong: true, amber: true, height: 40) { Task { await store.answerPrompt(prompt.id, allow: true) } }
+                    OptionButton(label: "Allow", strong: true, amber: true, height: 40) {
+                        if prompt.fitsRow { Task { await store.answerPrompt(prompt.id, allow: true) } } else { open() }
+                    }
                 }
                 .padding(.top, Tokens.Spacing.s1)
             }

@@ -671,6 +671,7 @@ final class Store {
         tapped = [:]
         notSent = [:]
         drafts = [:]
+        tooOld = nil
         withheldWhy = nil
         persist(Saved(server: saved.server), Secrets())
     }

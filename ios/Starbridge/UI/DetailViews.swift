@@ -154,7 +154,7 @@ struct PromptDetail: View {
     let id: String
     let close: () -> Void
     @State private var note = ""
-    @State private var fullInput = false
+    @State private var seen = false
 
     var body: some View {
         if let p = store.prompt(id) {
@@ -165,32 +165,33 @@ struct PromptDetail: View {
                     if let description = p.body.description {
                         Text(visible(description)).type(Tokens.Typography.reading).foregroundStyle(Tokens.Colors.fg2.color)
                     }
-                    Button {
-                        withAnimation { fullInput.toggle() }
-                    } label: {
-                        HStack {
-                            Text("Full input").type(Tokens.Typography.label)
-                            Spacer()
-                            Image(systemName: "chevron.down").rotationEffect(.degrees(fullInput ? 180 : 0))
+                    // The whole input; Allow waits until its end has been on screen (#274).
+                    Text(p.fullInput)
+                        .type(Tokens.Typography.code)
+                        .textSelection(.enabled)
+                        .padding(Tokens.Spacing.s4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(RoundedRectangle(cornerRadius: Tokens.Radius.lg).fill(Tokens.Colors.surface2.color))
+                    Color.clear.frame(height: 1).background(
+                        GeometryReader { g in
+                            Color.clear.onChange(of: g.frame(in: .global).minY, initial: true) { _, y in
+                                if y < UIScreen.main.bounds.height { seen = true }
+                            }
                         }
-                        .frame(minHeight: Tokens.Sizes.tap)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityValue(fullInput ? "Expanded" : "Collapsed")
-                    if fullInput {
-                        Text(visible(p.body.input))
-                            .type(Tokens.Typography.snippet)
-                            .textSelection(.enabled)
-                            .padding(Tokens.Spacing.s3)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(RoundedRectangle(cornerRadius: Tokens.Radius.sm).fill(Tokens.Colors.surface2.color))
-                    }
+                    )
                     if p.isOpen {
                         VStack(spacing: Tokens.Spacing.s2) {
                             OptionButton(label: "Allow", strong: true, amber: true, height: 48) { answer(p, allow: true, .once) }
+                                .disabled(!seen)
+                                .opacity(seen ? 1 : 0.38)
+                            // Each wider allow shows the exact rule it adds (PROTOCOL.md).
                             ForEach(p.body.suggestions, id: \.rule) { s in
-                                OptionButton(label: s.label, strong: false, amber: true, height: 48) { answer(p, allow: true, s.scope) }
+                                VStack(alignment: .leading, spacing: Tokens.Spacing.s1) {
+                                    OptionButton(label: s.label, strong: false, amber: true, height: 48) { answer(p, allow: true, s.scope) }
+                                    Text(visible(s.rule)).type(Tokens.Typography.snippet).foregroundStyle(Tokens.Colors.fg2.color)
+                                }
+                                .disabled(!seen)
+                                .opacity(seen ? 1 : 0.38)
                             }
                             TextField("Note to the agent (optional)", text: $note, axis: .vertical)
                                 .lineLimit(1...4)

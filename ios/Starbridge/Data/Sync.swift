@@ -55,6 +55,7 @@ extension Store {
 
     /** Answered questions, newest first, with this iPhone's unsent ones (#895). */
     var history: [SavedDecision] {
+        if withheldWhy != nil { return [] }
         let sending = unsent
         return saved.decisions.filter { !$0.isOpen || sending[$0.id] != nil }.reversed()
     }
@@ -106,7 +107,8 @@ extension Store {
         pollTask?.cancel()
         pollTask = Task { [weak self] in
             var shown: String?
-            while let self, !Task.isCancelled, phase == .ready {
+            // A release the server refuses stops asking until it is updated.
+            while let self, !Task.isCancelled, phase == .ready, tooOld == nil {
                 do {
                     try await serial { try await self.sync() }
                     shown = nil

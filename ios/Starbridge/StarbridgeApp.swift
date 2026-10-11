@@ -21,7 +21,8 @@ struct Root: View {
 
     var body: some View {
         Group {
-            if let minimum = store.tooOld {
+            // Signed out, the owner can still sign in elsewhere or to another server.
+            if let minimum = store.tooOld, store.phase != .signedOut {
                 UpdateView(minimum: minimum)
             } else if store.phase == .ready {
                 InboxView(store: store)
@@ -37,7 +38,7 @@ struct Root: View {
     }
 
     private var showsNotice: Binding<Bool> {
-        Binding(get: { store.notice != nil && store.tooOld == nil }, set: { if !$0 { store.notice = nil } })
+        Binding(get: { store.notice != nil && (store.tooOld == nil || store.phase == .signedOut) }, set: { if !$0 { store.notice = nil } })
     }
 }
 

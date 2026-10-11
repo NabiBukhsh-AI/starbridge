@@ -94,6 +94,26 @@ struct SavedPrompt: Codable, Equatable {
 
     var id: String { body.id }
 
+    /**
+     * The input as the owner reads it before allowing, as Android and the web show it (#276): a
+     * command's full text, then its other fields but the description; any other input as it came.
+     * The summary is capped at 200 characters, so a command's tail can hide past it.
+     */
+    var fullInput: String {
+        let shown: String
+        if case let .object(o)? = try? JSON.parse(body.input), let command = o["command"]?.string {
+            var rest = JSONObject()
+            for (k, v) in o where k != "command" && k != "description" { rest[k] = v }
+            shown = rest.count == 0 ? command : "\(command)\n\n\(JSON.object(rest).text)"
+        } else {
+            shown = body.input
+        }
+        return visible(shown.isEmpty ? body.summary : shown)
+    }
+
+    /** Whether the whole input fits a card's line, so the card may carry Allow (#356). */
+    var fitsRow: Bool { let s = fullInput; return s.count <= 200 && !s.contains("\n") }
+
     /** Still answerable here: unanswered, and inside its answer window. */
     var isOpen: Bool {
         answeredAt == nil && answer == nil && (Dates.parse(body.expiresAt).map { $0 > Date() } ?? false)
@@ -143,6 +163,13 @@ struct QueuedAnswer: Codable, Equatable {
     let item: String
     let at: String
     var mayHaveLanded = false
+}
+
+/** An element of a saved list: one that no longer reads is dropped, not the whole file. */
+struct Lossy<T: Decodable>: Decodable {
+    let value: T?
+
+    init(from decoder: Decoder) throws { value = try? T(from: decoder) }
 }
 
 /** The directory head a machine signed into its items (#362), as JSON text. */

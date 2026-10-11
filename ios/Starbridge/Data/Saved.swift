@@ -71,11 +71,11 @@ struct Saved: Codable, Equatable {
         recovering = try c.decodeIfPresent(SavedMember.self, forKey: .recovering)
         cursor = try c.decodeIfPresent(String.self, forKey: .cursor) ?? ""
         promptCursor = try c.decodeIfPresent(String.self, forKey: .promptCursor) ?? ""
-        decisions = try c.decodeIfPresent([SavedDecision].self, forKey: .decisions) ?? []
-        prompts = try c.decodeIfPresent([SavedPrompt].self, forKey: .prompts) ?? []
-        runs = try c.decodeIfPresent([SavedRun].self, forKey: .runs) ?? []
+        decisions = (try c.decodeIfPresent([Lossy<SavedDecision>].self, forKey: .decisions) ?? []).compactMap(\.value)
+        prompts = (try c.decodeIfPresent([Lossy<SavedPrompt>].self, forKey: .prompts) ?? []).compactMap(\.value)
+        runs = (try c.decodeIfPresent([Lossy<SavedRun>].self, forKey: .runs) ?? []).compactMap(\.value)
         dismissedRuns = try c.decodeIfPresent([String: String].self, forKey: .dismissedRuns) ?? [:]
-        outbox = try c.decodeIfPresent([QueuedAnswer].self, forKey: .outbox) ?? []
+        outbox = (try c.decodeIfPresent([Lossy<QueuedAnswer>].self, forKey: .outbox) ?? []).compactMap(\.value)
         heads = try c.decodeIfPresent([SavedHead].self, forKey: .heads) ?? []
     }
 
