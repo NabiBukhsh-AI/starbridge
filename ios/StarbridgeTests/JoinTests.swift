@@ -70,6 +70,13 @@ final class JoinTests: XCTestCase {
         let account = try await Api(server: server, session: session).me().account
         let entries0 = try await Api(server: server, session: session).directory(from: 0)
         try XCTSkipUnless(entries0.isEmpty, "the server's account already has devices")
+        // The tests after this one need an empty account; the approver's session deletes it.
+        addTeardownBlock { [server] in
+            var request = URLRequest(url: URL(string: server + "/v1/account")!)
+            request.httpMethod = "DELETE"
+            request.setValue("Bearer \(session)", forHTTPHeaderField: "Authorization")
+            _ = try? await URLSession.shared.data(for: request)
+        }
         let keys = MemberKeys.generate()
         let first = Member(id: "d_first", role: .device, name: "Approver", boxPk: toB64(keys.box.publicKey), signPk: toB64(keys.sign.publicKey))
         let recovery = RecoveryKeys.keyPair(RecoveryKeys.generateSeed())
