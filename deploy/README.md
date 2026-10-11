@@ -28,7 +28,7 @@ deploy/deploy.sh                 # origin/main
 It unpacks the ref into `/opt/starbridge`, builds the server and web images on the box and rolls them
 out (`deploy/host/apply.sh`). The previous release stays in `/opt/starbridge.old`.
 
-No request fails during a deploy (`SPEC.md`, "Releases, deploys and CI"). The page runs as two copies, `web-a` (port
+No request fails during a deploy (`spec/releases.md`). The page runs as two copies, `web-a` (port
 3010) and `web-b` (3011): the deploy starts the idle one, waits for its health, then stops the
 other, and Caddy sends requests to the first healthy copy. The server restarts in place; Caddy
 holds requests for up to 30 s meanwhile. Each deploy loads the Caddyfile into the running Caddy
@@ -70,7 +70,7 @@ image is tagged by a hash of that file and built only when no image has the tag.
 
 ## Analytics
 
-Umami counts visits to the public pages (`SPEC.md`, "The hosted instance"). Its dashboard listens on
+Umami counts visits to the public pages (`spec/hosted.md`). Its dashboard listens on
 the box's `127.0.0.1:3001` only:
 
 ```bash
@@ -108,7 +108,7 @@ and start `umami`.
 
 ## Demo server
 
-`https://demo.starbridge.run` lets Play reviewers try the app (`SPEC.md`, "The hosted instance"): the server with
+`https://demo.starbridge.run` lets Play reviewers try the app (`spec/hosted.md`): the server with
 `DEMO=1` and the demo program (`demo/`) in one container, Compose project `starbridge-demo`, on
 `127.0.0.1:8090`, with no volume, so each restart is a fresh account. Prod's Caddy serves it.
 Every prod deploy rebuilds it from the same checkout (`deploy/host/demo.sh`), and restarts it only
