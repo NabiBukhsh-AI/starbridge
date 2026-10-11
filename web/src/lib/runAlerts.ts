@@ -46,8 +46,11 @@ export async function notifyRuns(items: RunItem[], first: boolean): Promise<void
     if (reg) await reg.showNotification(title, opts);
     else {
       const n = new Notification(title, opts);
+      // A run that ends again under its id replaces its notification, which shares the tag.
       shownHere.set(i.run.id, n);
-      n.onclose = () => shownHere.delete(i.run.id);
+      n.onclose = () => {
+        if (shownHere.get(i.run.id) === n) shownHere.delete(i.run.id);
+      };
     }
   }
 }

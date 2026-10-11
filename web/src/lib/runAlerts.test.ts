@@ -10,7 +10,7 @@ test("without a service worker, as in the desktop app, dismissing a run closes i
     setItem: (k: string, v: string) => store.set(k, v),
     removeItem: (k: string) => store.delete(k),
   };
-  const shown: { title: string; closed: boolean; onclose?: () => void }[] = [];
+  const shown: { title: string; closed: boolean; close(): void }[] = [];
   g.Notification = class {
     static permission = "granted";
     closed = false;
@@ -40,9 +40,16 @@ test("without a service worker, as in the desktop app, dismissing a run closes i
   };
   try {
     await notifyRuns([run], false);
-    expect(shown.map((n) => n.closed)).toEqual([false]);
+    // Run again under its id: the second end notifies too, and the first's close untracks nothing.
+    const later = new Date(Date.now() + 1000).toISOString();
+    await notifyRuns(
+      [{ ...run, run: { ...run.run, at: later, exit: { code: 1, at: later } } }],
+      false,
+    );
+    shown[0]?.close();
+    expect(shown.map((n) => n.closed)).toEqual([true, false]);
     await closeRun("r1");
-    expect(shown.map((n) => n.closed)).toEqual([true]);
+    expect(shown.map((n) => n.closed)).toEqual([true, true]);
   } finally {
     delete g.localStorage;
     delete g.Notification;
