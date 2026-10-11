@@ -91,12 +91,18 @@ extension Store {
         await Notify.removeDelivered(about: closedItems)
     }
 
+    /** How far the server's clock may run ahead of this iPhone's when it wakes a snooze, as Android allows. */
+    static let wakeSkew: TimeInterval = 120
+
     /**
-     * Items whose notifications must go: questions answered, settled or snoozed, prompts no
-     * longer open, and everything from a revoked machine, which no answer reaches (#344).
+     * Items whose notifications must go: questions answered, settled or snoozed for longer than
+     * the wake's skew, prompts no longer open, and everything from a revoked machine, which no
+     * answer reaches (#344).
      */
     var closedItems: Set<String> {
-        let decisions = saved.decisions.filter { !$0.isOpen || $0.snoozed != nil || !active($0.from) }.map(\.id)
+        // A snooze about to end may already have its "Back from snooze" up, by a server clock ahead of this one.
+        let snoozed = { (d: SavedDecision) in d.snoozed.map { $0.timeIntervalSinceNow > Self.wakeSkew } ?? false }
+        let decisions = saved.decisions.filter { !$0.isOpen || snoozed($0) || !active($0.from) }.map(\.id)
         let prompts = saved.prompts.filter { !$0.isOpen || !active($0.from) }.map(\.id)
         return Set(decisions + prompts)
     }
