@@ -387,7 +387,7 @@ answers anyone with `ok`; `/healthz/backup` and `/healthz/disk` answer `ok`, or 
 last backup is stale or the disk runs low.
 
 Every request names its client and release in `starbridge-client: <name>/<version>`, `name`
-one of `cli`, `android`, `web`, `mod` and `desktop` (the desktop app's page), `version` MAJOR.MINOR.PATCH with an optional
+one of `cli`, `android`, `web`, `mod`, `desktop` (the desktop app's page) and `ios` (the iPhone app), `version` MAJOR.MINOR.PATCH with an optional
 pre-release, which comes before its release (`cli/0.1.0`, `android/0.2.0-rc.1`). The server counts the
 releases in use, and keeps a minimum release per client name: below it, any route answers 426
 `{error: "client-too-old", detail, client, minimum}`, and the client asks its owner to update. A
@@ -605,7 +605,7 @@ says once the app has its session, the page offers to turn off this browser's no
 | Route | Who | What |
 |---|---|---|
 | `PUT /notifications` | device | `{state: "on" \| "off" \| "blocked"}`: this device's own notifications → 204. `blocked` means the browser or Android refuses them |
-| `GET /notifications` | device | `{devices: {[memberId]: state}, clients: {[memberId]: "android" \| "web" \| "desktop"}}`, for the account's active devices that have said. `clients` names the app each last said it from (#1019), known from how it signs in: a bearer token is the Android app, the session cookie a browser, or the desktop app when its `starbridge-client` says so. A client may meet a name it does not know: it shows a plain device |
+| `GET /notifications` | device | `{devices: {[memberId]: state}, clients: {[memberId]: "android" \| "ios" \| "web" \| "desktop"}}`, for the account's active devices that have said. `clients` names the app each last said it from (#1019), known from how it signs in: a bearer token is the Android app, or the iPhone app when its `starbridge-client` says so; the session cookie a browser, or the desktop app when its `starbridge-client` says so. A client may meet a name it does not know: it shows a plain device |
 
 ### Machine releases
 

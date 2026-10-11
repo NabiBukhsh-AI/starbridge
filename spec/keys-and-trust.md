@@ -154,7 +154,7 @@
   choices. IndexedDB's own
   version is the records' format, and sign-out removes every record kind of the account.
 - **Old clients** (#468). Every client names its release in `starbridge-client:
-  <name>/<version>` (`cli`, `android`, `web`, `mod`; MAJOR.MINOR.PATCH). The server refuses
+  <name>/<version>` (`cli`, `android`, `web`, `mod`, `desktop`, `ios`; MAJOR.MINOR.PATCH). The server refuses
   releases below `MINIMUM_RELEASES` in `server/src/clients.ts` (empty at launch; a pre-release
   counts below its release) with 426 `client-too-old`, and serves a request without the header,
   so curl and scripts keep working. The CLI then says to run `starbridge update` and exits 1; the
