@@ -214,7 +214,7 @@ private struct SnoozeControls: View {
 
 /**
  * The reply field: grows to 10 lines, then scrolls (#947), and keeps a draft with its question
- * while the app runs (#992). Return starts a new line; the arrow sends.
+ * while the app runs (#992), until its answer is queued. Return starts a new line; the arrow sends.
  */
 private struct ReplyField: View {
     let store: Store
@@ -223,14 +223,15 @@ private struct ReplyField: View {
     let send: (String) -> Void
 
     var body: some View {
-        let draft = Binding(get: { store.drafts[id] ?? "" }, set: { store.drafts[id] = $0 })
+        // Capped as the Answer schema caps its text, so a reply always seals (#1169).
+        let draft = Binding(get: { store.drafts[id] ?? "" }, set: { store.drafts[id] = Store.capped($0) })
         let text = draft.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines)
         HStack(alignment: .bottom, spacing: Tokens.Spacing.s2) {
             TextField(placeholder, text: draft, axis: .vertical)
                 .lineLimit(1...10)
                 .type(Tokens.Typography.body)
             Button {
-                store.drafts[id] = nil
+                // The draft stays until the answer is queued (Store.answer).
                 send(text)
             } label: {
                 Image(systemName: "arrow.up.circle.fill").font(.system(size: 30))

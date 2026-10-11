@@ -161,10 +161,13 @@ final class InboxTests: XCTestCase {
         XCTAssertEqual(store.openDecisions.map(\.id), ["d_two"])
         Offline.offline = true
         defer { Offline.offline = false }
+        store.drafts["d_two"] = "Not yet"
         store.answer("d_two", choice: nil, text: "Not yet")
         for _ in 0..<50 where store.notice == nil { try await Task.sleep(for: .milliseconds(100)) }
         XCTAssertEqual(store.notice, "No connection. Not yet will be sent when the iPhone is back online.")
         XCTAssertEqual(store.saved.outbox.map(\.decisionId), ["d_two"])
+        // Queued: the typed reply has done its work (#1169).
+        XCTAssertNil(store.drafts["d_two"])
         XCTAssertTrue(store.openDecisions.isEmpty)
         XCTAssertEqual(HistoryText.how(try XCTUnwrap(store.decision("d_two")), store), "You: Not yet · not sent yet")
         Offline.offline = false
@@ -183,6 +186,12 @@ final class InboxTests: XCTestCase {
         XCTAssertEqual(store.decision("d_three")?.answer, "No")
         got = try await answers()
         XCTAssertEqual(got.first { $0.decisionId == "d_three" }?.choice, "No")
+
+        // --- A Reply longer than the Answer schema takes is cut to it, and sent (#1169) ---
+        try await ask("d_long")
+        await store.answerFromNotification("d_long", choice: nil, text: String(repeating: "é", count: 3999) + "👍🏽!")
+        got = try await answers()
+        XCTAssertEqual(got.first { $0.decisionId == "d_long" }?.text, String(repeating: "é", count: 3999) + "👍")
 
         // --- An image, opened as the question is kept; then a snooze, and Back now (#1131) ---
         let png = Array("not really a png".utf8)
