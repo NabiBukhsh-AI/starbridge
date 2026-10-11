@@ -13,7 +13,10 @@ struct DevicesView: View {
         List {
             Section {
                 ForEach(rows) { row in
-                    MemberRow(row: row, twin: twins.contains(row.name), info: store.deviceInfo) { revoking = row }
+                    // A machine's check code goes once its window ends, with the screen left open (#939).
+                    TimelineView(.everyMinute) { time in
+                        MemberRow(row: row, twin: twins.contains(row.name), info: store.deviceInfo, now: time.date) { revoking = row }
+                    }
                 }
             }
         }
@@ -53,6 +56,7 @@ private struct MemberRow: View {
     let row: DeviceRow
     let twin: Bool
     let info: DeviceInfo
+    let now: Date
     let onRevoke: () -> Void
 
     var body: some View {
@@ -64,7 +68,7 @@ private struct MemberRow: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(row.name).type(Tokens.Typography.body)
                 Text(subtitle).type(Tokens.Typography.small).foregroundStyle(Tokens.Colors.fg2.color)
-                if let check = row.check, Date().timeIntervalSince(row.addedAt) * 1000 < Double(Pairings.checkConfirmMs) {
+                if let check = row.check, now.timeIntervalSince(row.addedAt) * 1000 < Double(Pairings.checkConfirmMs) {
                     Text("Same code as on the machine? \(Text(check).font(.system(.footnote, design: .monospaced)))")
                         .type(Tokens.Typography.small)
                         .foregroundStyle(Tokens.Colors.fg2.color)
