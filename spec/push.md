@@ -31,6 +31,11 @@
   private-range check, and is sent only if its subscription and device are still active (#260).
   An IPv6 address that embeds an IPv4 one (IPv4-compatible, IPv4-mapped, NAT64, 6to4) is judged
   by that IPv4 address, since a translator on a self-hoster's network can route it there (#1095).
+  `ALLOW_PRIVATE_PUSH_ENDPOINTS` names the private hosts a self-hoster's push endpoints may use,
+  such as their own ntfy, over plain HTTP too; every other private address stays refused, since
+  any account on the server, and `/v1/relay` in relay mode, could otherwise make it call into the
+  owner's network. `1`, from when it was a yes/no flag, still allows every private host, with a
+  warning at startup.
 - A server's VAPID key can change, as when a self-hoster leaves the relay for their own keys
   (#567). Each page boot compares the browser's subscription key with the server's and subscribes
   again when they differ. The server drops a Web Push subscription its push service refuses with
