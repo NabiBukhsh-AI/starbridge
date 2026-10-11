@@ -59,7 +59,7 @@ class Directories(private val sodium: Sodium, private val envelopes: Envelopes) 
         if (entries.isEmpty()) throw ProtocolException("bad-genesis", "empty chain")
         var dir: Directory? = null
         val envs = entries.mapIndexed { i, raw ->
-            val env = parseJson(SignedEnvelope.serializer(), raw).also { it.check() }
+            val env = parseEnvelope(raw)
             if (env.kind != "directory") throw ProtocolException("wrong-kind", "entry $i")
             dir = dir?.let { apply(it, env, i) } ?: genesis(env, account)
             env

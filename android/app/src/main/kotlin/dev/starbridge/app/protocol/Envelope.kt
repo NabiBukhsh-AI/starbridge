@@ -23,6 +23,21 @@ fun envelopeJson(env: SignedEnvelope): JsonObject = buildJsonObject {
 
 class Opened<T>(val signer: Member, val body: T, val bodyText: String)
 
+/**
+ * Reads a sealed item as packages/protocol's schema does: a null in a field it does not make
+ * nullable refuses the item rather than reading as absent (#505, #1146).
+ */
+fun parseSealedItem(json: JsonElement): SealedItem {
+    refuseNulls(json, SealedItem.serializer().descriptor)
+    return parseJson(SealedItem.serializer(), json)
+}
+
+/** Reads a signed envelope the same way, and checks it. */
+fun parseEnvelope(json: JsonElement): SignedEnvelope {
+    refuseNulls(json, SignedEnvelope.serializer().descriptor)
+    return parseJson(SignedEnvelope.serializer(), json).also { it.check() }
+}
+
 class Envelopes(private val sodium: Sodium) {
     /** Signs [body], JSON text kept exactly as it will be sent. */
     fun sign(kind: String, body: JsonObject, signer: String, signKey: ByteArray): SignedEnvelope {
@@ -81,7 +96,7 @@ class Envelopes(private val sodium: Sodium) {
         }
         // TextDecoder drops a leading byte order mark; packages/protocol reads the envelope after it.
         val json = parseJsonText(text.removePrefix("\uFEFF"))
-        val env = parseJson(SignedEnvelope.serializer(), json).also { it.check() }
+        val env = parseEnvelope(json)
         if (env.kind != item.kind) throw ProtocolException("wrong-kind", "${env.kind} in ${item.kind}")
         return env
     }
