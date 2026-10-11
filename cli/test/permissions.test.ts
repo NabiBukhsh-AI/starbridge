@@ -293,6 +293,26 @@ for (const viaAgent of [true, false]) {
   });
 }
 
+test("through the agent, a hold the agent answers late still ends the hook at its deadline (#1073)", async () => {
+  const ctx = await machine();
+  // The agent counts a hold from when it gets the request: here it never answers one at all.
+  type Hold = (id: string, end: number, signal: AbortSignal) => Promise<unknown>;
+  const proto = Permissions.prototype as unknown as { hold: Hold };
+  const hold = proto.hold;
+  proto.hold = (_id, _end, signal) =>
+    new Promise((resolve) => signal.addEventListener("abort", () => resolve({})));
+  try {
+    const started = Date.now();
+    expect(await hookPermission(ctx, request(), { agent: "claude-code", wait: "1s" })).toBe(0);
+    expect(Date.now() - started).toBeLessThan(2_000);
+  } finally {
+    proto.hold = hold;
+  }
+  expect(ctx.lines).toEqual([]);
+  await until(async () => (await server.opened("settled")).length === 1);
+  expect((await server.opened("settled"))[0]).toMatchObject({ outcome: "timeout" });
+});
+
 test("without an agent, Stop settles every waiting prompt of the session even when a report fails", async () => {
   const ctx = await machine(false);
   const first = await ask(ctx, request());
