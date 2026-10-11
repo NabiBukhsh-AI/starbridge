@@ -52,7 +52,7 @@ export function antigravityLogin(): { GEMINI_API_KEY: string } | { token: string
 export function cursorLogin(): { CURSOR_API_KEY: string } | { XDG_CONFIG_HOME: string } {
   // `cursor-agent` reads the login from `$XDG_CONFIG_HOME/cursor`, not `CURSOR_CONFIG_DIR`.
   const config = join(secrets, "cursor-eval-home/.config");
-  if (!process.env.CURSOR_API_KEY && existsSync(join(config, "cursor/auth.json")))
+  if (!process.env.CURSOR_API_KEY && !existsSync(join(secrets, "cursor-eval-key")) && existsSync(join(config, "cursor/auth.json")))
     return { XDG_CONFIG_HOME: config };
   return {
     CURSOR_API_KEY: secret(
