@@ -230,11 +230,14 @@ private struct JoinStep: View {
     @State private var deleting = false
 
     var body: some View {
-        if recovering {
-            RecoverStep(store: store) { recovering = false }
-        } else {
-            join
+        Group {
+            if recovering {
+                RecoverStep(store: store, delete: { deleting = true }) { recovering = false }
+            } else {
+                join
+            }
         }
+        .deleteAccount(store: store, isPresented: $deleting, text: DeleteAccount.unpaired)
     }
 
     private var join: some View {
@@ -258,7 +261,6 @@ private struct JoinStep: View {
                 VStack(spacing: 0) { links }
             }
         }
-        .deleteAccount(store: store, isPresented: $deleting, text: DeleteAccount.unpaired)
         .sheet(isPresented: $scanning) {
             QRScanner { text in
                 scanning = false
@@ -300,6 +302,8 @@ private struct FirstDeviceStep: View {
 /** The recovery key, typed: it adds this iPhone and removes every other device and machine. */
 private struct RecoverStep: View {
     let store: Store
+    /** Delete account, where an owner who lost the key looks (#1195). */
+    let delete: () -> Void
     let back: () -> Void
     @State private var key = ""
     @State private var shown = false
@@ -340,7 +344,10 @@ private struct RecoverStep: View {
             Button("Recover") { Task { await store.recover(key) } }
                 .buttonStyle(Primary(busy: store.busy))
                 .disabled(store.busy || !complete)
-            LinkButton(text: "Back", action: back)
+            HStack(spacing: Tokens.Spacing.s6) {
+                LinkButton(text: "Back", action: back)
+                LinkButton(text: "Delete account", action: delete)
+            }
         }
         .privacyCover()
     }
