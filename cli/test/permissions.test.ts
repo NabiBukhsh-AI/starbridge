@@ -273,6 +273,7 @@ for (const viaAgent of [true, false]) {
   const how = viaAgent ? "through the agent" : "without an agent";
 
   test(`${how}: a stalled server never holds the hook past its deadline or SIGTERM`, async () => {
+    (globalThis as { tr?: boolean }).tr = true;
     for (const path of ["/directory", "/items"])
       for (const cancel of ["sigterm", "deadline"] as const) {
         const ctx = await machine(viaAgent);
@@ -291,6 +292,7 @@ for (const viaAgent of [true, false]) {
         expect(ctx.lines).toEqual([]);
         expect(Date.now() - started).toBeLessThan(cancel === "deadline" ? 4_000 : 1_500);
       }
+    (globalThis as { tr?: boolean }).tr = false;
   });
 }
 
@@ -902,4 +904,6 @@ test("a picker card whose hook died unsettled stops holding the open mark after 
   expect(promptsMark(st, Date.parse(asked.askedAt) + 86_400_001)).toBe("");
 });
 
-const __t = (...a: unknown[]) => console.error("TRACE1073", Math.round(performance.now()), ...a);
+const __t = (...a: unknown[]) =>
+  (globalThis as { tr?: boolean }).tr &&
+  console.error("TRACE1073", Math.round(performance.now()), ...a);

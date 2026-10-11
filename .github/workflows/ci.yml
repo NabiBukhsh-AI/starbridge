@@ -332,7 +332,7 @@ jobs:
       - name: Trace 1073
         timeout-minutes: 12
         shell: bash
-        run: for i in 1 2 3 4 5 6 7 8 9 10; do bun test test/permissions.test.ts -t "stalled server" 2>&1 | grep -E "TRACE1073|pass|fail" || true; done
+        run: for i in 1 2 3 4 5 6; do bun test test/permissions.test.ts 2>&1 | grep -E "TRACE1073|pass|fail" || true; done
 
   # The CLI on macOS (#877): the launchd service and the screen readers run only there. Unlike
   # Windows, the whole suite must pass. Each test file runs alone and is killed when it hangs, so

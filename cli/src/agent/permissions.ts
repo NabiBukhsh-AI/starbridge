@@ -220,4 +220,6 @@ export class Permissions implements Feature {
   }
 }
 
-const __t = (...a: unknown[]) => console.error("TRACE1073", Math.round(performance.now()), ...a);
+const __t = (...a: unknown[]) =>
+  (globalThis as { tr?: boolean }).tr &&
+  console.error("TRACE1073", Math.round(performance.now()), ...a);

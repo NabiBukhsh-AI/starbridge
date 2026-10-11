@@ -91,7 +91,7 @@ export class LiveServer {
     const path = new URL(req.url).pathname.replace(/^\/v1/, "");
     const call = `${req.method} ${path}`;
     this.log.push(call);
-    console.error("TRACE1073", Math.round(performance.now()), "server", call);
+    if ((globalThis as { tr?: boolean }).tr) console.error("TRACE1073", Math.round(performance.now()), "server", call);
     const take = (list: string[]) => {
       const i = list.findIndex((p) => p === path || p === call);
       if (i >= 0) list.splice(i, 1);
