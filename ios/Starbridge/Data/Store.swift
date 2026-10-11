@@ -74,17 +74,24 @@ final class Store {
 
     private func api(_ session: String? = nil) -> Api { Api(server: saved.server, session: session ?? secrets.session, http: http) }
 
-    /** Stores the state, or throws: for keys and steps that must not go on without being stored. */
+    /**
+     * Stores the state, or throws and changes nothing: for keys and steps that must not go on
+     * without being stored. A recovery key shown without its first entry stored would be confirmed
+     * for an account it never belonged to.
+     */
     private func save(_ newSaved: Saved? = nil, _ newSecrets: Secrets? = nil) throws {
         // The secrets first: a saved state naming keys the vault lacks could not resume.
-        if let newSecrets {
-            try vault.save(newSecrets)
-            secrets = newSecrets
-        }
+        if let newSecrets { try vault.save(newSecrets) }
         if let newSaved {
-            try disk.save(newSaved)
+            do {
+                try disk.save(newSaved)
+            } catch {
+                if newSecrets != nil { try? vault.save(secrets) }
+                throw error
+            }
             saved = newSaved
         }
+        if let newSecrets { secrets = newSecrets }
     }
 
     /** Stores the state; a failure shows as a notice, and the app goes on with it in memory. */
