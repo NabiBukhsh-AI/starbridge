@@ -322,8 +322,9 @@ private struct JSONParser {
                         i = save
                     }
                 }
-                // A lone surrogate, which a JavaScript string can hold, reads as U+FFFD here.
-                let scalar = Unicode.Scalar(u) ?? "\u{FFFD}"
+                // A lone surrogate, which a JavaScript string can hold and a Swift one cannot: the
+                // protocol refuses it, so no port reads other text than was signed (#1090).
+                guard let scalar = Unicode.Scalar(u) else { throw ProtocolError(.badSchema, "lone surrogate") }
                 bytes.append(contentsOf: Array(String(Character(scalar)).utf8))
             default: throw fail()
             }

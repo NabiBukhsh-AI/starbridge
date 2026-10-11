@@ -320,6 +320,11 @@ final class ProtocolVectorsTests: XCTestCase {
                 if let read = c["read"] { XCTAssertTrue(reads(read, body?.json), "\(name) reads") }
             }
         }
+        // Bodies as JSON text, for what a vector file cannot hold: lone surrogates (#1090).
+        for c in v["text"]!.items {
+            let body = try? parseBody(c.str("kind"), c.str("text"))
+            XCTAssertEqual(body != nil, c["valid"]!.bool!, "\(c.str("kind")) text: \(c.str("name"))")
+        }
     }
 
     /** Whether `actual` holds `expected`: objects by their keys, arrays whole, null as absent. */
