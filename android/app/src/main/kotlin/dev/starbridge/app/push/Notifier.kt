@@ -95,7 +95,7 @@ class Notifier(private val context: Context, private val prefs: Prefs) : Alerts 
         manager.createNotificationChannel(
             NotificationChannel(QUOTAS, "Quotas", NotificationManager.IMPORTANCE_LOW).apply {
                 group = ACTIVITY
-                description = "Quota windows running low, running out, or resetting with headroom unused, as Settings → Quota alerts picks"
+                description = "Quota windows running low, running out, or resetting with headroom unused, as Settings → Quotas → Alerts picks"
             },
         )
     }
@@ -447,7 +447,7 @@ class Notifier(private val context: Context, private val prefs: Prefs) : Alerts 
 
     /**
      * Allow and Deny, as in the inbox. Deny works from the lock screen; Allow asks for the unlock
-     * first (SPEC.md, "Permission prompts"). It sends at once only when the whole input fits the
+     * first (spec/items.md, "Permission prompts"). It sends at once only when the whole input fits the
      * collapsed line; else, and always on the lock screen, which hides the command, it opens the
      * prompt's sheet, which shows it whole (#356), unless the owner turned on sending unseen
      * (#390). The wider grants need the app.

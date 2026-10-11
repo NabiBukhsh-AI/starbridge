@@ -293,6 +293,26 @@ for (const viaAgent of [true, false]) {
   });
 }
 
+test("through the agent, a hold the agent answers late still ends the hook at its deadline (#1073)", async () => {
+  const ctx = await machine();
+  // The agent counts a hold from when it gets the request: here it never answers one at all.
+  type Hold = (id: string, end: number, signal: AbortSignal) => Promise<unknown>;
+  const proto = Permissions.prototype as unknown as { hold: Hold };
+  const hold = proto.hold;
+  proto.hold = (_id, _end, signal) =>
+    new Promise((resolve) => signal.addEventListener("abort", () => resolve({})));
+  try {
+    const started = Date.now();
+    expect(await hookPermission(ctx, request(), { agent: "claude-code", wait: "1s" })).toBe(0);
+    expect(Date.now() - started).toBeLessThan(2_000);
+  } finally {
+    proto.hold = hold;
+  }
+  expect(ctx.lines).toEqual([]);
+  await until(async () => (await server.opened("settled")).length === 1);
+  expect((await server.opened("settled"))[0]).toMatchObject({ outcome: "timeout" });
+});
+
 test("without an agent, Stop settles every waiting prompt of the session even when a report fails", async () => {
   const ctx = await machine(false);
   const first = await ask(ctx, request());
@@ -510,7 +530,7 @@ test("while disabled the hooks post nothing and print nothing", async () => {
   expect(await run(["config", "permissions", "off"], ctx)).toBe(0);
   expect(await hookPermission(ctx, request(), { agent: "claude-code" })).toBe(0);
   // The config listing only: the hook printed nothing.
-  expect(ctx.lines).toHaveLength(3);
+  expect(ctx.lines).toHaveLength(4);
   expect(ctx.lines[0]).toBe("permissions   off");
   expect(await server.opened("permission")).toEqual([]);
   const status = await new AgentClient(agentAddress(ctx.store.dir)).call<Status>(
@@ -789,6 +809,8 @@ test("a device answers Claude Code's picker, permissions on or off, and the sess
     agent: "claude-code",
     source: { session: SESSION, project: "starbridge" },
   });
+  // Posted in parallel, the cards keep the call's order in every inbox (#1079).
+  expect(Date.parse(sizes?.createdAt as string) - Date.parse(color?.createdAt as string)).toBe(1);
   expect(readFileSync(join(ctx.store.dir, PROMPTS_OPEN), "utf8")).toBe("open");
   await server.answer(color?.id as string, { choice: "Blue" });
   await server.answer(sizes?.id as string, { text: "S, L" });
@@ -885,6 +907,12 @@ test("bidi and invisible characters reach devices as escapes (#357)", () => {
   expect(() => build("mcp__x__y", { "x\u202E": "rm -rf ~", "x\\u202E": "ls" })).toThrow(
     "stays at the keyboard",
   );
+});
+
+test("a lone surrogate in a tool call reaches devices as U+FFFD, which iOS can read (#1090)", () => {
+  const p = build("Bash", { command: "echo \ud83d", description: "Say \ude80" });
+  expect(p.summary).toBe("echo \ufffd");
+  expect(p.description).toBe("Say \ufffd");
 });
 
 test("a picker card whose hook died unsettled stops holding the open mark after a day", () => {

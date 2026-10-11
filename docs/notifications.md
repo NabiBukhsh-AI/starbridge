@@ -1,6 +1,6 @@
 # One notification per question
 
-Your agents and their apps notify you too: a terminal bell when Claude Code waits, a push from the
+Your harnesses and their apps notify you too: a terminal bell when Claude Code waits, a push from the
 Claude app, a banner from the Codex app. With Starbridge on, the same question can then reach you
 twice. Here is what each tool sends and how to turn it off once Starbridge covers it.
 
@@ -12,9 +12,11 @@ that ends without a question. `starbridge setup` changes none of these settings.
 
 Menu names come from each tool's documentation in October 2026 and may have moved since.
 
-## Agents on your machine
+<a id="agents-on-your-machine"></a>
 
-| Agent | What it notifies | Turn it off |
+## Harnesses on your machine
+
+| Harness | What it notifies | Turn it off |
 |---|---|---|
 | Claude Code (terminal) | A desktop notification or bell when a permission prompt waits about 6 seconds, or a turn ended about 60 seconds ago and you haven't typed. Desktop notifications are on by default in Ghostty, Kitty and iTerm2. | `/config` → Local notifications → `notifications_disabled`, or `"preferredNotifChannel": "notifications_disabled"` in `~/.claude/settings.json`. A `Notification` hook you added still runs: remove it from `hooks` in the same file. |
 | Claude Code, Remote Control | A push to the Claude app for permission prompts and questions, and when Claude decides a finished task is worth one. Both are off by default. | `/config` → clear Push when actions required (permission prompts and questions) and Push when Claude decides (finished tasks). In settings: `inputNeededNotifEnabled` and `agentPushNotifEnabled`. |
@@ -62,20 +64,37 @@ with one category per kind:
 
 On the web, notifications are on once you pick Turn on notifications in the inbox, and off in the
 browser's site settings for starbridge.run. A closed browser gets questions, permission prompts and
-join requests. Quota alerts show only while a Starbridge page is open, and runs only in the inbox,
-never as a notification. Settings → Notifications → Sound for new questions plays a chime, off by default.
+join requests. Quota alerts, and runs that pass or fail, notify only while a Starbridge page is open, in
+the background too. A run notifies once when it ends, with the system's sound, as on Android. Settings → Notifications → Sound for new questions plays a chime in an open Starbridge page or web app, off by default. It needs notifications on in this browser, since the push is what starts it, and the page needs a click since it loaded before a browser lets it play. A closed web app makes your system's notification sound instead.
 
-In Settings → Quotas, each quota window has a checkbox per alert: runs out before its reset, 50%
-left, 20% left, or resets with headroom unused. Weekly and monthly windows start with runs out
-ticked, and 5-hour and daily windows with nothing. These settings belong to each device.
+In the Mac app, questions, permission prompts and runs that end play the macOS notification
+sound, a failed answer plays the error sound, and quota alerts are silent. Turn sounds off in System Settings →
+Notifications → Starbridge. macOS plays it at System Settings → Sound → Alert volume,
+on the output under Play sound effects through, which may not be your headphones.
+If macOS blocks Starbridge's notifications, Settings → Notifications says so, and turning on
+Notifications on this device opens System Settings → Notifications → Starbridge.
 
-Permission prompts reach your devices only after you run `starbridge config permissions on` on the
-machine, and stop with `starbridge config permissions off`.
 
-Settings → Notifications → Hold while you’re at a screen keeps a question off your other devices
+In Settings → Quotas, each quota window has a checkbox per alert:
+
+- **Runs out.** At the rate you have used it since it began, the window runs out before its
+  reset. Starbridge judges the rate once 5% of the window has passed.
+- **50% left** and **20% left.** Half, or a fifth, of the window is left.
+- **Unused.** At that same rate, 30% or more of the window will be left unused when it resets.
+  This alert comes in the last hour before the reset for a window of a day or less, such as a
+  5-hour window, and in the last day for a longer one, such as a weekly window.
+
+Weekly and monthly windows start with Runs out ticked, and 5-hour and daily windows with nothing.
+These settings belong to each device.
+
+Permission prompts stay at the keyboard until you run `starbridge config permissions on` on the
+machine, and again after `starbridge config permissions off`.
+
+Settings → Notifications → Quiet other devices while you’re at a screen keeps a question off your other devices
 while you use Starbridge: a page or the app you touched in the last minute. They stay quiet for as
-long as you are there, then for the hold time after you leave (30 s by default), and notify if
-nothing answered it. A computer counts too once you run
+long as you are there, then for the hold time after you leave (30 s by default; 0 s notifies as
+soon as you leave or lock the screen), and notify if nothing answered it. Off notifies every device
+at once. A computer counts too once you run
 `starbridge config presence on` on it: unlocked and used in the last minute. The Mac app does the same without the CLI, in any app, window closed or
 not. A locked or sleeping Mac never counts.
 

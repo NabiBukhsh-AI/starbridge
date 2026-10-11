@@ -36,6 +36,11 @@ export class RateLimiter {
     return w.count + cost <= limit ? 0 : Math.max(1, Math.ceil((w.start + windowMs - t) / 1000));
   }
 
+  /** Drops the windows whose key names a deleted account (#1104). */
+  forget(account: string): void {
+    for (const k of this.windows.keys()) if (k.includes(account)) this.windows.delete(k);
+  }
+
   /** Each window ends by its own length, so a short window's sweep never resets a long one. */
   private sweep(t: number): void {
     for (const [k, w] of this.windows) if (t - w.start >= w.ms) this.windows.delete(k);

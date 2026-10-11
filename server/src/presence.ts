@@ -1,8 +1,10 @@
 import type { Database } from "bun:sqlite";
 import {
   PRESENCE_VALID_MS,
+  PUSH_HOLD_CHOICES,
   PUSH_HOLD_DEFAULT,
   PUSH_HOLD_MAX,
+  PUSH_HOLD_OFF,
   type SealedItem,
 } from "@starbridge/protocol";
 import type { Push } from "./push";
@@ -67,6 +69,12 @@ export class Presence {
       if (at + PUSH_HOLD_MAX * 1000 < now) this.left.delete(account);
   }
 
+  /** Forgets a deleted account (#1104). */
+  forget(account: string): void {
+    this.accounts.delete(account);
+    this.left.delete(account);
+  }
+
   private leave(account: string, at: number): void {
     this.accounts.delete(account);
     this.left.set(account, at);
@@ -76,12 +84,21 @@ export class Presence {
 /** Kinds whose push waits while the owner is present: those that block an agent. */
 export const HELD_KINDS: readonly SealedItem["kind"][] = ["decision", "permission", "waiting"];
 
-/** The account's hold time in seconds; unset is the default. */
+/**
+ * The account's hold setting (`AccountSettings.pushHold`); unset is the default. 2 minutes, no
+ * longer offered (#1060), reads as the longest choice left.
+ */
 export function pushHold(db: Database, account: string): number {
   const row = db.query("SELECT push_hold FROM accounts WHERE id = ?").get(account) as {
     push_hold: number | null;
   } | null;
-  return row?.push_hold ?? PUSH_HOLD_DEFAULT;
+  return Math.min(row?.push_hold ?? PUSH_HOLD_DEFAULT, Math.max(...PUSH_HOLD_CHOICES));
+}
+
+/** Seconds a held push waits once the owner left the last screen, or undefined while off. */
+function holdSeconds(db: Database, account: string): number | undefined {
+  const hold = pushHold(db, account);
+  return hold === PUSH_HOLD_OFF ? undefined : Math.max(hold, 0);
 }
 
 /**
@@ -98,8 +115,8 @@ export function holdFor(
 ): { held: string[]; due: string } | undefined {
   const present = presence.present(account, now);
   if (present.length === 0) return undefined;
-  const seconds = pushHold(db, account);
-  if (seconds <= 0) return undefined;
+  const seconds = holdSeconds(db, account);
+  if (seconds === undefined) return undefined;
   const held = to.filter((id) => !present.includes(id));
   if (held.length === 0) return undefined;
   return { held, due: new Date(now + seconds * 1000).toISOString() };
@@ -137,9 +154,9 @@ export function releaseHolds(
   const endOf = (account: string) => {
     let end = ends.get(account);
     if (end === undefined) {
-      const seconds = pushHold(db, account);
+      const seconds = holdSeconds(db, account);
       const left = presence.absentSince(account, now);
-      end = seconds <= 0 ? now : left === undefined ? Infinity : left + seconds * 1000;
+      end = seconds === undefined ? now : left === undefined ? Infinity : left + seconds * 1000;
       ends.set(account, end);
     }
     return end;

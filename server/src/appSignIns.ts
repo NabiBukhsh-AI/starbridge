@@ -26,6 +26,11 @@ export class AppSignIns {
     return s !== undefined && s.account === account && now - s.at < APP_SIGN_IN_MS;
   }
 
+  /** Forgets a deleted account's sign-ins (#1104). */
+  forget(account: string): void {
+    for (const [k, s] of this.byChallenge) if (s.account === account) this.byChallenge.delete(k);
+  }
+
   sweep(now = Date.now()): void {
     for (const [k, s] of this.byChallenge) {
       if (now - s.at < APP_SIGN_IN_MS) break;

@@ -26,6 +26,7 @@ class Opened<T>(val signer: Member, val body: T, val bodyText: String)
 class Envelopes(private val sodium: Sodium) {
     /** Signs [body], JSON text kept exactly as it will be sent. */
     fun sign(kind: String, body: JsonObject, signer: String, signKey: ByteArray): SignedEnvelope {
+        wellFormed(body)
         val text = body.toString()
         val sig = sodium.sign(signatureMessage(kind, signer, text), signKey)
         return SignedEnvelope(1, kind, signer, text, toB64(sig))
@@ -66,13 +67,21 @@ class Envelopes(private val sodium: Sodium) {
     /** Opens this member's box. The envelope inside is not verified yet. */
     fun openBox(item: SealedItem, me: String, box: KeyPair): SignedEnvelope {
         val mine = item.boxes.find { it.to == me } ?: throw ProtocolException("wrong-recipient", "no box for $me")
-        val plain = sodium.sealOpen(fromB64(mine.box), box) ?: throw ProtocolException("cannot-open")
+        // A box that does not decode is one that does not open, as in packages/protocol.
+        val sealed = try {
+            fromB64(mine.box)
+        } catch (e: ProtocolException) {
+            throw ProtocolException("cannot-open")
+        }
+        val plain = sodium.sealOpen(sealed, box) ?: throw ProtocolException("cannot-open")
         val text = try {
             Charsets.UTF_8.newDecoder().decode(java.nio.ByteBuffer.wrap(plain)).toString()
         } catch (e: java.nio.charset.CharacterCodingException) {
             throw ProtocolException("bad-schema", "sealed content is not UTF-8")
         }
-        val env = parseJson(SignedEnvelope.serializer(), parseJsonText(text)).also { it.check() }
+        // TextDecoder drops a leading byte order mark; packages/protocol reads the envelope after it.
+        val json = parseJsonText(text.removePrefix("\uFEFF"))
+        val env = parseJson(SignedEnvelope.serializer(), json).also { it.check() }
         if (env.kind != item.kind) throw ProtocolException("wrong-kind", "${env.kind} in ${item.kind}")
         return env
     }

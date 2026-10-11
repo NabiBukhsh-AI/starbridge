@@ -290,6 +290,14 @@ class ProtocolVectorsTest {
                 case["read"]?.let { assertTrue("$kind: ${case.str("name")} reads", reads(it, encoded(body!!))) }
             }
         }
+        for (case in v.getValue("text").jsonArray.map { it.jsonObject }) {
+            val ok = try {
+                parseBody(case.str("kind"), case.str("text")); true
+            } catch (e: ProtocolException) {
+                false
+            }
+            assertEquals("${case.str("kind")} text: ${case.str("name")}", case.getValue("valid").jsonPrimitive.boolean, ok)
+        }
     }
 
     private fun encoded(body: Any): JsonElement = when (body) {

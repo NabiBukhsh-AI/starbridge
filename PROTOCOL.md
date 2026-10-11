@@ -2,7 +2,7 @@
 
 The server stores and relays ciphertext. Everything clients trust is signed, and the code that
 signs, seals and verifies lives in `packages/protocol`; its JSON test vectors in
-`packages/protocol/vectors` pin the byte formats for the Kotlin client. This file covers what the
+`packages/protocol/vectors` pin the byte formats for the Kotlin and Swift ports. This file covers what the
 code cannot show: the HTTP API and the flows.
 
 ## The web app trusts its server
@@ -58,10 +58,15 @@ Besides the web app's trust in its server:
 
 ## Formats
 
-- Binary values are base64url without padding. Times are ISO 8601.
+- Binary values are base64url without padding. Times are ISO 8601 with seconds and an offset
+  (`Z` or `±HH:MM`, hours to 23) on a real date. A string's length limit counts code points, as
+  zod does, not UTF-16 units: an emoji is one (#1082).
 - **Signed envelope** `{v, kind, signer, body, sig}`: `body` is JSON text kept exactly as signed;
   `sig` is Ed25519 over `"starbridge/v1/<kind>" NUL signer NUL body`. Verifiers check the
-  signature before they parse `body`.
+  signature before they parse `body`. A body with a lone UTF-16 surrogate (`"\ud800"` with no
+  pair) in any string or key is `bad-schema`, and signers refuse one: Swift cannot hold it, so
+  the iOS app would read other text than was signed. A machine replaces each one in an agent's
+  text with U+FFFD before signing (#1090).
 - **Sealed item** `{v, kind, id, from, re?, wakeAt?, quiet?, reseal?, blobs?, boxes: [{to, box}]}`:
   a signed envelope sealed with `crypto_box_seal` to each recipient, and for a decision its
   images' blobs. `kind`, `id`, `from`, `re`,
@@ -260,10 +265,12 @@ characters in four groups. That body holds the machine's keys and name, and thro
 whole chain before it. The Android app and the web page show each active machine's code under
 Devices, computed from the chain they verified.
 
-The machine's QR code carries a check key, 80 bits as 16 Crockford base32 characters, in a link
-no browser opens: `starbridge://pair?server=<server>&k=<key>#<code>` (`appPairingLink`,
-`newCheckKey`, `checkKeyFromLink`). Only the Android app handles `starbridge:` links, so the key
-never reaches a page the server writes. The printed link and code leave it out. An Android app that read the key adds `check` to its approval:
+The machine's QR code carries a check key, 80 bits as 16 Crockford base32 characters, in text
+with no scheme: `starbridge-pair?server=<server>&k=<key>#<code>` (`machineQrText`, `newCheckKey`,
+`checkKeyFromLink`). A phone's camera shows it as text rather than handing it to an app, so the
+key reaches only the Android app's own scanner, never a page the server writes or another app that
+claims a link. The printed link and code leave it out. CLIs before it put the same query and code
+in a `starbridge://pair` link (`appPairingLink`), which the app still reads. An Android app that read the key adds `check` to its approval:
 `crypto_auth` over the same bytes `checkCode` hashes, keyed by
 `BLAKE2b-256("starbridge/v1/check-key" NUL key)` (`checkProof`). The machine then, after it
 verified the chain:
@@ -415,6 +422,8 @@ request without the header, or with one the server cannot read, is served.
   recovery-signed `add`, or fetches its own pairing result (a new device signs in first).
   Revoking a device ends its sessions, which then get 401 `revoked` instead of
   `unauthenticated` until they would have expired; revoking a machine drops its token.
+- Deleting the account ends every session and machine token of it, which then get 401
+  `unauthenticated`.
 
 | Route | Who | What |
 |---|---|---|
@@ -426,6 +435,7 @@ request without the header, or with one the server cannot read, is served.
 | `GET /auth/app/signed-in?state=<challenge>` | device | `{signedIn}`: true once the app whose challenge this is traded its code for a session of the caller's account (#943); the server keeps each challenge's account 10 minutes, in memory |
 | `POST /auth/owner` | anyone | self-hosted: `{token}` against `OWNER_TOKEN`; sets the session and returns `{session}` |
 | `POST /auth/logout` | device | end the session |
+| `DELETE /account` | device, paired or not | delete the caller's account and everything the server holds for it: directory, members, sessions and revoked ones, machine tokens, items, push subscriptions, joins and pairings; 204. Its waits for answers, quotas, joins and pairing results end at once with 401, and a wait for a pairing request at the end of its wait, and the cookie is cleared. Today's usage events keep their counts under a random subject (#1104) |
 | `GET /auth/challenge` | device | `{nonce, expiresInSeconds}`: one nonce per session, single use, 5 minutes; asking again returns the outstanding one |
 | `POST /auth/bind` | device | `{member, sig}`: binds the session to that active device when `sig` checks against its signing key; 400 `no-challenge`, 401 `bad-signature`, 404 for no such active device, 409 `already-paired` when the session holds another device |
 | `GET /me` | device, machine | `{account, member, role}`; `member` is null until a device pairs |
@@ -530,10 +540,10 @@ options. For permission answers, see below.
 
 | Route | Who | What |
 |---|---|---|
-| `POST /push/subscriptions` | device | `{type: "fcm" \| "webpush" \| "unifiedpush", endpoint, keys?}` → `{id}`; URL endpoints must be public HTTPS; 409 `too-many-subscriptions` past 10 per device or 30 per account (re-subscribing a known endpoint always works) |
+| `POST /push/subscriptions` | device | `{type: "fcm" \| "webpush" \| "unifiedpush" \| "apns", endpoint, keys?, environment?}` → `{id}`; URL endpoints must be public HTTPS; an `apns` endpoint is the device token in hex, and `environment` (`production` unless set, or `sandbox`) names its APNs environment; 409 `too-many-subscriptions` past 10 per device or 30 per account (re-subscribing a known endpoint always works) |
 | `DELETE /push/subscriptions/:id` | device | stop pushing there |
 | `GET /push/vapid` | anyone | `{publicKey}`: the VAPID key a browser subscribes with (the relay's when this server forwards Web Push) |
-| `POST /relay` | another server | relay mode only: `{type: "fcm" \| "webpush", endpoint, keys?, payload}` → `{result: "ok" \| "gone" \| "failed" \| "no-route"}`; rate-limited per IP; 503 `busy` with `Retry-After` while the server has 16 relayed Web Pushes in flight, or the address 4 |
+| `POST /relay` | another server | relay mode only: `{type: "fcm" \| "webpush" \| "apns", endpoint, keys?, environment?, payload}` → `{result: "ok" \| "gone" \| "failed" \| "no-route"}`; rate-limited per IP; 503 `busy` with `Retry-After` while the server has 16 relayed Web Pushes in flight, or the address 4 |
 
 A push payload is JSON text: `{v, kind, id, from, re?, wakeAt?, box?}` for a new item, with the device's
 own box when the payload stays within 3 KB, else without it and the device fetches
@@ -543,13 +553,22 @@ A settled notice, a `waiting` item and a `snooze` are pushed as new items; a `sn
 at its `wakeAt` ("Snoozing"). FCM gets it as data field `p`; Web Push and UnifiedPush
 encrypt it per RFC 8291.
 
+APNs gets it parsed, as the key `p` beside `aps`. A `decision`, `permission`, `waiting`, `join`,
+and a `snooze` whose `wakeAt` has passed go as alerts: `apns-push-type: alert`, priority 10,
+`aps.mutable-content: 1`, a placeholder `aps.alert` that the notification service extension
+replaces, `aps.category` (`decision`, `permission` or `join`) and `aps.thread-id` (the sending
+machine, or `join`). `apns-collapse-id` is the item id, or for `waiting` and `snooze` the
+decision's (`re`). Everything else, `answered`, `settled` and a `snooze` as it is posted, goes as
+a background push: `apns-push-type: background`, priority 5, `aps.content-available: 1`. Each
+expires after a day. A payload over APNs' 4 KB goes without its box.
+
 A quota snapshot asks for a push only when it raises an alert: the uploader marks that alert
 `notify: true` and posts every other snapshot `quiet`. It raises each alert (a kind, and for
 `low` a threshold) at most once per window per reset. Each device decides from its own
 settings whether to show it. The server pushes a machine's first stored snapshot even when it
 is `quiet`, so devices learn at once that the machine sends quotas.
 
-Quota snapshots and runs go to FCM and UnifiedPush only. Browsers expect every Web Push to show a
+Quota snapshots and runs go to FCM and UnifiedPush only, not to Web Push or APNs. Browsers expect every Web Push to show a
 notification and drop a subscription that keeps showing none (Firefox after 16), so the web page
 fetches `GET /quota` and `GET /items?kind=run` instead. Decisions, permissions, settled notices,
 waiting states, snoozes and `answered` still go to Web Push.
@@ -562,15 +581,17 @@ flight and 200 waiting; each request gives up after 10 s.
 A server with FCM credentials or VAPID keys pushes directly. One without them posts to the relay
 set in `RELAY_URL` (starbridge.run runs with `RELAY_MODE=1`), which pushes with its
 own credentials; the payload is already ciphertext or an id. UnifiedPush always goes direct.
-`gone` from a push service drops the subscription.
+`gone` from a push service drops the subscription. APNs is `gone` on 410, or on
+`BadDeviceToken` from both environments: the server tries the other one before giving up on the
+token.
 
 ### Presence and settings
 
 | Route | Who | What |
 |---|---|---|
 | `PUT /presence` | device, machine | `{present}`: whether the owner sits at this screen ("Held pushes") → 204 |
-| `GET /settings` | device | the account's settings, `{pushHold}`: seconds a held push waits after the owner left the last screen, 30 unless set; 0 holds nothing |
-| `PUT /settings` | device | `{pushHold}`, 0 to 300 → the settings as stored |
+| `GET /settings` | device | the account's settings, `{pushHold}`: seconds a held push waits after the owner left the last screen, 30 unless set; 0 holds nothing, -1 pushes as soon as they leave (#1060); above 60, no longer offered, reads as 60 |
+| `PUT /settings` | device | `{pushHold}`, -1 to 300 → the settings as stored |
 
 ### Device notifications
 

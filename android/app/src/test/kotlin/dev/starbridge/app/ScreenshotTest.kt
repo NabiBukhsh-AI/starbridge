@@ -315,7 +315,7 @@ class ScreenshotTest(private val dark: Boolean) {
     @Test fun settingsNotificationsOffDismissed() = capture("settings-notifications-off-dismissed", { notifications() }) { Phone(Tab.Settings, 4) { NotificationsOffSettings(InboxView(remindOff = false)) } }
 
     // The account's hold time (#848), under the notification rows.
-    @Test fun settingsHold() = capture("settings-hold", { compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Hold while you’re at a screen")) }) {
+    @Test fun settingsHold() = capture("settings-hold", { compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Quiet other devices while you’re at a screen")) }) {
         Phone(Tab.Settings, 4) {
             SettingsScreen(fake.windows, QuotaSettings(), fake.members.size, Colours.Starbridge, fake.push, "https://starbridge.run", settingsActions, pushHold = 30)
         }
@@ -325,7 +325,7 @@ class ScreenshotTest(private val dark: Boolean) {
     private fun NotificationsOffSettings(inbox: InboxView) =
         SettingsScreen(fake.windows, QuotaSettings(), fake.members.size, Colours.Starbridge, fake.push, "https://starbridge.run", settingsActions, inbox = inbox, notificationsOff = true)
 
-    private fun notifications() = compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Delivered through"))
+    private fun notifications() = compose.onNode(hasScrollToNodeAction()).performScrollToNode(hasText("Notifications delivered through"))
 
     @Test fun quotasEmpty() = capture("quotas-empty") { QuotasScreen(emptyList(), now) }
 
@@ -338,7 +338,7 @@ class ScreenshotTest(private val dark: Boolean) {
     @Test fun quotasFailed() = capture("quotas-failed") { QuotasScreen(fake.failedWindows, now, failures = fake.failures) }
 
     // Each device's notifications as it last said (#943): read-only, since only a device changes its own.
-    @Test fun devices() = capture("devices") { Phone(null, 0) { DevicesScreen(fake.members, now, deviceActions, notify = mapOf("m1" to "on", "m2" to "off", "m3" to "blocked"), clients = fake.clients) } }
+    @Test fun devices() = capture("devices") { Phone(null, 0) { DevicesScreen(fake.members, now, deviceActions, notify = mapOf("m1" to "on", "m2" to "off", "m3" to "blocked"), clients = fake.clients, behind = setOf("m4")) } }
 
     // The recovery key under the members (#348): when and where it was set, with Replace.
     private val recovery = RecoveryUi(now.minusSeconds(86_400 * 2), "this phone", replaced = false)

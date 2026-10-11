@@ -10,7 +10,7 @@ export default function Privacy() {
     <LegalPage title="Privacy">
       <p>
         This covers the hosted service at starbridge.run and the Starbridge Android app. A server
-        you host yourself keeps its data on your own machine. Last updated: 8 October 2026.
+        you host yourself keeps its data on your own machine. Last updated: 11 October 2026.
       </p>
       <p>
         Operator: Tom Vaucourt, an individual in France, running Starbridge as a non-professional.
@@ -176,10 +176,9 @@ export default function Privacy() {
         targets; a push target the push service reports as gone is deleted too. Its name and keys
         stay in your account&apos;s signed device list, which nothing rewrites, and the items
         encrypted for it stay until the schedule above deletes them. To delete your whole account,
-        email <a href="mailto:privacy@starbridge.run">privacy@starbridge.run</a> with your GitHub
-        login. To show the account is yours, you post a code the operator sends you in a public gist
-        on that GitHub account. The operator deletes the account within 30 days of that, and backups
-        age out within 2 weeks after.
+        use Delete account in Settings, on the web page or in the app: the server deletes the
+        account, its device list, devices, machines, items and push targets at once, and signs out
+        every device and machine. Backups age out within 2 weeks after.
       </p>
 
       <h2 className="t-heading">Your rights</h2>

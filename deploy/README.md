@@ -28,7 +28,7 @@ deploy/deploy.sh                 # origin/main
 It unpacks the ref into `/opt/starbridge`, builds the server and web images on the box and rolls them
 out (`deploy/host/apply.sh`). The previous release stays in `/opt/starbridge.old`.
 
-No request fails during a deploy (`SPEC.md`, "Releases, deploys and CI"). The page runs as two copies, `web-a` (port
+No request fails during a deploy (`spec/releases.md`). The page runs as two copies, `web-a` (port
 3010) and `web-b` (3011): the deploy starts the idle one, waits for its health, then stops the
 other, and Caddy sends requests to the first healthy copy. The server restarts in place; Caddy
 holds requests for up to 30 s meanwhile. Each deploy loads the Caddyfile into the running Caddy
@@ -45,7 +45,11 @@ image is tagged by a hash of that file and built only when no image has the tag.
    `ssh deploy@starbridge.run sudo sh -s < deploy/host/lock-root.sh` turns root login off.
 3. `deploy/push-secrets.sh` copies the secrets from `~/.config/starbridge/secrets` to
    `/etc/starbridge/secrets` (root, 0700); given names, only those. `deploy/host/server-env.sh`
-   and `caddy-auth.sh` turn them into what the containers read on every deploy.
+   and `caddy-auth.sh` turn them into what the containers read on every deploy. The iPhone
+   app's APNs key is optional until it ships: `apns-key.p8` (the key Apple gives once) and
+   `apns-key-id` (its 10-character id) become `APNS_PRIVATE_KEY` and `APNS_KEY_ID`, with the
+   team id and bundle id set in `server-env.sh`. Without them, iPhone pushes go nowhere and their
+   subscriptions stay.
 4. `deploy/deploy.sh`.
 5. `deploy/setup-actions-deploy.sh` for deploys from Actions.
 
@@ -70,7 +74,7 @@ image is tagged by a hash of that file and built only when no image has the tag.
 
 ## Analytics
 
-Umami counts visits to the public pages (`SPEC.md`, "The hosted instance"). Its dashboard listens on
+Umami counts visits to the public pages (`spec/hosted.md`). Its dashboard listens on
 the box's `127.0.0.1:3001` only:
 
 ```bash
@@ -108,7 +112,7 @@ and start `umami`.
 
 ## Demo server
 
-`https://demo.starbridge.run` lets Play reviewers try the app (`SPEC.md`, "The hosted instance"): the server with
+`https://demo.starbridge.run` lets Play reviewers try the app (`spec/hosted.md`): the server with
 `DEMO=1` and the demo program (`demo/`) in one container, Compose project `starbridge-demo`, on
 `127.0.0.1:8090`, with no volume, so each restart is a fresh account. Prod's Caddy serves it.
 Every prod deploy rebuilds it from the same checkout (`deploy/host/demo.sh`), and restarts it only

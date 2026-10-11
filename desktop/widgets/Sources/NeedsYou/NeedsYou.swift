@@ -1,4 +1,4 @@
-// The Needs you widget (#1031), the Mac's counterpart of Android's 2×2 (SPEC.md, "Desktop"). The
+// The Needs you widget (#1031), the Mac's counterpart of Android's 2×2 (spec/desktop.md). The
 // app writes what the page counts into the App Group container (src/widgets.ts); this extension
 // only reads that file and draws it: no network, no keys.
 

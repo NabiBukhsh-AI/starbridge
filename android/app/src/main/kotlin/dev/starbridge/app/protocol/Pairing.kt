@@ -77,8 +77,9 @@ fun checkKeyFromLink(text: String): String? {
  */
 fun otherServer(text: String, server: String): String? {
     var link = runCatching { URI(text.trim()) }.getOrNull() ?: return null
-    // A machine's QR code names its server in the query (#795).
-    if (link.scheme == "starbridge") {
+    // A machine's QR code names its server in the query (#795), as text with no scheme or, from
+    // older CLIs, as a starbridge://pair link.
+    if (link.scheme == "starbridge" || link.scheme == null && link.path == "starbridge-pair") {
         val named = link.rawQuery?.split('&')?.firstOrNull { it.startsWith("server=") }?.substring(7) ?: return null
         link = runCatching { URI(URLDecoder.decode(named, "UTF-8")) }.getOrNull() ?: return null
     }

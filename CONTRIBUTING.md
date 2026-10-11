@@ -24,22 +24,37 @@ For Android, in `android/`:
 Each package's README says how to run it: [server](server/README.md#run-from-source),
 [web](web/README.md), [CLI](cli/README.md), [mod](mod/README.md#develop),
 [desktop](desktop/README.md#develop) and [Android](android/README.md#build).
-[PROTOCOL.md](PROTOCOL.md) holds the wire format, [DESIGN.md](DESIGN.md) the look, [SPEC.md](SPEC.md) every decision with its date, and
+[PROTOCOL.md](PROTOCOL.md) holds the wire format, [DESIGN.md](DESIGN.md) the look, [SPEC.md](SPEC.md) indexes the decisions, one file per area under `spec/`, and
 [cli/CONTRACT.md](cli/CONTRACT.md) the CLI commands and output that plugins and agents rely on.
 
 ## Release
 
-One version covers the CLI, the web app, both Claude Code plugins, the Claude Code mod and the Android app. A
-tag is live the moment it is pushed: Obtainium, `install.sh`, npm and Homebrew read GitHub Releases. So each
-release starts as a release candidate, which the maintainer installs before the final tag is cut:
+One version covers the CLI, the web app, both Claude Code plugins, the Claude Code mod, the Android app
+and the desktop app. A release starts as a release candidate for testers and becomes the final for
+everyone by promotion, unchanged:
+
+| | rc (`v1.2.3-rc.1`) | final (`v1.2.3`) |
+|---|---|---|
+| GitHub Release | prerelease | latest: Obtainium, `install.sh`, `install.ps1`, `starbridge update` and its nudge |
+| npm | `next` | `latest` |
+| Homebrew | — | the tap's formula |
+| Google Play | Alpha | Alpha, or production once `PLAY_PRODUCTION` is true |
+| Desktop app | apps set to follow release candidates | every app |
+
+The hosted page and server deploy from main before any tag, so every tag waits until
+starbridge.run runs its commit.
 
 1. Run `bun cli/scripts/version.ts 1.2.3-rc.1` from the repository root, merge it in a PR, and tag the merged
-   commit `v1.2.3-rc.1`. It publishes a GitHub prerelease and npm's `next` tag, and leaves the marketplace and
-   Homebrew on the last release.
-2. The maintainer installs the rc's APK on their phone and uses it. A fix means another rc (`-rc.2`).
-3. Once they say it works, run `bun cli/scripts/version.ts 1.2.3`, merge it, and tag `v1.2.3`. The
-   workflow refuses a final tag without an rc, or with any change since the newest rc beyond the
-   version stamp: if anything else merged meanwhile, cut another rc. The final keeps the rc's CodexBar pin.
+   commit `v1.2.3-rc.1`. The marketplace stays on the last final.
+2. The maintainer installs the rc's APK on their phone and uses it. A fix means another rc (`-rc.2`). A
+   bug that an earlier release did not have gets the `regression` label.
+3. Once the maintainer approves, run the `promote` workflow with `1.2.3`
+   (`gh workflow run promote.yml -f version=1.2.3`). It refuses while a `regression` issue is open, stamps the
+   newest rc's commit as `1.2.3` on a commit of its own, tags it `v1.2.3` and runs the release on that tag, so
+   main keeps merging meanwhile. The final keeps the rc's CodexBar pin, and the workflow refuses any change
+   since the rc beyond the version stamp. Then open the pull request of the `marketplace/v1.2.3` branch it
+   pushed, which points main's marketplace at the final (`version.ts --marketplace`). With `dry_run` it pushes
+   nothing.
 
 The workflow refuses a tag that disagrees with the stamped files, and publishes nothing until the
 APK passes the Android smoke test (`demo/smoke/android.ts`): on an emulator, the release APK signs in
@@ -57,10 +72,18 @@ the CLI it runs.
 arm64). A `v*` tag runs `.github/workflows/release.yml`, which attaches them, the signed APK and
 App Bundle, `install.sh`, `install.ps1` and the signed `SHA256SUMS` to a GitHub Release,
 commits the formula to `T0mSIlver/homebrew-starbridge` and publishes to npm through Trusted Publishing, with no npm token. The signing key lives in the `MINISIGN_SECRET_KEY` Actions secret and, offline, with the maintainer.
-Then it uploads the App Bundle to Google Play's Alpha track, rcs included, signing in through
+Then it uploads the App Bundle to Google Play's Alpha track, rcs included, or a final to production once
+the `PLAY_PRODUCTION` repository variable is true, signing in through
 workload identity federation with no key, once the `PLAY_WIF_PROVIDER` and `PLAY_SERVICE_ACCOUNT`
 repository variables are set; without them, upload the bundle in Play Console. Run by hand on main with a version above the last one Play has, the
 workflow only asks Play to validate the upload.
+
+The release notes come from `cli/scripts/release-notes.ts`: a section per product, from the
+"Release notes" section of each pull request's body (one `Product: line` per product, or `None`),
+then every pull request, folded. A final covers everything since the previous final; an rc covers
+what is new since the tag before it. A pull request without the section shows only in the folded
+list; edit its body before tagging to fix that. Play gets the Android section alone, cut to its
+500 characters.
 
 The maintainer's dogfood APKs are debug builds signed with the Android release key, so that
 starbridge.run's App Links, which list only that key, open them. To build one, add this line to

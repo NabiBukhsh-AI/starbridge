@@ -12,6 +12,11 @@ const NONCE_MS = 5 * 60_000;
 /** One outstanding nonce per session, kept in memory: a restart only means asking again. */
 const nonces = new Map<string, { nonce: string; expires: number }>();
 
+/** Drops the outstanding nonces of sessions that ended with their account (#1104). */
+export function forgetChallenges(sessions: string[]): void {
+  for (const s of sessions) nonces.delete(s);
+}
+
 function take(session: string): string | undefined {
   const n = nonces.get(session);
   nonces.delete(session);

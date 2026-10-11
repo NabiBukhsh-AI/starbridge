@@ -17,6 +17,7 @@ import { Presence, releaseHolds } from "./presence";
 import { Push } from "./push";
 import { RateLimiter } from "./ratelimit";
 import { sweepStorage } from "./retention";
+import { accountRoutes } from "./routes/account";
 import { authRoutes } from "./routes/auth";
 import { bindRoutes } from "./routes/bind";
 import { directoryRoutes } from "./routes/directory";
@@ -26,6 +27,7 @@ import { notificationRoutes } from "./routes/notifications";
 import { PairingClients, pairingRoutes, sweepPairings } from "./routes/pairings";
 import { presenceRoutes } from "./routes/presence";
 import { pushRoutes } from "./routes/push";
+import { releaseRoutes } from "./routes/releases";
 import { wakeSnoozes } from "./snooze";
 import { closeDays, diskFull, Usage } from "./usage";
 import { Waiters } from "./waiters";
@@ -108,6 +110,7 @@ export async function createApp(config: Config, fetchFn: typeof fetch = fetch) {
   const v1 = new Hono<Env>()
     .use(clientVersion)
     .route("/", authRoutes)
+    .route("/", accountRoutes)
     .route("/", bindRoutes)
     .route("/", directoryRoutes)
     .route("/", pairingRoutes)
@@ -115,7 +118,8 @@ export async function createApp(config: Config, fetchFn: typeof fetch = fetch) {
     .route("/", itemRoutes)
     .route("/", pushRoutes)
     .route("/", presenceRoutes)
-    .route("/", notificationRoutes);
+    .route("/", notificationRoutes)
+    .route("/", releaseRoutes);
 
   const app = new Hono<Env>();
   app.use(async (c, next) => {

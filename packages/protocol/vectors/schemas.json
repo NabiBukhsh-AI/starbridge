@@ -1,5 +1,5 @@
 {
-  "note": "Bodies that must pass or fail schema validation. `read`, when set, is part of what a client reads: a value it only displays and does not know reads as the neutral case (null: absent), and an alert of an unknown kind is left out.",
+  "note": "Bodies that must pass or fail schema validation. `read`, when set, is part of what a client reads: a value it only displays and does not know reads as the neutral case (null: absent), and an alert of an unknown kind is left out. `text` holds bodies as JSON text, for what a vector file cannot hold.",
   "decision": [
     {
       "name": "valid",
@@ -489,6 +489,56 @@
         "to": [],
         "createdAt": "2026-10-04T10:00:00Z",
         "question": "Run inference on the Mac while you are away?",
+        "context": "The bench needs the GPU for about 40 minutes. No: it waits for tonight.",
+        "options": [
+          "Yes",
+          "No"
+        ],
+        "recommended": "Yes",
+        "source": {
+          "machine": "dev box",
+          "project": "localvoxtral",
+          "session": "s_42"
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "a question of 300 emoji",
+      "body": {
+        "v": 1,
+        "id": "dec_1",
+        "to": [
+          "phone",
+          "phone2"
+        ],
+        "createdAt": "2026-10-04T10:00:00Z",
+        "question": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+        "context": "The bench needs the GPU for about 40 minutes. No: it waits for tonight.",
+        "options": [
+          "Yes",
+          "No"
+        ],
+        "recommended": "Yes",
+        "source": {
+          "machine": "dev box",
+          "project": "localvoxtral",
+          "session": "s_42"
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "a question of 301 emoji",
+      "body": {
+        "v": 1,
+        "id": "dec_1",
+        "to": [
+          "phone",
+          "phone2"
+        ],
+        "createdAt": "2026-10-04T10:00:00Z",
+        "question": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
         "context": "The bench needs the GPU for about 40 minutes. No: it waits for tonight.",
         "options": [
           "Yes",
@@ -1298,6 +1348,72 @@
         "done": false
       },
       "valid": false
+    },
+    {
+      "name": "with a directory head",
+      "body": {
+        "v": 1,
+        "id": "ans_1",
+        "decisionId": "dec_1",
+        "to": "devbox",
+        "answeredAt": "2026-10-04T10:03:00Z",
+        "choice": "Yes",
+        "dir": {
+          "length": 4,
+          "head": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "with a cut directory head",
+      "body": {
+        "v": 1,
+        "id": "ans_1",
+        "decisionId": "dec_1",
+        "to": "devbox",
+        "answeredAt": "2026-10-04T10:03:00Z",
+        "choice": "Yes",
+        "dir": {
+          "length": 4,
+          "head": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "with a device's directory head",
+      "body": {
+        "v": 1,
+        "id": "ans_1",
+        "decisionId": "dec_1",
+        "to": "devbox",
+        "answeredAt": "2026-10-04T10:03:00Z",
+        "choice": "Yes",
+        "dir": {
+          "length": 4,
+          "head": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "by": "phone"
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "with a directory head by a bad id",
+      "body": {
+        "v": 1,
+        "id": "ans_1",
+        "decisionId": "dec_1",
+        "to": "devbox",
+        "answeredAt": "2026-10-04T10:03:00Z",
+        "choice": "Yes",
+        "dir": {
+          "length": 4,
+          "head": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "by": "a phone"
+        }
+      },
+      "valid": false
     }
   ],
   "permission": [
@@ -1904,6 +2020,43 @@
         }
       },
       "valid": false
+    },
+    {
+      "name": "times at offset +19:00",
+      "body": {
+        "v": 1,
+        "id": "perm_1",
+        "to": [
+          "phone",
+          "phone2"
+        ],
+        "createdAt": "2026-10-05T05:00:00+19:00",
+        "agent": "claude-code",
+        "tool": "Bash",
+        "summary": "git push origin main",
+        "description": "Push the fix",
+        "input": "{\"command\":\"git push origin main\",\"description\":\"Push the fix\"}",
+        "inputHash": "vn1Rs4EDE--zdLaXkXyePSRJAmUegmDW02WYLSW_EIE",
+        "suggestions": [
+          {
+            "label": "Allow git push for this session",
+            "rule": "Bash(git push:*)",
+            "scope": "session"
+          },
+          {
+            "label": "Always allow git push in localvoxtral",
+            "rule": "Bash(git push:*)",
+            "scope": "project"
+          }
+        ],
+        "expiresAt": "2026-10-05T05:05:00+19:00",
+        "source": {
+          "machine": "dev box",
+          "project": "localvoxtral",
+          "session": "s_42"
+        }
+      },
+      "valid": true
     }
   ],
   "permission-answer": [
@@ -1976,6 +2129,80 @@
         "behavior": "allow",
         "scope": "user",
         "inputHash": "vn1Rs4EDE--zdLaXkXyePSRJAmUegmDW02WYLSW_EIE"
+      },
+      "valid": false
+    },
+    {
+      "name": "with a directory head",
+      "body": {
+        "v": 1,
+        "id": "pans_1",
+        "permissionId": "perm_1",
+        "to": "devbox",
+        "answeredAt": "2026-10-04T10:01:00Z",
+        "behavior": "allow",
+        "scope": "session",
+        "inputHash": "vn1Rs4EDE--zdLaXkXyePSRJAmUegmDW02WYLSW_EIE",
+        "dir": {
+          "length": 4,
+          "head": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "with a cut directory head",
+      "body": {
+        "v": 1,
+        "id": "pans_1",
+        "permissionId": "perm_1",
+        "to": "devbox",
+        "answeredAt": "2026-10-04T10:01:00Z",
+        "behavior": "allow",
+        "scope": "session",
+        "inputHash": "vn1Rs4EDE--zdLaXkXyePSRJAmUegmDW02WYLSW_EIE",
+        "dir": {
+          "length": 4,
+          "head": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        }
+      },
+      "valid": false
+    },
+    {
+      "name": "with a device's directory head",
+      "body": {
+        "v": 1,
+        "id": "pans_1",
+        "permissionId": "perm_1",
+        "to": "devbox",
+        "answeredAt": "2026-10-04T10:01:00Z",
+        "behavior": "allow",
+        "scope": "session",
+        "inputHash": "vn1Rs4EDE--zdLaXkXyePSRJAmUegmDW02WYLSW_EIE",
+        "dir": {
+          "length": 4,
+          "head": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "by": "phone"
+        }
+      },
+      "valid": true
+    },
+    {
+      "name": "with a directory head by a bad id",
+      "body": {
+        "v": 1,
+        "id": "pans_1",
+        "permissionId": "perm_1",
+        "to": "devbox",
+        "answeredAt": "2026-10-04T10:01:00Z",
+        "behavior": "allow",
+        "scope": "session",
+        "inputHash": "vn1Rs4EDE--zdLaXkXyePSRJAmUegmDW02WYLSW_EIE",
+        "dir": {
+          "length": 4,
+          "head": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          "by": "a phone"
+        }
       },
       "valid": false
     }
@@ -3106,6 +3333,86 @@
       "valid": false
     },
     {
+      "name": "an until on February 30",
+      "body": {
+        "v": 1,
+        "id": "snz_1",
+        "decisionId": "dec_1",
+        "to": [
+          "devbox",
+          "phone",
+          "phone2"
+        ],
+        "until": "2026-02-30T18:00:00Z",
+        "at": "2026-10-04T10:25:00Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "an until in month 13",
+      "body": {
+        "v": 1,
+        "id": "snz_1",
+        "decisionId": "dec_1",
+        "to": [
+          "devbox",
+          "phone",
+          "phone2"
+        ],
+        "until": "2026-13-01T18:00:00Z",
+        "at": "2026-10-04T10:25:00Z"
+      },
+      "valid": false
+    },
+    {
+      "name": "an until on a leap day",
+      "body": {
+        "v": 1,
+        "id": "snz_1",
+        "decisionId": "dec_1",
+        "to": [
+          "devbox",
+          "phone",
+          "phone2"
+        ],
+        "until": "2028-02-29T18:00:00Z",
+        "at": "2026-10-04T10:25:00Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "an until at offset +19:00",
+      "body": {
+        "v": 1,
+        "id": "snz_1",
+        "decisionId": "dec_1",
+        "to": [
+          "devbox",
+          "phone",
+          "phone2"
+        ],
+        "until": "2026-10-05T13:00:00+19:00",
+        "at": "2026-10-04T10:25:00Z"
+      },
+      "valid": true
+    },
+    {
+      "name": "an until at offset +24:00",
+      "body": {
+        "v": 1,
+        "id": "snz_1",
+        "decisionId": "dec_1",
+        "to": [
+          "devbox",
+          "phone",
+          "phone2"
+        ],
+        "until": "2026-10-05T18:00:00+24:00",
+        "at": "2026-10-04T10:25:00Z"
+      },
+      "valid": false
+    },
+    {
       "name": "no decision",
       "body": {
         "v": 1,
@@ -3476,6 +3783,163 @@
           }
         ]
       },
+      "valid": false
+    },
+    {
+      "name": "a window label over 100 characters",
+      "body": {
+        "v": 1,
+        "id": "q_1",
+        "to": [
+          "phone",
+          "phone2"
+        ],
+        "takenAt": "2026-10-04T12:00:00Z",
+        "providers": [
+          {
+            "provider": "zai",
+            "windows": [
+              {
+                "id": "primary",
+                "label": "lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll",
+                "usedPercent": 20,
+                "windowMinutes": 300,
+                "resetsAt": "2026-10-04T12:30:00Z",
+                "pace": {
+                  "stage": "behind",
+                  "expectedUsedPercent": 90,
+                  "deltaPercent": -70,
+                  "projectedUsedPercent": 22.2,
+                  "willLastToReset": true,
+                  "runsOutAt": null
+                }
+              }
+            ]
+          }
+        ],
+        "alerts": [
+          {
+            "kind": "unused-headroom",
+            "provider": "zai",
+            "window": "primary",
+            "resetsAt": "2026-10-04T12:30:00Z",
+            "unusedPercent": 77.8
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "a provider read at no time",
+      "body": {
+        "v": 1,
+        "id": "q_1",
+        "to": [
+          "phone",
+          "phone2"
+        ],
+        "takenAt": "2026-10-04T12:00:00Z",
+        "providers": [
+          {
+            "provider": "zai",
+            "windows": [],
+            "error": "down",
+            "updatedAt": "yesterday"
+          }
+        ],
+        "alerts": [
+          {
+            "kind": "unused-headroom",
+            "provider": "zai",
+            "window": "primary",
+            "resetsAt": "2026-10-04T12:30:00Z",
+            "unusedPercent": 77.8
+          }
+        ]
+      },
+      "valid": false
+    },
+    {
+      "name": "an alert with notify false",
+      "body": {
+        "v": 1,
+        "id": "q_1",
+        "to": [
+          "phone",
+          "phone2"
+        ],
+        "takenAt": "2026-10-04T12:00:00Z",
+        "providers": [
+          {
+            "provider": "zai",
+            "windows": [
+              {
+                "id": "primary",
+                "label": "5h",
+                "usedPercent": 20,
+                "windowMinutes": 300,
+                "resetsAt": "2026-10-04T12:30:00Z",
+                "pace": {
+                  "stage": "behind",
+                  "expectedUsedPercent": 90,
+                  "deltaPercent": -70,
+                  "projectedUsedPercent": 22.2,
+                  "willLastToReset": true,
+                  "runsOutAt": null
+                }
+              }
+            ]
+          }
+        ],
+        "alerts": [
+          {
+            "kind": "low",
+            "provider": "zai",
+            "window": "primary",
+            "resetsAt": "2026-10-04T12:30:00Z",
+            "threshold": 10,
+            "notify": false
+          }
+        ]
+      },
+      "valid": false
+    }
+  ],
+  "text": [
+    {
+      "name": "a surrogate pair",
+      "kind": "decision",
+      "text": "{\"v\":1,\"id\":\"dec_1\",\"to\":[\"phone\",\"phone2\"],\"createdAt\":\"2026-10-04T10:00:00Z\",\"question\":\"Ship it \\ud83d\\ude80?\",\"context\":\"The bench needs the GPU for about 40 minutes. No: it waits for tonight.\",\"options\":[\"Yes\",\"No\"],\"recommended\":\"Yes\",\"source\":{\"machine\":\"dev box\",\"project\":\"localvoxtral\",\"session\":\"s_42\"}}",
+      "valid": true
+    },
+    {
+      "name": "a lone high surrogate",
+      "kind": "decision",
+      "text": "{\"v\":1,\"id\":\"dec_1\",\"to\":[\"phone\",\"phone2\"],\"createdAt\":\"2026-10-04T10:00:00Z\",\"question\":\"Ship it \\ud83d?\",\"context\":\"The bench needs the GPU for about 40 minutes. No: it waits for tonight.\",\"options\":[\"Yes\",\"No\"],\"recommended\":\"Yes\",\"source\":{\"machine\":\"dev box\",\"project\":\"localvoxtral\",\"session\":\"s_42\"}}",
+      "valid": false
+    },
+    {
+      "name": "a lone low surrogate in an option",
+      "kind": "decision",
+      "text": "{\"v\":1,\"id\":\"dec_1\",\"to\":[\"phone\",\"phone2\"],\"createdAt\":\"2026-10-04T10:00:00Z\",\"question\":\"Run inference on the Mac while you are away?\",\"context\":\"The bench needs the GPU for about 40 minutes. No: it waits for tonight.\",\"options\":[\"Yes \\ude80\",\"No\"],\"recommended\":\"Yes\",\"source\":{\"machine\":\"dev box\",\"project\":\"localvoxtral\",\"session\":\"s_42\"}}",
+      "valid": false
+    },
+    {
+      "name": "a pair in the wrong order",
+      "kind": "decision",
+      "text": "{\"v\":1,\"id\":\"dec_1\",\"to\":[\"phone\",\"phone2\"],\"createdAt\":\"2026-10-04T10:00:00Z\",\"question\":\"Ship it \\ude80\\ud83d?\",\"context\":\"The bench needs the GPU for about 40 minutes. No: it waits for tonight.\",\"options\":[\"Yes\",\"No\"],\"recommended\":\"Yes\",\"source\":{\"machine\":\"dev box\",\"project\":\"localvoxtral\",\"session\":\"s_42\"}}",
+      "valid": false
+    },
+    {
+      "name": "one in a field readers do not know",
+      "kind": "decision",
+      "text": "{\"v\":1,\"id\":\"dec_1\",\"to\":[\"phone\",\"phone2\"],\"createdAt\":\"2026-10-04T10:00:00Z\",\"question\":\"Run inference on the Mac while you are away?\",\"context\":\"The bench needs the GPU for about 40 minutes. No: it waits for tonight.\",\"options\":[\"Yes\",\"No\"],\"recommended\":\"Yes\",\"source\":{\"machine\":\"dev box\",\"project\":\"localvoxtral\",\"session\":\"s_42\"},\"note\":\"\\ud800\"}",
+      "valid": false
+    },
+    {
+      "name": "one in a key",
+      "kind": "decision",
+      "text": "{\"v\":1,\"id\":\"dec_1\",\"to\":[\"phone\",\"phone2\"],\"createdAt\":\"2026-10-04T10:00:00Z\",\"question\":\"Run inference on the Mac while you are away?\",\"context\":\"The bench needs the GPU for about 40 minutes. No: it waits for tonight.\",\"options\":[\"Yes\",\"No\"],\"recommended\":\"Yes\",\"source\":{\"machine\":\"dev box\",\"project\":\"localvoxtral\",\"session\":\"s_42\"},\"extra\":{\"\\udfff\":1}}",
       "valid": false
     }
   ]

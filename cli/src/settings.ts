@@ -1,6 +1,7 @@
 /**
  * The machine's own settings in `agent.json` that `starbridge config` shows and changes:
- * whether permission prompts go to Starbridge, and what kind of machine it is.
+ * whether permission prompts go to Starbridge, presence, the update check, and what kind of
+ * machine it is.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
@@ -142,7 +143,7 @@ export async function offerPiAllow(ctx: Ctx, prompt: Prompt | undefined, quiet =
 }
 
 const USAGE =
-  "usage: starbridge config [permissions on|off] [presence on|off] [machine-kind server|desktop|laptop|cloud]";
+  "usage: starbridge config [permissions on|off] [presence on|off] [update-check on|off] [machine-kind server|desktop|laptop|cloud]";
 
 /**
  * `starbridge config [<key> <value>]`: sets one setting, then prints them all. Turning permission
@@ -169,6 +170,10 @@ export async function configCommand(ctx: Ctx, args: string[], prompt?: Prompt): 
     if (value !== "on" && value !== "off") throw new UsageError(USAGE);
     const config = ctx.store.agentConfig();
     ctx.store.saveAgentConfig({ ...config, presence: { enabled: value === "on" } });
+  } else if (key === "update-check") {
+    if (value !== "on" && value !== "off") throw new UsageError(USAGE);
+    const config = ctx.store.agentConfig();
+    ctx.store.saveAgentConfig({ ...config, updateCheck: { enabled: value === "on" } });
   } else if (key === "machine-kind") {
     const kind = MachineKind.safeParse(value);
     if (!kind.success) throw new UsageError(USAGE);
@@ -178,6 +183,7 @@ export async function configCommand(ctx: Ctx, args: string[], prompt?: Prompt): 
   }
   ctx.out(`permissions   ${permissionsEnabled(ctx) ? "on" : "off"}`);
   ctx.out(`presence      ${ctx.store.agentConfig().presence?.enabled ? "on" : "off"}`);
+  ctx.out(`update-check  ${ctx.store.agentConfig().updateCheck?.enabled === false ? "off" : "on"}`);
   ctx.out(`machine-kind  ${ctx.store.agentConfig().machineKind ?? "not set"}`);
   return 0;
 }

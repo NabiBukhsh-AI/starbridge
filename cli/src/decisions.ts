@@ -15,7 +15,7 @@ import {
   SealedItem,
   type SessionLink,
   type Settled,
-  seal,
+  toWellFormed,
   verifyDirectory,
   type Waiting,
 } from "@starbridge/protocol";
@@ -43,6 +43,7 @@ import { OPENCODE_ANSWERS, OPENCODE_SESSION, OPENCODE_TITLE } from "./opencode";
 import { acceptPermissionAnswer } from "./permissions";
 import { PI_ANSWERS, piSessionTitle } from "./pi";
 import { projectName } from "./project";
+import { seal } from "./seal";
 
 export interface AskInput {
   question?: string;
@@ -65,6 +66,11 @@ export interface AskInput {
   held?: boolean;
   /** Asked for Claude Code's open `AskUserQuestion` picker in this session (#848). */
   picker?: string;
+  /**
+   * When one of several questions from one tool call was asked: the call's time plus its index in
+   * milliseconds, so every inbox lists them together in the call's order (#1079).
+   */
+  askedAt?: Date;
   project?: string;
   session?: string;
   sessionTitle?: string;
@@ -212,7 +218,8 @@ export function buildDecision(input: AskInput, ctx: Ctx, machine: string, to: st
     v: 1 as const,
     id: `d_${randomBytes(12).toString("base64url")}`,
     to,
-    createdAt: iso(ctx.now()),
+    // `--input` JSON can carry no Date: only the hooks set it.
+    createdAt: input.askedAt instanceof Date ? input.askedAt.toISOString() : iso(ctx.now()),
     question: input.question,
     context: input.context ?? "",
     options,
@@ -253,7 +260,8 @@ function agentOf(input: AskInput, env: Ctx["env"]): { agent?: Agent } {
 
 function checked(decision: unknown): Decision {
   try {
-    return parseWith(Decision, decision);
+    // Agents' text, cut to length, can hold a lone surrogate, which the protocol refuses (#1090).
+    return parseWith(Decision, toWellFormed(decision));
   } catch (e) {
     throw e instanceof ProtocolError ? new UsageError(`bad decision: ${e.message}`) : e;
   }

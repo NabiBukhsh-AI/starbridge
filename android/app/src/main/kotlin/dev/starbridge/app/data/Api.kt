@@ -17,6 +17,7 @@ import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.put
 import okhttp3.MediaType.Companion.toMediaType
@@ -191,6 +192,11 @@ class Api(private val http: OkHttpClient, private val server: String, private va
         call("POST", "/auth/logout")
     }
 
+    /** Deletes the account and everything the server holds for it, and ends every sign-in. */
+    suspend fun deleteAccount() {
+        call("DELETE", "/account")
+    }
+
     suspend fun me(): Me = get("/me")
 
     suspend fun directory(from: Int): List<JsonElement> =
@@ -312,5 +318,11 @@ class Api(private val http: OkHttpClient, private val server: String, private va
         val body = call("GET", "/notifications").second!!.jsonObject
         fun read(key: String) = body[key]?.jsonObject?.mapValues { it.value.jsonPrimitive.content }.orEmpty()
         return read("devices") to read("clients")
+    }
+
+    /** The machines whose CLI is older than the latest release they read (#1050), by member id. */
+    suspend fun machinesBehind(): Set<String> {
+        val machines = call("GET", "/releases").second!!.jsonObject["machines"]?.jsonObject.orEmpty()
+        return machines.filterValues { it.jsonObject["behind"]?.jsonPrimitive?.boolean == true }.keys
     }
 }

@@ -96,7 +96,7 @@ fun shownPrompts(prompts: List<Prompt>, now: Instant): List<Prompt> = prompts
     .filter { it.waiting(now) || (it.endedAt != null && now.toEpochMilli() - it.endedAt.toEpochMilli() < CLOSING_MS) }
     .sortedBy { it.createdAt }
 
-/** Open questions as the feed lists them (SPEC, Clients): those whose agent waits first, each oldest first. */
+/** Open questions as the feed lists them (spec/clients.md): those whose agent waits first, each oldest first. */
 fun openQuestions(decisions: List<Decision>): List<Decision> = decisions
     .filter { it.isOpen }
     .sortedWith(compareByDescending<Decision> { it.waiting }.thenBy { it.createdAt })

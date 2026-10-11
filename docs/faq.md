@@ -9,17 +9,17 @@ is signed by your device and bound to one call by a hash of its input, so it can
 different command. ntfy can still deliver the notifications, through UnifiedPush on a
 [self-hosted server](../server/README.md#notifications).
 
-## Why not the agents' own mobile apps?
+## Why not the harnesses' own mobile apps?
 
-Each covers one agent; the Claude app, for example, answers permission prompts for Remote
-Control sessions. Starbridge puts the questions of every session, machine and agent in one
+Each covers one harness; the Claude app, for example, answers permission prompts for Remote
+Control sessions. Starbridge puts the questions of every session, machine and harness in one
 inbox, with the runs you follow. It doesn't remote-control the terminal: the agent decides what
 is worth asking you, with two to four options.
 
 ## How is it different from Happy or Omnara?
 
 Those mirror the whole session so you drive it from the phone. Starbridge carries only the
-decisions the agent asks you for and the runs it reports. You keep using the agent as before.
+decisions the agent asks you for and the runs it reports. You keep using the harness as before.
 
 ## What does the server see?
 
@@ -57,8 +57,8 @@ The limits:
 
 ## Does it work with open models?
 
-Yes. Starbridge works at the agent's level, through its plugin or skill, so the model behind
-the agent doesn't matter. Quotas read your AI plans through CodexBar; with no plan,
+Yes. Starbridge works at the harness's level, through its plugin or skill, so the model the
+agent runs on doesn't matter. Quotas read your AI plans through CodexBar; with no plan,
 `starbridge setup --no-quota` skips them, and CodexBar with them.
 
 ## Which harnesses, and how well?
@@ -69,10 +69,10 @@ the session's next prompt, except in the Cursor IDE. Cursor's question picker an
 prompts stay at the keyboard. Any other harness can run `starbridge ask` and `starbridge wait`.
 [What each harness supports](tell-your-agents.md#what-each-harness-supports) has the details.
 
-## Do I restart my agents after setup?
+## Do I restart my harnesses after setup?
 
-Yes: sessions that were running before setup don't have Starbridge. Quit each one and resume it
-with its agent's command, such as `claude --continue`; the
+Yes: sessions that were running before setup don't have Starbridge. Quit the harness and resume
+the session with its command, such as `claude --continue`; the
 [Overview](index.md#sessions-already-running) lists them.
 
 ## Which platforms?
@@ -91,8 +91,8 @@ with quota unused.
 [CodexBar](https://github.com/steipete/CodexBar), by Peter Steinberger, is open source,
 maintained, and already reads more than a dozen providers' plans, so Starbridge reads its output
 instead of writing its own reader; the author contributes to it. It reads plan usage on your
-machine, and Starbridge encrypts the snapshot for your devices like every other item. It is
-optional: setup asks before installing it, `starbridge setup --no-quota` skips it, and questions,
+machine, and Starbridge encrypts the snapshot for your devices like every other item.
+CodexBar is optional: setup asks before installing it, `--no-quota` skips it, and questions,
 runs and permission prompts work without it.
 
 ## Do you trust CodexBar's code?
@@ -110,7 +110,7 @@ Your plan credentials stay on the machine, and only the encrypted snapshot goes 
 
 Nothing. starbridge.run is a small VPS the author pays for. The [terms](https://starbridge.run/terms)
 promise 60 days' notice before any price and 30 days' notice before a shutdown. Each account
-takes up to 3 machines, the computers that run your agents, and any number of phones and
+takes up to 3 machines, the computers that run your harnesses, and any number of phones and
 browsers. Self-hosting is free, under the MIT licence.
 
 ## What's kept, and for how long?
@@ -118,8 +118,9 @@ browsers. Self-hosting is free, under the MIT licence.
 The server deletes answered questions and their answers 7 days after the answer, permission
 prompts 7 days after they arrive, runs a day after their last update, and unanswered questions
 and quota snapshots after 30 days, or unanswered questions after 7 days once an account holds
-more than 1000. Backups keep deleted data for up to 2 weeks. The
-[privacy page](https://starbridge.run/privacy) says how to delete your account.
+more than 1000. Delete account, in Settings on the web page or in the app, deletes everything
+the server holds for your account at once and signs out every device and machine. Backups keep
+deleted data for up to 2 weeks ([privacy page](https://starbridge.run/privacy)).
 
 ## Why GitHub sign-in?
 

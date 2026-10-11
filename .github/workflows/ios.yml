@@ -1,0 +1,97 @@
+name: ios
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "ios/**"
+      - "packages/protocol/vectors/**"
+      - "server/**"
+      - ".github/workflows/ios.yml"
+  pull_request:
+    paths:
+      - "ios/**"
+      - "packages/protocol/vectors/**"
+      - "server/**"
+      - ".github/workflows/ios.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: ios/StarbridgeProtocol
+
+jobs:
+  # The Swift port of packages/protocol against the shared vectors (#1083), on GitHub's hosted
+  # macOS runner, with the libsodium that swift-sodium bundles for Apple platforms.
+  protocol-macos:
+    name: StarbridgeProtocol on macOS
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: swift --version
+      - run: swift test
+      # `swift test` runs on macOS; this builds the same sources for iPhone, against its slice of
+      # the libsodium framework.
+      - run: xcodebuild -quiet -scheme StarbridgeProtocol -destination "generic/platform=iOS" build
+
+  # The same tests on Linux with the system libsodium, where agents develop the package.
+  protocol-linux:
+    name: StarbridgeProtocol on Linux
+    runs-on: ubuntu-24.04
+    container: swift:6.3.3
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - working-directory: .
+        run: apt-get update -qq && apt-get install -qq -y libsodium-dev pkg-config
+      - run: swift test
+
+  # The app (#1105): XcodeGen writes the project, then its tests run on a simulator, JoinTests
+  # against a self-hosted server started here.
+  app:
+    name: Starbridge app on the simulator
+    runs-on: macos-15
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: ios
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+      - working-directory: .
+        run: pnpm install --frozen-lockfile --filter @starbridge/server...
+      - name: Start a self-hosted server
+        working-directory: server
+        run: |
+          PORT=18731 DB_PATH="$RUNNER_TEMP/starbridge.db" OWNER_TOKEN=ci-owner-token bun run src/main.ts > "$RUNNER_TEMP/server.log" 2>&1 &
+          for _ in $(seq 30); do curl -fs localhost:18731/healthz && exit 0; sleep 1; done
+          cat "$RUNNER_TEMP/server.log"; exit 1
+      - name: XcodeGen 2.44.1
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" https://github.com/yonaskolb/XcodeGen/releases/download/2.44.1/xcodegen.zip
+          echo "a2e905fb68446e9bb4008cdfe2e13e3f176d0cbcca828b71770f8e53fca91b73  $RUNNER_TEMP/xcodegen.zip" | shasum -a 256 -c
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          "$RUNNER_TEMP/xcodegen/bin/xcodegen" generate
+      - name: Test
+        env:
+          TEST_RUNNER_STARBRIDGE_TEST_SERVER: http://localhost:18731
+          TEST_RUNNER_STARBRIDGE_TEST_OWNER_TOKEN: ci-owner-token
+        run: |
+          sim=$(xcrun simctl list devices available -j | jq -r '[.devices[][] | select(.name | startswith("iPhone"))][0].udid')
+          set -o pipefail
+          xcodebuild -project Starbridge.xcodeproj -scheme Starbridge -destination "id=$sim" test 2>&1 | tee "$RUNNER_TEMP/test.log" | grep -E "error:|Test Case .*(passed|failed|skipped)|\*\* TEST"
+          # JoinTests skips without a server; here it must have run.
+          ! grep -q "JoinTests.*skipped" "$RUNNER_TEMP/test.log"

@@ -16,7 +16,7 @@ import {
   Run,
   type RunProgress,
   type SessionLink,
-  seal,
+  toWellFormed,
 } from "@starbridge/protocol";
 import { AgentClient, AgentError, NoAgent } from "./agent/client";
 import {
@@ -33,6 +33,7 @@ import {
 } from "./context";
 import { resolveSource } from "./decisions";
 import { killTree, resolveCommand, spawnable } from "./platform";
+import { seal } from "./seal";
 
 /** Progress is reported at most this often; a heartbeat comes every RUN_HEARTBEAT_MS. */
 export const PROGRESS_MS = 10_000;
@@ -88,7 +89,8 @@ export function buildRun(
     ...(input.exit ? { exit: input.exit } : {}),
   };
   try {
-    return parseWith(Run, run);
+    // Agents' text, cut to length, can hold a lone surrogate, which the protocol refuses (#1090).
+    return parseWith(Run, toWellFormed(run));
   } catch (e) {
     throw e instanceof ProtocolError ? new UsageError(`bad run: ${e.message}`) : e;
   }

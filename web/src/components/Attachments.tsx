@@ -78,7 +78,7 @@ export function ImageButton({
 
 /**
  * Pages the agent attached for the owner to see before answering, such as a Claude artifact it
- * built (SPEC.md, "Questions"), each opening a new tab. A GitHub link leads with its kind's
+ * built (spec/items.md, "Questions"), each opening a new tab. A GitHub link leads with its kind's
  * Octicon and reads as its reference, "#123" (#971).
  */
 export function Links({ d }: { d: Decision }) {

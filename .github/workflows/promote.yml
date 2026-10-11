@@ -1,0 +1,93 @@
+name: promote
+
+# Promotes a release candidate the owner tried to its final release (#1070): the newest v1.2.3-rc.N plus the
+# version stamp becomes v1.2.3, on a commit of its own, so main keeps merging between an rc and its final. Then it
+# runs release.yml on the new tag, which publishes it to every channel, and pushes the branch that points main's
+# marketplace at it. The owner approves each promotion; CONTRIBUTING.md, "Release", says when.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The final version, without the v; its newest rc is promoted
+        required: true
+      dry_run:
+        description: Stamp and check, but push and release nothing
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency: promote
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    permissions:
+      # The tag and the marketplace branch.
+      contents: write
+      # A tag pushed with the job's token starts no workflow, so the job dispatches release.yml itself.
+      actions: write
+      issues: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Every tag, for the rc.
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.2
+      - id: rc
+        name: The rc to promote
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          echo "$VERSION" | grep -Eqx '[0-9]+\.[0-9]+\.[0-9]+' || { echo "not a final version: $VERSION" >&2; exit 1; }
+          if git rev-parse -q --verify "refs/tags/v$VERSION" >/dev/null; then echo "v$VERSION exists" >&2; exit 1; fi
+          rc=$(git tag -l "v$VERSION-rc.*" --sort=-v:refname | head -n1)
+          [ -n "$rc" ] || { echo "no v$VERSION-rc.N tag: cut a release candidate first" >&2; exit 1; }
+          # Its release run passed the smoke test and published it.
+          gh release view "$rc" --repo "$GITHUB_REPOSITORY" --json isPrerelease --jq .isPrerelease | grep -qx true ||
+            { echo "$rc has no published prerelease" >&2; exit 1; }
+          # An open regression blocks every promotion until it is fixed in a newer rc and closed.
+          open=$(gh issue list --repo "$GITHUB_REPOSITORY" --label regression --state open --json number,title \
+            --jq '.[] | "#\(.number) \(.title)"')
+          [ -z "$open" ] || { printf 'open regressions:\n%s\n' "$open" >&2; exit 1; }
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+      - name: Stamp and tag the final
+        env:
+          RC: ${{ steps.rc.outputs.rc }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -q --detach "$RC"
+          # Keeps the rc's CodexBar pin.
+          bun cli/scripts/version.ts "$VERSION"
+          bun cli/scripts/version.ts --final "$VERSION"
+          git commit -qam "Release $VERSION"
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git show --stat HEAD
+      - if: ${{ !inputs.dry_run }}
+        name: Push the tag
+        run: git push origin "v${{ inputs.version }}"
+      - if: ${{ !inputs.dry_run }}
+        name: Release it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "v$VERSION"
+      # Claude Code reads the marketplace from main. The job's token may not open pull requests, so the
+      # maintainer opens this branch's.
+      - name: Point main's marketplace at the final
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          git checkout -q -B "marketplace/v$VERSION" origin/main
+          bun cli/scripts/version.ts --marketplace "$VERSION"
+          git commit -qam "Marketplace: plugins from v$VERSION"
+          git show HEAD
+          [ "$DRY_RUN" = true ] && exit 0
+          git push -f origin "marketplace/v$VERSION"
+          echo "::notice::Open its pull request: gh pr create --head marketplace/v$VERSION --title 'Marketplace: plugins from v$VERSION' --body 'After the v$VERSION promotion.'"

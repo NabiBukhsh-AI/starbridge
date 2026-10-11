@@ -105,6 +105,8 @@ interface Store {
     val notifyStates: StateFlow<Map<String, String>> get() = MutableStateFlow(emptyMap())
     /** The app each device said its notifications from: android, web or desktop (#1019). */
     val deviceClients: StateFlow<Map<String, String>> get() = MutableStateFlow(emptyMap())
+    /** The machines whose CLI is behind the latest release (#1050), read with the states. */
+    val machinesBehind: StateFlow<Set<String>> get() = MutableStateFlow(emptySet())
     fun loadNotifyStates() {}
     /** Tells the server whether Android shows this app's notifications; only on a change. */
     fun reportNotifications(on: Boolean) {}
@@ -126,6 +128,8 @@ interface Store {
 
     fun setPushType(type: String)
     fun signOut()
+    /** Deletes the account on the server (#1104), then forgets it here as [signOut] does. */
+    fun deleteAccount()
     fun dismissNotice()
     /** The owner says they revoked [memberId]: the heads it signed or is named in go (#813). */
     fun stopWaiting(memberId: String) {}

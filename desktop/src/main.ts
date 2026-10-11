@@ -22,7 +22,13 @@ import { type Answer, type Entry, parseAnswered, parseState } from "./bridge";
 import { Notifier, type Shown } from "./notifier";
 import { linkPage, opensOutside, serverOrigin, staysInWindow } from "./origin";
 import { type Reading, SCREEN_CHECK_MS, Screen } from "./screen";
-import { parsePlace, readSettings, type Settings, writeSettings } from "./settings";
+import {
+  parseBackground,
+  parsePlace,
+  readSettings,
+  type Settings,
+  writeSettings,
+} from "./settings";
 import { browserSignIn, newSignIn, type SignIn, signInReturn, startsSignIn } from "./signin";
 import { mark, timing } from "./timing";
 import { snapshot, Widgets } from "./widgets";
@@ -37,6 +43,12 @@ const SETTINGS = join(app.getPath("userData"), "settings.json");
 const ANSWER_MS = 30_000;
 /** How long a quitting app waits for the page to say the owner left. */
 const QUIT_MS = 2_000;
+/**
+ * Starbridge's page in System Settings → Notifications (#1069), by electron-builder.yml's appId;
+ * a development run, which is Electron's own app, lands on the Notifications list instead.
+ */
+const NOTIFICATION_SETTINGS =
+  "x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=dev.starbridge.desktop";
 
 let settings: Settings;
 let origin: string;
@@ -58,7 +70,7 @@ let left = false;
 /** The GitHub sign-in sent to the browser, until its link comes back. */
 let signIn: SignIn | null = null;
 /** A release downloaded, which installs on quit or from Restart to Update. */
-let update: { install(): void } | null = null;
+let update: { install(): void; check(): void } | null = null;
 let updateReady = false;
 /** Links that arrived before the window existed. */
 const early: string[] = [];
@@ -97,7 +109,7 @@ function start(): void {
 
 async function ready(): Promise<void> {
   mark("ready");
-  settings = readSettings(SETTINGS);
+  settings = readSettings(SETTINGS, app.getVersion());
   origin = process.env.STARBRIDGE_SERVER
     ? (serverOrigin(process.env.STARBRIDGE_SERVER) ?? settings.server)
     : settings.server;
@@ -107,7 +119,7 @@ async function ready(): Promise<void> {
   });
 
   const ses = session.fromPartition("persist:starbridge");
-  // The page copies codes and keys, and shows quota alerts as web notifications; items notify
+  // The page copies codes and keys, and shows quota alerts and ended runs as web notifications; items notify
   // through the bridge instead. It gets nothing else.
   const allowed = ["clipboard-sanitized-write", "notifications"];
   ses.setPermissionRequestHandler((wc, permission, done) =>
@@ -145,8 +157,28 @@ async function ready(): Promise<void> {
     applyPlace();
     win?.webContents.send("place", place);
   });
+  // The page's background, so a slow load or a reload never shows another colour.
+  ipcMain.on("background", (e, x) => {
+    const background = fromPage(e) && parseBackground(x);
+    if (!background || background === settings.background) return;
+    settings.background = background;
+    save();
+    win?.setBackgroundColor(background);
+  });
   screen = new Screen(powerMonitor, tellScreen);
   setInterval(() => screen?.check(), SCREEN_CHECK_MS);
+  ipcMain.on("blocked?", (e) => {
+    e.returnValue = e.sender === win?.webContents ? blocked : null;
+  });
+  ipcMain.on("notification-settings", (e) => {
+    if (!fromPage(e) || process.platform !== "darwin") return;
+    shell.openExternal(NOTIFICATION_SETTINGS);
+    // Unknown again until the next notification: the owner may allow them there.
+    setBlocked(false);
+  });
+  ipcMain.on("shown?", (e) => {
+    e.returnValue = e.sender === win?.webContents ? win.isVisible() && !win.isMinimized() : null;
+  });
   ipcMain.on("screen?", (e) => {
     e.returnValue = e.sender === win?.webContents ? screen?.read() : null;
   });
@@ -202,10 +234,13 @@ function checkForUpdates(): void {
     const { startUpdates } = require(
       join(ROOT, "dist", "updater.js"),
     ) as typeof import("./updater");
-    update = startUpdates(() => {
-      updateReady = true;
-      paintDockMenu();
-    });
+    update = startUpdates(
+      () => {
+        updateReady = true;
+        paintDockMenu();
+      },
+      () => settings.releaseCandidates,
+    );
   }, 5_000);
 }
 
@@ -222,7 +257,9 @@ function createWindow(): void {
     ...(process.platform === "darwin"
       ? { titleBarStyle: "hiddenInset" as const, trafficLightPosition: { x: 12, y: 20 } }
       : {}),
-    backgroundColor: "#0c0c0c",
+    // The page's own background until it paints: its last one, else the system's theme's.
+    backgroundColor:
+      settings.background ?? (nativeTheme.shouldUseDarkColors ? "#0c0c0c" : "#f4f4f4"),
     webPreferences: {
       preload: join(ROOT, "dist", "preload.js"),
       partition: "persist:starbridge",
@@ -250,6 +287,10 @@ function createWindow(): void {
   win.on("hide", () => {
     if (settings.place === "menu") app.dock?.hide();
   });
+  // The page stays "visible" to itself while hidden (backgroundThrottling), so the app tells it.
+  const tellShown = () => win?.webContents.send("shown", !!win?.isVisible() && !win.isMinimized());
+  for (const event of ["show", "hide", "minimize", "restore"] as const)
+    win.on(event as "show", tellShown);
   // Offline at start, or the server restarting: try again, unless a newer navigation came first.
   let retry: NodeJS.Timeout | undefined;
   win.webContents.on("did-start-navigation", (d) => {
@@ -370,6 +411,21 @@ function menu(forTray = true): Menu {
         paintDockMenu();
       },
     },
+    ...(app.isPackaged
+      ? [
+          {
+            label: "Get Release Candidates",
+            type: "checkbox" as const,
+            checked: settings.releaseCandidates,
+            click: () => {
+              settings.releaseCandidates = !settings.releaseCandidates;
+              save();
+              paintDockMenu();
+              update?.check();
+            },
+          },
+        ]
+      : []),
     { label: `Server: ${new URL(origin).host}…`, click: showServer },
     ...(updateReady ? [{ label: "Restart to Update", click: installUpdate }] : []),
     ...(forTray
@@ -447,10 +503,26 @@ function notify(entry: Entry): Shown {
   n.on("reply", (d) => {
     if (d.reply.trim()) answer({ id: entry.id, text: d.reply });
   });
-  // Refused, as before the owner allows notifications: the page's next update tries again.
-  n.on("failed", () => notifier.forget(entry.id));
+  // Refused, as while macOS blocks them: the page's next update tries again.
+  n.on("failed", () => {
+    setBlocked(true);
+    notifier.forget(entry.id);
+  });
+  n.on("show", () => setBlocked(false));
   n.show();
   return n;
+}
+
+/**
+ * Whether macOS refused the last notification (#1069). Electron has no way to read whether macOS
+ * allows them, but macOS refuses each one while it blocks the app, and Electron says so.
+ */
+let blocked = false;
+
+function setBlocked(b: boolean): void {
+  if (b === blocked) return;
+  blocked = b;
+  if (win && fromServer(win.webContents.getURL())) win.webContents.send("blocked", b);
 }
 
 /**
@@ -518,13 +590,18 @@ function answer(a: Answer): void {
 const notices = new Set<Notification>();
 
 function notSent(id: string, why: string): void {
-  const n = new Notification({ title: "Answer not sent", body: why });
+  // macOS's error sound, apart from the default one a question plays (#1055).
+  const n = new Notification({ title: "Answer not sent", body: why, sound: "Basso" });
   notices.add(n);
   n.on("click", () => {
     notices.delete(n);
     open(id);
   });
   n.on("close", () => notices.delete(n));
+  n.on("failed", () => {
+    notices.delete(n);
+    setBlocked(true);
+  });
   n.show();
 }
 

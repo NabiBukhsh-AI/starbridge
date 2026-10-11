@@ -61,7 +61,7 @@ export function needsYou(inbox: InboxItem[], prompts: PromptItem[], now: number)
   return [
     ...prompts.filter((p) => promptOpen(p, now)).map(promptEntry),
     ...inbox.filter((i) => !closedAt(i) && !isSnoozed(i, now)).map(questionEntry),
-  ].sort((a, b) => rank(a) - rank(b) || a.at.localeCompare(b.at));
+  ].sort((a, b) => rank(a) - rank(b) || Date.parse(a.at) - Date.parse(b.at));
 }
 
 /** Open questions the owner put off, the soonest back first. */

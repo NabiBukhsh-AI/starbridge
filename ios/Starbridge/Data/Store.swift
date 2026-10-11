@@ -1,0 +1,485 @@
+import Foundation
+import Observation
+import StarbridgeProtocol
+
+/** Where setup stands, which picks the screen. */
+enum Phase: Equatable {
+    case signedOut
+    /** Signed in; this iPhone is not a device of the account yet. */
+    case noDevice(accountExists: Bool)
+    /** Waiting for the device whose QR code this iPhone scanned to approve it. */
+    case joining
+    /** Joining by digits: the digits once the approver's key came, and whether they matched. */
+    case joiningByDigits(digits: String?, matched: Bool)
+    case ready
+}
+
+/** A failure to show the owner, in words. */
+struct Notice: Error, Equatable {
+    let message: String
+}
+
+/**
+ * The app's state and the setup steps, as Android's ServerStore does them: sign in, then join the
+ * account from a device it already has, by its QR code or by comparing digits. Secrets go to the
+ * [Vault], the rest to [Disk], each before the server hears of what they hold, so a killed app
+ * resumes the same join.
+ */
+@MainActor
+@Observable
+final class Store {
+    static let defaultServer = "https://starbridge.run"
+
+    private(set) var saved: Saved
+    private(set) var secrets: Secrets
+    private(set) var busy = false
+    var notice: String?
+
+    @ObservationIgnored private let vault: Vault
+    @ObservationIgnored private let disk: Disk
+    @ObservationIgnored private let deviceName: String
+    @ObservationIgnored private let http: URLSession
+    @ObservationIgnored private var joinTask: Task<Void, Never>?
+    @ObservationIgnored private var directory: Directory?
+
+    init(vault: Vault = KeychainVault(), disk: Disk = .standard, deviceName: String, http: URLSession = .shared) {
+        self.vault = vault
+        self.disk = disk
+        self.deviceName = deviceName
+        self.http = http
+        saved = disk.load() ?? Saved(server: Self.defaultServer)
+        do {
+            secrets = try vault.load()
+        } catch {
+            secrets = Secrets()
+            notice = "\(error)"
+        }
+        if saved.joining != nil { waitForApproval() }
+        if saved.digitJoin != nil { waitForDigitJoin() }
+    }
+
+    var phase: Phase {
+        if secrets.session == nil { return .signedOut }
+        if let dj = saved.digitJoin { return .joiningByDigits(digits: dj.digits, matched: dj.matched) }
+        if saved.joining != nil { return .joining }
+        if saved.me != nil, saved.pin != nil { return .ready }
+        return .noDevice(accountExists: saved.accountExists)
+    }
+
+    var me: SavedMember? { saved.me }
+
+    private func api(_ session: String? = nil) -> Api { Api(server: saved.server, session: session ?? secrets.session, http: http) }
+
+    private func persist(_ newSaved: Saved? = nil, _ newSecrets: Secrets? = nil) {
+        // The secrets first: a saved state naming keys the vault lacks could not resume.
+        if let newSecrets {
+            do {
+                try vault.save(newSecrets)
+            } catch {
+                notice = "\(error)"
+            }
+            secrets = newSecrets
+        }
+        if let newSaved {
+            do {
+                try disk.save(newSaved)
+            } catch {
+                notice = "\(error)"
+            }
+            saved = newSaved
+        }
+    }
+
+    /** Runs one step the owner asked for, showing it busy and its failure as a notice. */
+    private func run(_ step: @escaping () async throws -> Void) async {
+        if busy { return }
+        busy = true
+        notice = nil
+        defer { busy = false }
+        do {
+            try await step()
+        } catch {
+            notice = describe(error)
+        }
+    }
+
+    func describe(_ error: Error) -> String {
+        switch error {
+        case let n as Notice: n.message
+        case let e as ApiError where e.status == 401: "The server signed this iPhone out. Sign in again."
+        case let e as ApiError where e.status == 429: "Too many tries. Wait a minute and try again."
+        case let e as ApiError: "The server refused: \(e)"
+        case let e as URLError where e.code == .cancelled: "Cancelled."
+        case is URLError: "Can't reach \(saved.server). Check the connection and try again."
+        case let e as ProtocolError: "Something didn't check out (\(e.code.rawValue)). Try again."
+        default: "\(error)"
+        }
+    }
+
+    private func now() -> String {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f.string(from: Date())
+    }
+
+    private func newId(_ prefix: String) -> String { prefix + toB64(Sodium.randomBytes(9)) }
+
+    private var signKey: SecretKey {
+        get throws {
+            guard let sk = secrets.signSk else { throw Notice(message: "This iPhone has no keys. Sign out and set it up again.") }
+            return SecretKey(try fromB64(sk))
+        }
+    }
+
+    // --- Signing in ---------------------------------------------------------------
+
+    private func normalize(_ server: String) -> String {
+        var s = server.trimmingCharacters(in: .whitespacesAndNewlines)
+        while s.hasSuffix("/") { s.removeLast() }
+        return s.isEmpty ? Self.defaultServer : s
+    }
+
+    /** Starts a sign-in with GitHub on `server`: the page to open in the browser. */
+    func gitHubSignInURL(server: String) -> URL? {
+        var s = saved
+        s.server = normalize(server)
+        let verifier = SignIn.newVerifier()
+        var k = secrets
+        k.signInVerifier = verifier
+        persist(s, k)
+        return SignIn.url(server: saved.server, verifier: verifier)
+    }
+
+    /**
+     * Only for the sign-in this iPhone started: without its verifier the code is worthless, and a
+     * redirect with no sign-in pending is ignored. The code works once, whatever the outcome.
+     */
+    func receiveSignIn(_ link: URL) async {
+        await run { [self] in
+            guard phase == .signedOut, let verifier = secrets.signInVerifier else { return }
+            // The state is the challenge this sign-in sent: a link from another sign-in leaves this one alone.
+            let challenge = SignIn.challenge(verifier)
+            let code: String
+            switch SignIn.redirect(link) {
+            case let .code(c, state) where state == challenge: code = c
+            case let .denied(state) where state == challenge: throw Notice(message: "GitHub sign-in didn't finish. Sign in again.")
+            default: return
+            }
+            var k = secrets
+            k.signInVerifier = nil
+            persist(nil, k)
+            let session: String
+            do {
+                session = try await api().appSession(code: code, verifier: verifier)
+            } catch let e as ApiError where e.error == "bad-code" {
+                throw Notice(message: "Sign-in expired. Sign in again.")
+            } catch let e as ApiError where e.error == "signups-paused" {
+                throw Notice(message: "New accounts are paused on this server.")
+            }
+            try await afterSignIn(session)
+        }
+    }
+
+    /** The browser sign-in ended without a redirect: the owner closed it. */
+    func abandonSignIn() {
+        var k = secrets
+        k.signInVerifier = nil
+        persist(nil, k)
+    }
+
+    func signInWithOwnerToken(server: String, token: String) async {
+        await run { [self] in
+            var s = saved
+            s.server = normalize(server)
+            persist(s)
+            try await afterSignIn(api().ownerSignIn(token: token.trimmingCharacters(in: .whitespacesAndNewlines)))
+        }
+    }
+
+    /** Checks the session with the server before keeping it. */
+    private func afterSignIn(_ session: String) async throws {
+        let fresh = api(session)
+        let me: Me
+        do {
+            me = try await fresh.me()
+        } catch let e as ApiError where e.status == 401 {
+            throw Notice(message: "Sign-in failed: the server did not accept the session.")
+        }
+        if let mine = saved.me, saved.pin != nil, saved.joining == nil, saved.digitJoin == nil, secrets.signSk != nil, me.account == saved.account {
+            // Still a device: bind the new session with its signing key (PROTOCOL.md, "Auth").
+            if let member = me.member, member != mine.id { throw Notice(message: "This session already belongs to another device.") }
+            if me.member == nil {
+                do {
+                    let nonce = try await fresh.challenge()
+                    let sig = Sodium.sign(Pairings.bindMessage(account: me.account, member: mine.id, nonce: nonce), secretKey: try signKey)
+                    try await fresh.bind(member: mine.id, sig: toB64(sig))
+                } catch let e as ApiError where e.status == 404 {
+                    // No such active device, or a server without binding: the chain decides.
+                    let entries = try await fresh.directory(from: 0)
+                    let dir = try Directories.verify(entries, account: saved.account, pin: saved.pin)
+                    if dir.members[mine.id]?.active == true { throw Notice(message: "This server cannot bind a new session to this iPhone. Update the server.") }
+                    wipe()
+                    throw Notice(message: "This iPhone was removed from your devices. Set it up again.")
+                }
+            }
+            var k = secrets
+            k.session = session
+            persist(nil, k)
+            return
+        }
+        if saved.me != nil, saved.pin != nil, me.account != saved.account {
+            // The server's word alone, unsigned: a hostile one could unpair the iPhone with it (#808).
+            throw Notice(message: "This iPhone belongs to another account than the one you signed in to. Sign in with the account you set it up with, or sign out and remove its keys.")
+        }
+        if saved.me != nil || secrets.signSk != nil { wipe() }
+        if me.member != nil { throw Notice(message: "This session already belongs to another device.") }
+        let exists = !(try await fresh.directory(from: 0).isEmpty)
+        var s = Saved(server: saved.server)
+        s.account = me.account
+        s.accountExists = exists
+        persist(s, Secrets(session: session))
+    }
+
+    /** Asks the server again whether the account has a device, after one was set up elsewhere. */
+    func checkAccount() async {
+        await run { [self] in
+            var s = saved
+            s.accountExists = !(try await api().directory(from: 0).isEmpty)
+            persist(s)
+        }
+    }
+
+    // --- Joining ------------------------------------------------------------------
+
+    /** New keys for this iPhone, in the vault before the server hears of them. */
+    private func newMember() -> SavedMember {
+        let box = Sodium.boxKeyPair()
+        let sign = Sodium.signKeyPair()
+        let name = String(deviceName.prefix(100))
+        let member = SavedMember(id: newId("d_"), name: name.isEmpty ? "iPhone" : name, boxPk: toB64(box.publicKey), signPk: toB64(sign.publicKey))
+        var k = secrets
+        k.boxPk = member.boxPk
+        k.boxSk = toB64(box.secretKey.bytes)
+        k.signPk = member.signPk
+        k.signSk = toB64(sign.secretKey.bytes)
+        persist(nil, k)
+        return member
+    }
+
+    /** The approval came: the chain up to its pin must hold this iPhone with its own keys. */
+    private func finish(pin: Pin, account: String) async throws {
+        guard account == saved.account else { throw ProtocolError(.wrongAccount, account) }
+        guard let me = saved.me else { throw Notice(message: "This iPhone lost its keys. Start again.") }
+        let entries = try await api().directory(from: 0)
+        let dir = try Directories.verify(entries, account: saved.account, pin: pin)
+        try Pairings.checkJoined(dir, id: me.id, role: .device, boxPk: me.boxPk, signPk: me.signPk)
+        directory = dir
+        var s = saved
+        s.joining = nil
+        s.digitJoin = nil
+        s.entries = entries.map(\.text)
+        s.pin = Pin(length: dir.length, head: dir.head)
+        var k = secrets
+        k.claim = nil
+        k.joinPk = nil
+        k.joinSk = nil
+        persist(s, k)
+    }
+
+    /** Scanned a device's QR code: posts this iPhone's request under its code and waits. */
+    func joinWithCode(_ text: String) async {
+        await run { [self] in
+            let code: PairingCode
+            do {
+                code = try PairingCode.fromLink(text)
+            } catch {
+                throw Notice(message: "That QR code is not a Starbridge pairing code.")
+            }
+            let member = newMember()
+            let claim = Pairings.newClaimSecret()
+            let request = try Pairings.request(PairingRequestBody(rendezvous: code.rendezvous, role: .device, id: member.id, name: member.name, boxPk: member.boxPk, signPk: member.signPk, at: now()), code: code)
+            do {
+                try await api().postPairing(request, claimHash: Pairings.claimHash(claim))
+            } catch let e as ApiError where e.error == "taken" || e.status == 409 {
+                throw Notice(message: "Another device already used this code. Show a new one.")
+            }
+            var s = saved
+            s.me = member
+            s.joining = code.formatted
+            var k = secrets
+            k.claim = claim
+            persist(s, k)
+            waitForApproval()
+        }
+    }
+
+    private func waitForApproval() {
+        joinTask?.cancel()
+        joinTask = Task { [weak self] in
+            while let self, !Task.isCancelled, let joining = saved.joining, let claim = secrets.claim {
+                do {
+                    let code = try PairingCode.parse(joining)
+                    guard let approval = try await api().pairingResult(rendezvous: code.rendezvous, claim: claim, wait: 60) else { continue }
+                    let body = try Pairings.openApproval(approval, code: code)
+                    try await finish(pin: body.pin, account: body.account)
+                    return
+                } catch is CancellationError {
+                    return
+                } catch let e as URLError where e.code != .cancelled {
+                    // Offline for a moment: keep waiting, the code stays valid for 10 minutes.
+                    try? await Task.sleep(for: .seconds(5))
+                } catch {
+                    if Task.isCancelled { return }
+                    let e = error as? ApiError
+                    endJoin(e?.status == 404 ? "The code expired. Scan a new one." : describe(error))
+                    return
+                }
+            }
+        }
+    }
+
+    /** Asks the account's devices to let this iPhone in, by comparing digits. */
+    func askDevices() async {
+        await run { [self] in
+            guard let account = saved.account else { return }
+            let member = newMember()
+            let eph = Joins.newKeyPair()
+            let id = Joins.newJoinId()
+            let request = try Joins.request(JoinRequestBody(join: id, account: account, id: member.id, name: member.name, boxPk: member.boxPk, signPk: member.signPk, at: now()))
+            // The key pair reaches the vault first, so a restart resumes the same join.
+            var s = saved
+            s.me = member
+            s.digitJoin = DigitJoin(id: id, request: request)
+            var k = secrets
+            k.joinPk = toB64(eph.publicKey)
+            k.joinSk = toB64(eph.secretKey.bytes)
+            persist(s, k)
+            do {
+                _ = try await api().postJoin(request: request, commitment: Joins.commitment(joinerKey: eph.publicKey, request: request))
+            } catch {
+                endJoin(nil)
+                throw error
+            }
+            waitForDigitJoin()
+        }
+    }
+
+    /** The owner saw the same digits on both screens. */
+    func confirmDigits() {
+        guard var dj = saved.digitJoin, dj.digits != nil else { return }
+        dj.matched = true
+        var s = saved
+        s.digitJoin = dj
+        persist(s)
+        // From the start: an approval that came before the owner confirmed is read again.
+        waitForDigitJoin()
+    }
+
+    private func waitForDigitJoin() {
+        joinTask?.cancel()
+        joinTask = Task { [weak self] in
+            var after = 0
+            while let self, !Task.isCancelled, let id = saved.digitJoin?.id {
+                do {
+                    let view = try await api().join(id: id, after: after, wait: 60)
+                    after = view.version
+                    if view.state == "cancelled" { throw Notice(message: "The request was refused or cancelled. Ask again.") }
+                    if try await step(view) { return }
+                } catch is CancellationError {
+                    return
+                } catch let e as URLError where e.code != .cancelled {
+                    // Offline while waiting, revealing or fetching the chain: the next step retries.
+                    try? await Task.sleep(for: .seconds(5))
+                    after = 0
+                } catch {
+                    if Task.isCancelled { return }
+                    let e = error as? ApiError
+                    endJoin(e?.status == 404 ? "The request expired. Ask again." : describe(error))
+                    return
+                }
+            }
+        }
+    }
+
+    /**
+     * One step of a join by digits, for the state `view` shows: takes the first approver key and
+     * reveals this iPhone's key, then checks the approval. True once this iPhone is in the chain.
+     */
+    private func step(_ view: JoinView) async throws -> Bool {
+        guard var dj = saved.digitJoin, let pk = secrets.joinPk, let sk = secrets.joinSk else { return true }
+        let eph = KeyPair(publicKey: try fromB64(pk), secretKey: SecretKey(try fromB64(sk)))
+        if dj.approverKey == nil, let approverKey = view.approverKey {
+            let keys = try Joins.joinerKeys(mine: eph, approverKey: approverKey, request: dj.request)
+            dj.approverKey = approverKey
+            dj.digits = keys.digits
+            var s = saved
+            s.digitJoin = dj
+            persist(s)
+        }
+        // Only the first approver key counts; this iPhone answers no other.
+        guard let approverKey = dj.approverKey else { return false }
+        if view.joinerKey == nil, view.approverKey == approverKey {
+            do {
+                try await api().revealJoin(id: dj.id, key: pk)
+            } catch let e as ApiError where e.error == "already-revealed" {}
+        }
+        guard let approval = view.approval else { return false }
+        let keys = try Joins.joinerKeys(mine: eph, approverKey: approverKey, request: dj.request)
+        let body = try Joins.openApproval(approval, keys: keys, join: dj.id)
+        // The MAC proves only that whoever sent the approver key approved, which may be the
+        // server: it counts once this iPhone's owner has seen the digits match (#355).
+        if !dj.matched { return false }
+        try await finish(pin: body.pin, account: body.account)
+        return true
+    }
+
+    /** Drops the join in progress and the keys made for it, with what to tell the owner. */
+    private func endJoin(_ message: String?) {
+        var s = saved
+        s.me = nil
+        s.joining = nil
+        s.digitJoin = nil
+        var k = secrets
+        for key in [\Secrets.claim, \.joinPk, \.joinSk, \.boxPk, \.boxSk, \.signPk, \.signSk] as [WritableKeyPath<Secrets, String?>] {
+            k[keyPath: key] = nil
+        }
+        persist(s, k)
+        if let message { notice = message }
+    }
+
+    func cancelJoin() async {
+        joinTask?.cancel()
+        joinTask = nil
+        if let id = saved.digitJoin?.id { try? await api().cancelJoin(id: id) }
+        endJoin(nil)
+    }
+
+    // --- Signing out --------------------------------------------------------------
+
+    private func wipe() {
+        joinTask?.cancel()
+        joinTask = nil
+        directory = nil
+        persist(Saved(server: saved.server), Secrets())
+    }
+
+    /** Leaves the account: removes this iPhone from the devices unless it is the last one. */
+    func signOut() async {
+        joinTask?.cancel()
+        busy = true
+        defer { busy = false }
+        if phase == .ready, let me = saved.me {
+            do {
+                let fetched = try await api().directory(from: saved.entries.count)
+                let entries = try saved.entries.map(JSON.parse) + fetched
+                let dir = try Directories.verify(entries, account: saved.account, pin: saved.pin)
+                // The last device stays: removing it would leave only the recovery key.
+                if dir.active(.device).count > 1 {
+                    try await api().append(Directories.revokeEntry(dir, signer: me.id, signKey: signKey, id: me.id, at: now()))
+                }
+            } catch {}
+        }
+        if secrets.session != nil { try? await api().logout() }
+        wipe()
+    }
+}

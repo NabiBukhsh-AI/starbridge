@@ -3,6 +3,8 @@
 import {
   type NotifyState,
   PUSH_HOLD_CHOICES,
+  PUSH_HOLD_OFF,
+  PUSH_HOLD_ON_LEAVE,
   QUOTA_ALERT_CHOICES,
   type QuotaAlertChoice,
   type QuotaAlertSettings,
@@ -16,7 +18,7 @@ import { type DesktopPlace, desktop } from "@/lib/desktop";
 import type { RecoveryState } from "@/lib/device";
 import { addedLabels, checkUntil, dayAndTime, shownCheck } from "@/lib/format";
 import { AGENTS_GUIDE } from "@/lib/links";
-import { reports } from "@/lib/notify";
+import { blockedChanges, reports } from "@/lib/notify";
 import { applyTheme, type Prefs, usePref } from "@/lib/prefs";
 import type { PushState } from "@/lib/push";
 import { holdsQuotas, providerOrder, type QuotaSettings } from "@/lib/quotaSettings";
@@ -142,9 +144,9 @@ function InboxSection() {
   const [rowAnswers, setRowAnswers] = usePref("rowAnswers");
   return (
     <Section title="Inbox">
-      <Row label="Answer buttons on questions" sub="On narrow screens">
+      <Row label="Answer buttons on narrow screens">
         <Segmented<Prefs["rowAnswers"]>
-          label="Answer buttons on questions"
+          label="Answer buttons on narrow screens"
           value={rowAnswers}
           options={[
             ["always", "Always"],
@@ -158,7 +160,7 @@ function InboxSection() {
           missing ones (#970). */}
       <Row
         label="Keyboard shortcuts"
-        sub="In a window 1100 px wide or more: J and K move through the items, 1 to 4 pick an answer, A allows and D denies a prompt. / goes to Find anywhere."
+        sub="J and K move, 1 to 4 answer, A allows, D denies, / finds. In windows 1100 px wide or more."
       />
     </Section>
   );
@@ -166,51 +168,51 @@ function InboxSection() {
 
 /** What decides whether something notifies here (#914): the browser, sound, and the hold. */
 function NotificationSection({ data }: { data: SettingsData }) {
-  const [sound, setSound] = usePref("sound");
+  const push = useBrowserPush(data.push);
   return (
     <Section title="Notifications">
-      <ThisDeviceRow push={data.push} />
-      <Row label="Sound for new questions" sub="While a Starbridge page is open">
-        <Switch
-          label="Sound for new questions"
-          checked={sound}
-          onChange={(on) => {
-            setSound(on);
-            if (on) chime();
-          }}
-        />
-      </Row>
+      {desktop ? <AppNotifyRow /> : <BrowserRow push={push} />}
+      {/* The chime plays on a Web Push, which the desktop app never gets; macOS sounds its notifications. */}
+      {!desktop && <SoundRow push={push} />}
       <HoldRow initial={data.pushHold} />
     </Section>
   );
 }
 
-/**
+/*
  * Whether this device notifies (#943): one switch for a browser's Web Push and for the desktop
- * app's own notifications. Each device turns only its own; Devices shows the others'.
+ * app's own notifications. Each device turns only its own; Devices shows the others'. Rows say
+ * nothing the title and switch already say (#1061).
  */
-function ThisDeviceRow({ push }: { push: PushState }) {
-  return desktop ? <AppNotifyRow /> : <BrowserRow initial={push} />;
-}
-
 const LABEL = "Notifications on this device";
 
 function AppNotifyRow() {
   const [on, setOn] = usePref("desktopNotify");
+  const blocked = useDesktopBlocked();
+  // Turned on a moment ago: a refusal that follows opens System Settings, as one known before does.
+  const turnedOn = useRef(0);
+  useEffect(() => {
+    if (blocked && Date.now() - turnedOn.current < TURN_ON_MS)
+      desktop?.openNotificationSettings?.();
+  }, [blocked]);
   return (
     <Row
       label={LABEL}
       sub={
-        on
-          ? "Questions and permission prompts"
-          : "Off: the window and the menu bar light still show what needs you"
+        blocked && (
+          <span className={s.bad}>
+            Blocked by macOS: allow Starbridge in System Settings → Notifications
+          </span>
+        )
       }
     >
       <Switch
         label={LABEL}
-        checked={on}
+        checked={on && !blocked}
         onChange={(v) => {
           setOn(v);
+          if (v && blocked) desktop?.openNotificationSettings?.();
+          else if (v) turnedOn.current = Date.now();
           import("@/lib/notify").then((n) => n.report());
         }}
       />
@@ -218,8 +220,27 @@ function AppNotifyRow() {
   );
 }
 
-/** A browser's Web Push: on asks for the permission first; blocked says where to allow it. */
-function BrowserRow({ initial }: { initial: PushState }) {
+/** How soon after the switch turns on a refusal still counts as its answer. */
+const TURN_ON_MS = 5_000;
+
+/** Whether macOS refused the app's last notification (#1069). */
+function useDesktopBlocked(): boolean {
+  const [blocked, setBlocked] = useState(() => !!desktop?.notificationsBlocked?.());
+  useEffect(() => {
+    const read = () => setBlocked(!!desktop?.notificationsBlocked?.());
+    blockedChanges.addEventListener("change", read);
+    return () => blockedChanges.removeEventListener("change", read);
+  }, []);
+  return blocked;
+}
+
+type BrowserPush = ReturnType<typeof useBrowserPush>;
+
+/**
+ * This browser's Web Push, shared by its switch and the sound's: on asks for the permission
+ * first. `then` hears the state once the browser answered, a prompt left open included.
+ */
+function useBrowserPush(initial: PushState) {
   const [state, setState] = useState(initial);
   const [error, setError] = useState<string>();
   // A refresh underneath never undoes what the owner just turned on or off.
@@ -230,44 +251,75 @@ function BrowserRow({ initial }: { initial: PushState }) {
   // Stops waiting for an answer the browser's prompt has yet to give (#1030).
   const waiting = useRef<() => void>(undefined);
   useEffect(() => () => waiting.current?.(), []);
+  const turn = async (on: boolean, then?: (s: PushState) => void) => {
+    touched.current = true;
+    waiting.current?.();
+    setError(undefined);
+    const notify = await import("@/lib/notify");
+    try {
+      const push = await import("@/lib/push");
+      const next = await (on ? push.enablePush() : push.disablePush());
+      setState(next);
+      then?.(next);
+      if (on && next === "off")
+        waiting.current = push.finishOnAnswer(
+          (s) => {
+            setState(s);
+            then?.(s);
+            notify.report();
+          },
+          (e) => setError(message(e)),
+        );
+    } catch (e) {
+      setError(message(e));
+    }
+    notify.report();
+  };
+  return { state, error, turn };
+}
+
+function BrowserRow({ push: { state, error, turn } }: { push: BrowserPush }) {
   if (state === "unsupported") return null;
   if (state === "install")
     return <Row label={LABEL} sub="Add Starbridge to the Home Screen and open it from there" />;
   const sub =
     error ??
-    {
-      on: "Questions and permission prompts",
-      off: "Off: questions show only while a Starbridge page is open",
-      denied:
-        "Blocked in this browser. Click the icon left of the address, allow Notifications, then reload.",
-    }[state];
+    (state === "denied"
+      ? "Blocked: allow Notifications from the icon left of the address, then reload"
+      : undefined);
   return (
-    <Row label={LABEL} sub={<span className={state === "denied" ? s.bad : undefined}>{sub}</span>}>
+    <Row label={LABEL} sub={sub && <span className={s.bad}>{sub}</span>}>
       <Switch
         label={LABEL}
         checked={state === "on"}
         disabled={state === "denied"}
-        onChange={async (on) => {
-          touched.current = true;
-          waiting.current?.();
-          setError(undefined);
-          const notify = await import("@/lib/notify");
-          try {
-            const push = await import("@/lib/push");
-            const next = await (on ? push.enablePush() : push.disablePush());
-            setState(next);
-            if (on && next === "off")
-              waiting.current = push.finishOnAnswer(
-                (s) => {
-                  setState(s);
-                  notify.report();
-                },
-                (e) => setError(message(e)),
-              );
-          } catch (e) {
-            setError(message(e));
-          }
-          notify.report();
+        onChange={(on) => turn(on)}
+      />
+    </Row>
+  );
+}
+
+/**
+ * The page's chime (#165) plays when a push reaches an open page, so it needs this device's
+ * notifications: off without them, and turning it on turns them on first (#1061).
+ */
+function SoundRow({ push }: { push: BrowserPush }) {
+  const [sound, setSound] = usePref("sound");
+  if (push.state === "unsupported" || push.state === "install") return null;
+  const on = (v: boolean) => {
+    setSound(v);
+    if (v) chime();
+  };
+  const pushed = push.state === "on";
+  return (
+    <Row label="Sound for new questions" muted={!pushed}>
+      <Switch
+        label="Sound for new questions"
+        checked={sound && pushed}
+        disabled={push.state === "denied"}
+        onChange={(v) => {
+          if (!v || pushed) return on(v);
+          push.turn(true, (s) => s === "on" && on(true));
         }}
       />
     </Row>
@@ -275,11 +327,11 @@ function BrowserRow({ initial }: { initial: PushState }) {
 }
 
 const HOLD_LABELS: Record<(typeof PUSH_HOLD_CHOICES)[number], string> = {
-  0: "Off",
+  [PUSH_HOLD_OFF]: "Off",
+  [PUSH_HOLD_ON_LEAVE]: "0 s",
   15: "15 s",
   30: "30 s",
   60: "1 min",
-  120: "2 min",
 };
 
 /**
@@ -297,14 +349,11 @@ function HoldRow({ initial }: { initial: number | undefined }) {
   if (hold === undefined) return null;
   return (
     <Row
-      label="Hold while you’re at a screen"
-      sub={
-        error ??
-        "While you use any of your screens, your other devices stay quiet, then wait this long after you leave"
-      }
+      label="Quiet other devices while you’re at a screen"
+      sub={error ?? "Then notify them this long after you leave"}
     >
       <Segmented<number>
-        label="Hold while you’re at a screen"
+        label="Quiet other devices while you’re at a screen"
         value={hold}
         options={PUSH_HOLD_CHOICES.map((c) => [c, HOLD_LABELS[c]])}
         onChange={(pushHold) => {
@@ -416,10 +465,14 @@ function QuotaSections() {
 }
 
 const ALERT_COLUMNS: [QuotaAlertChoice, string, string][] = [
-  ["runs-out", "Runs out", "Runs out before its reset at this pace"],
+  ["runs-out", "Runs out", "At the rate used so far, the window runs out before its reset."],
   ["low-50", "50% left", "50% left"],
   ["low-20", "20% left", "20% left"],
-  ["unused-headroom", "Unused", "Resets soon with 30% or more unused"],
+  [
+    "unused-headroom",
+    "Unused",
+    "At the rate used so far, 30% or more of the window will be left unused when it resets. Comes in the last hour before the reset, or the last day for a window longer than a day.",
+  ],
 ];
 
 /**
@@ -584,6 +637,21 @@ function DeviceSection({ data }: { data: SettingsData }) {
   const [clock] = usePref("clock");
   const [notify, setNotify] = useState<Record<string, NotifyState>>({});
   const [clients, setClients] = useState<Record<string, string>>({});
+  const [behind, setBehind] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!ctx) return;
+    api.releases().then(
+      (r) =>
+        setBehind(
+          new Set(
+            Object.entries(r.machines)
+              .filter(([, m]) => m.behind)
+              .map(([id]) => id),
+          ),
+        ),
+      () => {},
+    );
+  }, [ctx]);
   // Read again when this device's switch reports a new state.
   useEffect(() => {
     if (!ctx) return;
@@ -659,6 +727,7 @@ function DeviceSection({ data }: { data: SettingsData }) {
                   {` · ${NOTIFY_LABELS[notify[d.id] as NotifyState]}`}
                 </span>
               )}
+              {behind.has(d.id) && " · Update available"}
             </div>
             {shownCheck(d, now) && (
               <div className={`t-meta ${s.sub}`} data-testid="device-check">
@@ -722,18 +791,22 @@ function ConfirmDialog({
   title,
   text,
   action,
+  typed,
   onClose,
   onConfirm,
 }: {
   title: string;
   text: string;
   action: string;
+  /** A word the owner types before the button works, for what can't be undone. */
+  typed?: string;
   onClose: () => void;
   onConfirm: () => Promise<void>;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
+  const [word, setWord] = useState("");
   useEffect(() => ref.current?.showModal(), []);
   return (
     <dialog
@@ -746,6 +819,19 @@ function ConfirmDialog({
         {title}
       </h3>
       <p className={`t-small ${s.sub}`}>{text}</p>
+      {typed && (
+        <label className={`t-meta ${s.dim} ${s.typed}`}>
+          Type {typed} to confirm
+          <input
+            className={`t-body ${ui.input}`}
+            value={word}
+            autoComplete="off"
+            autoCapitalize="none"
+            spellCheck={false}
+            onChange={(e) => setWord(e.target.value)}
+          />
+        </label>
+      )}
       {error && <p className={`t-meta ${s.error}`}>{error}</p>}
       <div className={s.dialogActions}>
         <button type="button" className={`t-label ${ui.btn}`} onClick={() => ref.current?.close()}>
@@ -754,7 +840,7 @@ function ConfirmDialog({
         <button
           type="button"
           className={`t-label ${ui.btn} ${ui.destroy}`}
-          disabled={busy}
+          disabled={busy || (typed !== undefined && word.trim().toLowerCase() !== typed)}
           onClick={async () => {
             setBusy(true);
             setError(undefined);
@@ -777,6 +863,7 @@ function AccountSection() {
   const { boot } = useApp();
   const ctx = boot.state === "ready" ? boot.ctx : undefined;
   const [asking, setAsking] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   return (
     <Section title="Account">
       <a className={s.linkRow} href={AGENTS_GUIDE} target="_blank" rel="noopener noreferrer">
@@ -799,14 +886,30 @@ function AccountSection() {
           }}
         />
       )}
+      <button type="button" className={`t-small ${s.linkRow}`} onClick={() => setDeleting(true)}>
+        Delete account
+      </button>
+      {deleting && (
+        <ConfirmDialog
+          title="Delete your account?"
+          text="The server deletes your devices, machines, questions, answers and push targets, and signs out every phone, browser and machine. This can't be undone."
+          action="Delete account"
+          typed="delete"
+          onClose={() => setDeleting(false)}
+          onConfirm={async () => {
+            if (!ctx) return setDeleting(false);
+            await (await load()).deleteAccount(ctx);
+            location.assign("/");
+          }}
+        />
+      )}
     </Section>
   );
 }
 
-const PLACE_SUBS: Record<DesktopPlace, string> = {
-  menu: "In the Dock only while its window is open",
-  dock: "Always in the Dock, with no menu bar icon",
-  both: "Always in the menu bar and the Dock",
+/** Only the menu bar needs a word: the app joins the Dock while its window is open. */
+const PLACE_SUBS: Partial<Record<DesktopPlace, string>> = {
+  menu: "Also in the Dock while its window is open",
 };
 
 /** Where the desktop app stays (#936): it is always in one of them, so Starbridge stays at hand. */

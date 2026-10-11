@@ -1,0 +1,40 @@
+import XCTest
+@testable import Starbridge
+
+final class SignInTests: XCTestCase {
+    func testChallengeIsRFC7636S256() {
+        // RFC 7636, appendix B.
+        XCTAssertEqual(SignIn.challenge("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"), "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM")
+    }
+
+    func testVerifierIs43Base64urlCharacters() {
+        let v = SignIn.newVerifier()
+        XCTAssertEqual(v.count, 43)
+        XCTAssertTrue(v.allSatisfy { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "_" })
+        XCTAssertNotEqual(v, SignIn.newVerifier())
+    }
+
+    func testRedirectReadsTheAppSchemeAndTheHostedPages() throws {
+        for link in [
+            "starbridge://auth?code=c1&state=s1",
+            "https://starbridge.run/app/auth?code=c1&state=s1",
+            "https://starbridge.run/v1/auth/github/callback/app?code=c1&state=s1",
+        ] {
+            XCTAssertEqual(SignIn.redirect(try XCTUnwrap(URL(string: link))), .code("c1", state: "s1"), link)
+        }
+        XCTAssertEqual(SignIn.redirect(try XCTUnwrap(URL(string: "starbridge://auth?error=access_denied&state=s1"))), .denied(state: "s1"))
+    }
+
+    func testRedirectIgnoresOtherLinks() throws {
+        for link in [
+            "starbridge://pair?server=x&k=y#code",
+            "starbridge://auth?code=c1",
+            "starbridge://auth?code=&state=s1",
+            "https://evil.example/app/auth?code=c1&state=s1",
+            "https://starbridge.run/v1/auth/github/callback?code=c1&state=s1",
+            "http://starbridge.run/app/auth?code=c1&state=s1",
+        ] {
+            XCTAssertNil(SignIn.redirect(try XCTUnwrap(URL(string: link))), link)
+        }
+    }
+}

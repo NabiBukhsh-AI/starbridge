@@ -5,7 +5,10 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 // The Kotlin side of packages/protocol/src/schemas.ts. Each type parses with kotlinx and then
 // checks what zod checks there; a failure is `bad-schema`. Unknown keys are ignored, as zod
@@ -20,8 +23,8 @@ const val RECOVERY = "recovery"
 
 private val B64_RE = Regex("^[A-Za-z0-9_-]+$")
 private val ID_RE = Regex("^[A-Za-z0-9_-]{1,64}$")
-// zod's iso.datetime({ offset: true }).
-private val TIME_RE = Regex("""^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$""")
+// zod's iso.datetime({ offset: true }); epochMillis checks the ranges.
+private val TIME_RE = Regex("""^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d+))?(?:Z|([+-])(\d{2}):(\d{2}))$""")
 
 internal fun schema(ok: Boolean, what: String) {
     if (!ok) throw ProtocolException("bad-schema", what)
@@ -29,8 +32,31 @@ internal fun schema(ok: Boolean, what: String) {
 
 internal fun b64(s: String, what: String) = schema(B64_RE.matches(s), what)
 internal fun id(s: String, what: String) = schema(ID_RE.matches(s), what)
-internal fun time(s: String, what: String) = schema(TIME_RE.matches(s), what)
-internal fun len(s: String, min: Int, max: Int, what: String) = schema(s.length in min..max, what)
+internal fun time(s: String, what: String) = schema(epochMillis(s) != null, what)
+// zod counts a string's length in code points, not UTF-16 units (#1082).
+internal fun len(s: String, min: Int, max: Int, what: String) = schema(s.codePointCount(0, s.length) in min..max, what)
+
+/**
+ * A time zod's datetime accepts, as Date.parse reads it: a real date, hours to 23, offsets to
+ * ±23:59, and milliseconds with finer digits dropped. Null when zod refuses it.
+ */
+fun epochMillis(s: String): Long? {
+    val m = TIME_RE.matchEntire(s) ?: return null
+    val g = m.groupValues
+    val (year, month, day) = Triple(g[1].toInt(), g[2].toInt(), g[3].toInt())
+    val (hour, minute, second) = Triple(g[4].toInt(), g[5].toInt(), g[6].toInt())
+    if (month !in 1..12 || day < 1 || day > java.time.YearMonth.of(year, month).lengthOfMonth()) return null
+    if (hour > 23 || minute > 59 || second > 59) return null
+    val millis = g[7].take(3).padEnd(3, '0').toInt()
+    var offset = 0
+    if (g[8].isNotEmpty()) {
+        val (oh, om) = g[9].toInt() to g[10].toInt()
+        if (oh > 23 || om > 59) return null
+        offset = (if (g[8] == "-") -1 else 1) * (oh * 60 + om)
+    }
+    val days = java.time.LocalDate.of(year, month, day).toEpochDay()
+    return (days * 86400 + hour * 3600 + minute * 60 + second - offset * 60L) * 1000 + millis
+}
 
 fun <T> parseJson(serializer: KSerializer<T>, element: JsonElement): T = try {
     ProtocolJson.decodeFromJsonElement(serializer, element)
@@ -44,6 +70,27 @@ fun parseJsonText(text: String): JsonElement = try {
     ProtocolJson.parseToJsonElement(text)
 } catch (e: SerializationException) {
     throw ProtocolException("bad-schema", "not JSON")
+}.also { wellFormed(it) }
+
+/**
+ * Throws `bad-schema` when a string in [json], an object key included, holds a lone surrogate.
+ * Kotlin can hold one but Swift cannot, so the iOS app would read different text than was signed (#1090).
+ */
+fun wellFormed(json: JsonElement) {
+    when (json) {
+        is JsonObject -> json.forEach { (k, v) -> wellFormed(k); wellFormed(v) }
+        is JsonArray -> json.forEach { wellFormed(it) }
+        is JsonPrimitive -> if (json.isString) wellFormed(json.content)
+    }
+}
+
+private fun wellFormed(s: String) {
+    var i = 0
+    while (i < s.length) {
+        val pair = s[i].isHighSurrogate() && i + 1 < s.length && s[i + 1].isLowSurrogate()
+        schema(pair || !s[i].isSurrogate(), "lone surrogate")
+        i += if (pair) 2 else 1
+    }
 }
 
 // --- Directory ---------------------------------------------------------------
@@ -190,6 +237,10 @@ data class SealedItem(
     val wakeAt: String? = null,
     /** A decision's images, each sealed once for every device, in its body's order (#685). */
     val blobs: List<String>? = null,
+    /** Store without pushing: a quota snapshot that raises no new alert. */
+    val quiet: Boolean? = null,
+    /** A machine re-posts its open decision or permission under its id, to more devices. */
+    val reseal: Boolean? = null,
 ) {
     fun check() {
         schema(v == 1, "v")
@@ -197,6 +248,8 @@ data class SealedItem(
         id(id, "id")
         id(from, "from")
         re?.let { id(it, "re") }
+        quiet?.let { schema(it, "quiet is true or absent") }
+        reseal?.let { schema(it, "reseal is true or absent") }
         wakeAt?.let { time(it, "wakeAt") }
         blobs?.let { schema(it.size <= 4, "blobs") }
         for (b in blobs.orEmpty()) {
@@ -367,11 +420,13 @@ data class Answer(
     val text: String? = null,
     /** The owner answered on the decision's answerIn page (#539). */
     val done: Boolean? = null,
+    override val dir: DirectoryHead? = null,
 ) : ItemBody {
     override val re get() = decisionId
     override val recipients get() = listOf(to)
 
     fun check() {
+        dir?.check()
         schema(v == 1, "v")
         id(id, "id")
         id(decisionId, "decisionId")
@@ -389,18 +444,7 @@ data class Answer(
 /** PERMISSION_TTL_MS in schemas.ts. */
 const val PERMISSION_TTL_MS = 10 * 60 * 1000L
 
-private fun instantOf(s: String): java.time.Instant {
-    // TIME_RE allows a missing seconds field and an offset without a colon; java.time does not.
-    val m = Regex("""^(.{16})(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}):?(\d{2})?$""").matchEntire(s)
-        ?: throw ProtocolException("bad-schema", "time")
-    val (head, secs, _, zone, zoneMin) = m.destructured
-    val offset = if (zone == "Z") "Z" else "$zone:$zoneMin"
-    return try {
-        java.time.OffsetDateTime.parse(head + secs.ifEmpty { ":00" } + offset).toInstant()
-    } catch (e: java.time.format.DateTimeParseException) {
-        throw ProtocolException("bad-schema", "time")
-    }
-}
+private fun millisOf(s: String): Long = epochMillis(s) ?: throw ProtocolException("bad-schema", "time")
 
 @Serializable
 data class PermissionSuggestion(val label: String, val rule: String, val scope: String)
@@ -445,7 +489,7 @@ data class Permission(
         }
         time(expiresAt, "expiresAt")
         source.check()
-        val ttl = instantOf(expiresAt).toEpochMilli() - instantOf(createdAt).toEpochMilli()
+        val ttl = millisOf(expiresAt) - millisOf(createdAt)
         schema(ttl > 0 && ttl <= PERMISSION_TTL_MS, "expiresAt: after createdAt, at most 10 minutes")
         schema(suggestions.map { it.scope }.toSet().size == suggestions.size, "one suggestion per scope")
     }
@@ -462,11 +506,13 @@ data class PermissionAnswer(
     val scope: String,
     val inputHash: String,
     val message: String? = null,
+    override val dir: DirectoryHead? = null,
 ) : ItemBody {
     override val re get() = permissionId
     override val recipients get() = listOf(to)
 
     fun check() {
+        dir?.check()
         schema(v == 1, "v")
         id(id, "id")
         id(permissionId, "permissionId")
@@ -629,8 +675,8 @@ data class Run(
         source.check()
         time(startedAt, "startedAt")
         time(at, "at")
-        val started = instantOf(startedAt)
-        schema(!instantOf(at).isBefore(started), "at: not before startedAt")
+        val started = millisOf(startedAt)
+        schema(millisOf(at) >= started, "at: not before startedAt")
         progress?.let { p ->
             schema(p.unit in RUN_UNITS, "progress.unit")
             schema(p.total >= 1 && p.done in 0..p.total, "done is at most total")
@@ -639,7 +685,7 @@ data class Run(
         exit?.let { e ->
             schema(e.code in 0..255, "exit.code")
             time(e.at, "exit.at")
-            schema(!instantOf(e.at).isBefore(started), "exit.at: not before startedAt")
+            schema(millisOf(e.at) >= started, "exit.at: not before startedAt")
         }
     }
 }
@@ -714,8 +760,12 @@ data class QuotaSnapshot(
         time(takenAt, "takenAt")
         for (p in providers) {
             len(p.provider, 1, 100, "provider")
+            p.account?.let { len(it, 0, 200, "account") }
+            p.error?.let { len(it, 0, 1000, "error") }
+            p.updatedAt?.let { time(it, "updatedAt") }
             for (w in p.windows) {
                 len(w.id, 1, 100, "window id")
+                len(w.label, 0, 100, "window label")
                 schema(w.usedPercent >= 0, "usedPercent")
                 w.windowMinutes?.let { schema(it > 0, "windowMinutes") }
                 w.resetsAt?.let { time(it, "resetsAt") }
@@ -727,6 +777,7 @@ data class QuotaSnapshot(
         }
         for (a in alerts) {
             time(a.resetsAt, "alert resetsAt")
+            a.notify?.let { schema(it, "notify is true or absent") }
             when (a.kind) {
                 "unused-headroom" -> schema(a.unusedPercent != null, "unusedPercent")
                 "runs-out" -> schema(a.runsOutAt?.let { time(it, "runsOutAt"); true } == true, "runsOutAt")

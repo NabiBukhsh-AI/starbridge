@@ -32,6 +32,7 @@ export function sign<K extends Kind>(
   signer: string,
   signKey: Uint8Array,
 ): SignedEnvelope {
+  wellFormed(body);
   const text = JSON.stringify(body);
   const sig = sodium.crypto_sign_detached(signatureMessage(kind, signer, text), signKey);
   return { v: 1, kind, signer, body: text, sig: toB64(sig) };
@@ -47,6 +48,7 @@ export async function signAsync<K extends Kind>(
   signer: string,
   signFn: SignFn,
 ): Promise<SignedEnvelope> {
+  wellFormed(body);
   const text = JSON.stringify(body);
   const sig = await signFn(signatureMessage(kind, signer, text));
   return { v: 1, kind, signer, body: text, sig: toB64(sig) };
@@ -75,13 +77,47 @@ export function parseBody<K extends Kind>(kind: K, body: string): BodyOf<K> {
   } catch {
     throw new ProtocolError("bad-schema", "body is not JSON");
   }
+  wellFormed(json);
   return parseWith(BODY_SCHEMAS[kind], readable(kind, json)) as BodyOf<K>;
 }
 
 export function parseWith<T extends z.ZodType>(schema: T, value: unknown): z.infer<T> {
+  wellFormed(value);
   const r = schema.safeParse(value);
   if (!r.success) throw new ProtocolError("bad-schema", r.error.issues[0]?.message);
   return r.data;
+}
+
+/** A lone UTF-16 surrogate; with the `u` flag, a surrogate pair reads as one code point. */
+const LONE_SURROGATE = /\p{Cs}/u;
+
+/**
+ * Throws `bad-schema` when a string in `value`, an object key included, holds a lone surrogate.
+ * A JavaScript string can hold one but a Swift string cannot, so the iOS app would read different
+ * text than was signed (#1090).
+ */
+export function wellFormed(value: unknown): void {
+  if (typeof value === "string") {
+    if (LONE_SURROGATE.test(value)) throw new ProtocolError("bad-schema", "lone surrogate");
+  } else if (Array.isArray(value)) {
+    for (const v of value) wellFormed(v);
+  } else if (value !== null && typeof value === "object") {
+    for (const [k, v] of Object.entries(value)) {
+      wellFormed(k);
+      wellFormed(v);
+    }
+  }
+}
+
+/** `value` with each lone surrogate in its strings replaced by U+FFFD, for text from an agent. */
+export function toWellFormed<T>(value: T): T {
+  if (typeof value === "string") return value.replace(/\p{Cs}/gu, "\uFFFD") as T;
+  if (Array.isArray(value)) return value.map(toWellFormed) as T;
+  if (value !== null && typeof value === "object")
+    return Object.fromEntries(
+      Object.entries(value).map(([k, v]) => [toWellFormed(k), toWellFormed(v)]),
+    ) as T;
+  return value;
 }
 
 // --- Sealed items ------------------------------------------------------------

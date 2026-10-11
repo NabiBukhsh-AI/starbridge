@@ -19,7 +19,7 @@ export const RULE_FILES: Record<Agent, string> = {
 };
 
 /**
- * The harness's own ask tool, when its question reaches the owner's devices too (SPEC.md, "The
+ * The harness's own ask tool, when its question reaches the owner's devices too (spec/harnesses.md, "The
  * harness's own ask tool"). Cursor's `askQuestion` fires no hooks, so it has none.
  */
 export const QUESTION_TOOL: Record<Agent, string | undefined> = {
@@ -31,10 +31,22 @@ export const QUESTION_TOOL: Record<Agent, string | undefined> = {
   antigravity: "ask_question",
 };
 
+/**
+ * What the agent must know to write that tool's question well, when the tool differs from a card
+ * (#1084): AskUserQuestion's question becomes the card's title and it has no context field.
+ */
+export const QUESTION_TOOL_NOTE: Partial<Record<Agent, string>> = {
+  "claude-code":
+    "Its question becomes the card's title, so write it as the skill says for one: one sentence of at most 70 characters. It has no context field: put your findings in your message before the call, and what each pick does in its option's description.",
+};
+
 export function renderRule(template: string, agent: Agent): string {
   const tool = QUESTION_TOOL[agent];
+  const note = QUESTION_TOOL_NOTE[agent];
   return template.replace(
     "{question tool}",
-    tool ? ` A quick question may use ${tool} instead, since it reaches my devices too.` : "",
+    tool
+      ? ` A quick question may use ${tool} instead, since it reaches my devices too.${note ? ` ${note}` : ""}`
+      : "",
   );
 }

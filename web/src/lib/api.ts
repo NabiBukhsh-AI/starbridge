@@ -5,6 +5,7 @@ import {
   type AppSignedIn,
   CLIENT_HEADER,
   clientHeader,
+  type MachineReleases,
   type NotificationStates,
   type NotifyState,
   type PairingMessage,
@@ -240,6 +241,7 @@ export const api = {
   ownerSignIn: (token: string) =>
     call<{ session: string }>("POST", "/auth/owner", { body: { token } }),
   logout: () => call<void>("POST", "/auth/logout"),
+  deleteAccount: () => call<void>("DELETE", "/account"),
   challenge: async () => (await call<{ nonce: string }>("GET", "/auth/challenge")).nonce,
   bind: (member: string, sig: string) =>
     call<{ member: string }>("POST", "/auth/bind", { body: { member, sig } }),
@@ -329,6 +331,8 @@ export const api = {
   setNotifications: (state: NotifyState) =>
     call<void>("PUT", "/notifications", { body: { state } }),
   notifications: () => call<NotificationStates>("GET", "/notifications"),
+  /** Each machine's CLI release and whether it is behind (#1050). */
+  releases: () => call<MachineReleases>("GET", "/releases"),
   /** Whether the app whose sign-in this browser passed on reached this browser's account. */
   appSignedIn: async (state: string) =>
     (await call<AppSignedIn>("GET", `/auth/app/signed-in?state=${encodeURIComponent(state)}`))

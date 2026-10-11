@@ -1,4 +1,4 @@
-// Quota settings, per browser (SPEC.md, "Quota settings follow CodexBar"): a curated set of
+// Quota settings, per browser (spec/items.md, "Quota settings follow CodexBar"): a curated set of
 // CodexBar's own settings with CodexBar's meaning. They stay in this browser; the server learns
 // nothing of them. Android keeps the same set (QuotaSettings.kt).
 
@@ -8,6 +8,7 @@ import {
   type QuotaAlertSettings,
   wantsQuotaAlert,
 } from "@starbridge/protocol";
+import { desktop } from "./desktop";
 import { clockTime, relative } from "./format";
 import { switchedOff } from "./notify";
 import { readStored, stored, writable } from "./stored";
@@ -111,7 +112,7 @@ export function runningOut(w: QuotaWindow, now: Date): boolean {
 }
 
 /**
- * The cards to show (SPEC.md, "Quota order"): hidden providers out, the rest by provider in the
+ * The cards to show (spec/items.md, "Quota order"): hidden providers out, the rest by provider in the
  * settings' order, each provider's windows in the uploader's order. With `runningOutFirst`,
  * windows that will run out or ran out, and have not reset, lead in that same order.
  */
@@ -343,7 +344,9 @@ export async function notifyAlerts(cards: QuotaCardData[], s: QuotaSettings): Pr
     const { title, body } = alertText(a, c.window.label);
     // One tag per window and kind: a second tab showing it too replaces, not repeats, it.
     const tag = `q:${a.provider}/${a.window}/${a.kind}`;
-    if (reg) await reg.showNotification(title, { body, tag });
-    else new Notification(title, { body, tag });
+    // Silent in the desktop app, whose questions and prompts sound (#1055).
+    const opts = { body, tag, silent: !!desktop };
+    if (reg) await reg.showNotification(title, opts);
+    else new Notification(title, opts);
   }
 }
