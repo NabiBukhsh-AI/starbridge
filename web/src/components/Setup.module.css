@@ -135,6 +135,10 @@ textarea.input {
   border-radius: var(--radius-sm);
 }
 
+.held {
+  visibility: hidden;
+}
+
 .qrSvg {
   display: block;
   width: 100%;

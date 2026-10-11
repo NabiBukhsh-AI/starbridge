@@ -40,6 +40,9 @@
   "delete". `DELETE /v1/account` removes every row of the account in one transaction and signs
   out all its sessions and machines. Any signed-in session may delete, paired or not: whoever
   signs in must be able to, and the GitHub sign-in behind a session controls the account anyway.
+  So the join screen ("Add this phone", "Add this browser") has Delete account too (#1117): with
+  no device and no recovery key it is the only way out, since the data is end-to-end encrypted
+  and nobody, the server included, can read it or vouch for a new device. Its dialog says so.
   The deleting client forgets the account's keys as Sign out does; other devices keep theirs
   until they sign in again, find a new empty account, and offer to remove them. Backups keep
   the data for up to 2 weeks, as /privacy says.
