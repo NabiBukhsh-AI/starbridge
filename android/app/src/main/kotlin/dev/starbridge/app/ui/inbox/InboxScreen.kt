@@ -34,6 +34,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -548,7 +549,8 @@ private fun QuestionCard(decision: Decision, now: Instant, actions: DecisionActi
             Row(verticalAlignment = Alignment.Top) {
                 Symbol(Sym.Question, size = 22.dp, tint = icon, modifier = Modifier.padding(top = 1.dp))
                 Spacer(Modifier.width(Spacing.s2))
-                Text(decision.question, style = StarbridgeTheme.type.subtitle.weight(waiting), color = scheme.onSurface)
+                // Selectable, so a command in it can be copied; a tap still opens the sheet (#1143).
+                SelectionContainer { Text(decision.question, style = StarbridgeTheme.type.subtitle.weight(waiting), color = scheme.onSurface) }
             }
             NotSent(decision)
             Images(decision.images, maxHeight = 160.dp, crop = true, modifier = Modifier.padding(vertical = Spacing.s1))
@@ -716,7 +718,7 @@ fun DecisionSheet(decision: Decision, now: Instant, onAnswer: (String, String?, 
             }
         },
         head = {
-            Text(decision.question, style = StarbridgeTheme.type.question.weight(waiting), color = scheme.onSurface)
+            SelectionContainer { Text(decision.question, style = StarbridgeTheme.type.question.weight(waiting), color = scheme.onSurface) }
             if (until != null) {
                 Row(Modifier.padding(top = Spacing.s3), verticalAlignment = Alignment.CenterVertically) {
                     Symbol(Sym.Snooze, size = 18.dp, tint = scheme.onSurfaceVariant)
@@ -728,7 +730,7 @@ fun DecisionSheet(decision: Decision, now: Instant, onAnswer: (String, String?, 
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
             if (open) NotSent(decision)
-            Context(decision.context)
+            SelectionContainer { Context(decision.context) }
             Links(decision.links, decision.source.project)
             val paired = decision.images.size == decision.options.size && decision.images.size > 1 && decision.answerIn == null
             when {
@@ -918,14 +920,16 @@ private fun Outcome(decision: Decision, now: Instant, arrived: Boolean) {
             Symbol(Sym.CheckCircle, size = 20.dp, filled = true, tint = StarbridgeTheme.colors.ok)
         }
         Spacer(Modifier.width(Spacing.s2))
-        Text(
-            buildAnnotatedString {
-                withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurface)) { append(outcome(decision)) }
-                append(" · ${closedByPhrase(decision)}")
-            },
-            style = StarbridgeTheme.type.body,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        SelectionContainer {
+            Text(
+                buildAnnotatedString {
+                    withStyle(SpanStyle(color = MaterialTheme.colorScheme.onSurface)) { append(outcome(decision)) }
+                    append(" · ${closedByPhrase(decision)}")
+                },
+                style = StarbridgeTheme.type.body,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

@@ -241,6 +241,10 @@
   outline-offset: -2px;
 }
 
+.selectable {
+  position: relative;
+}
+
 .body,
 .pastBody {
   display: grid;

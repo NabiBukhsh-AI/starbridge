@@ -73,6 +73,12 @@
   heading is a bold line. Anything else shows as typed. `packages/protocol`'s `parseContext`
   parses it, ported to Kotlin with shared vectors, and notifications show the same text plain.
   Each line on its own makes a line per option read as a list; bold lets the labels lead it.
+- **Selectable text** (#1143). A question's words can be selected and copied, so a command an
+  agent asks about can be pasted elsewhere: on its card, the question; in its detail, the
+  question, the context, the answer and a prompt's full input. A long press (Android, iOS) or a
+  drag (web) selects; a tap still opens the question, and options and swipes work as before. On
+  the web card the question sits above the row's button: a click that does not drag still opens
+  the row.
 - **`\n` in `--context`** (#1037). Models in opencode wrote `\n` for line breaks inside the
   quoted `--context`, which the shell passes on as typed, and cards showed a backslash and an n.
   The skill says to break lines with real line breaks inside the quotes. `ask` also turns `\n`

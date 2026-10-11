@@ -31,6 +31,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
@@ -344,12 +345,14 @@ private fun FullInput(input: String, open: Boolean, onToggle: () -> Unit) {
             enter = expandVertically(MaterialTheme.motionScheme.defaultSpatialSpec()) + fadeIn(MaterialTheme.motionScheme.defaultEffectsSpec()),
             exit = shrinkVertically(MaterialTheme.motionScheme.fastSpatialSpec()) + fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()),
         ) {
-            Text(
-                prettyInput(input),
-                style = StarbridgeTheme.type.code,
-                color = scheme.onSurface,
-                modifier = Modifier.padding(top = Spacing.s1).fillMaxWidth().background(scheme.surfaceContainerHighest, RoundedCornerShape(Spacing.s4)).horizontalScroll(rememberScrollState()).padding(Spacing.s4),
-            )
+            SelectionContainer {
+                Text(
+                    prettyInput(input),
+                    style = StarbridgeTheme.type.code,
+                    color = scheme.onSurface,
+                    modifier = Modifier.padding(top = Spacing.s1).fillMaxWidth().background(scheme.surfaceContainerHighest, RoundedCornerShape(Spacing.s4)).horizontalScroll(rememberScrollState()).padding(Spacing.s4),
+                )
+            }
         }
     }
 }

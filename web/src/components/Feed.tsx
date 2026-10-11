@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { imageSrc } from "@/lib/attachments";
 import { ago, type Entry, type MachineKind, type Past, timer } from "@/lib/feed";
 import { useFind } from "@/lib/find";
@@ -217,6 +217,9 @@ type RowProps = {
   clock?: Prefs["clock"];
 };
 
+/** How far, in pixels, a press on a row's question moves to select its text rather than the row. */
+const DRAG = 4;
+
 /** One prompt or question in the feed; the whole row selects it. */
 export function NeedRow({
   entry,
@@ -229,6 +232,7 @@ export function NeedRow({
   clock,
 }: RowProps) {
   const type = entry.type === "prompt" ? "prompt" : "question";
+  const down = useRef<{ x: number; y: number } | null>(null);
   const since = until ? undefined : waitingSince(entry);
   const back = until && `Until ${snoozeTime(new Date(until), new Date(now), clock)}`;
   const waited = back
@@ -265,7 +269,21 @@ export function NeedRow({
           <>
             <div className={`${comfy ? "t-action" : "t-label"} ${s.question} ${s.titled}`}>
               <KindTile type={type} filled={!!since} size={comfy ? 20 : 18} inline />
-              <span>
+              {/* Above the row's button, so it can be selected and copied; a click that does not
+                  drag still selects the row (#1143). */}
+              {/* biome-ignore lint/a11y/useKeyWithClickEvents lint/a11y/noStaticElementInteractions: the row's button takes the keyboard */}
+              <span
+                className={s.selectable}
+                onPointerDown={(e) => {
+                  down.current = { x: e.clientX, y: e.clientY };
+                }}
+                onClick={(e) => {
+                  // A double click selects a word: its second click leaves the row as it is.
+                  const d = down.current;
+                  if (e.detail > 1) return;
+                  if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) < DRAG) onSelect();
+                }}
+              >
                 <Hit text={entry.item.decision.question} />
               </span>
             </div>
