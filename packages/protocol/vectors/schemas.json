@@ -1,5 +1,5 @@
 {
-  "note": "Bodies that must pass or fail schema validation. `read`, when set, is part of what a client reads: a value it only displays and does not know reads as the neutral case (null: absent), and an alert of an unknown kind is left out.",
+  "note": "Bodies that must pass or fail schema validation. `read`, when set, is part of what a client reads: a value it only displays and does not know reads as the neutral case (null: absent), and an alert of an unknown kind is left out. `text` holds bodies as JSON text, for what a vector file cannot hold.",
   "decision": [
     {
       "name": "valid",
@@ -3902,6 +3902,44 @@
           }
         ]
       },
+      "valid": false
+    }
+  ],
+  "text": [
+    {
+      "name": "a surrogate pair",
+      "kind": "decision",
+      "text": "{\"v\":1,\"id\":\"dec_1\",\"to\":[\"phone\",\"phone2\"],\"createdAt\":\"2026-10-04T10:00:00Z\",\"question\":\"Ship it \\ud83d\\ude80?\",\"context\":\"The bench needs the GPU for about 40 minutes. No: it waits for tonight.\",\"options\":[\"Yes\",\"No\"],\"recommended\":\"Yes\",\"source\":{\"machine\":\"dev box\",\"project\":\"localvoxtral\",\"session\":\"s_42\"}}",
+      "valid": true
+    },
+    {
+      "name": "a lone high surrogate",
+      "kind": "decision",
+      "text": "{\"v\":1,\"id\":\"dec_1\",\"to\":[\"phone\",\"phone2\"],\"createdAt\":\"2026-10-04T10:00:00Z\",\"question\":\"Ship it \\ud83d?\",\"context\":\"The bench needs the GPU for about 40 minutes. No: it waits for tonight.\",\"options\":[\"Yes\",\"No\"],\"recommended\":\"Yes\",\"source\":{\"machine\":\"dev box\",\"project\":\"localvoxtral\",\"session\":\"s_42\"}}",
+      "valid": false
+    },
+    {
+      "name": "a lone low surrogate in an option",
+      "kind": "decision",
+      "text": "{\"v\":1,\"id\":\"dec_1\",\"to\":[\"phone\",\"phone2\"],\"createdAt\":\"2026-10-04T10:00:00Z\",\"question\":\"Run inference on the Mac while you are away?\",\"context\":\"The bench needs the GPU for about 40 minutes. No: it waits for tonight.\",\"options\":[\"Yes \\ude80\",\"No\"],\"recommended\":\"Yes\",\"source\":{\"machine\":\"dev box\",\"project\":\"localvoxtral\",\"session\":\"s_42\"}}",
+      "valid": false
+    },
+    {
+      "name": "a pair in the wrong order",
+      "kind": "decision",
+      "text": "{\"v\":1,\"id\":\"dec_1\",\"to\":[\"phone\",\"phone2\"],\"createdAt\":\"2026-10-04T10:00:00Z\",\"question\":\"Ship it \\ude80\\ud83d?\",\"context\":\"The bench needs the GPU for about 40 minutes. No: it waits for tonight.\",\"options\":[\"Yes\",\"No\"],\"recommended\":\"Yes\",\"source\":{\"machine\":\"dev box\",\"project\":\"localvoxtral\",\"session\":\"s_42\"}}",
+      "valid": false
+    },
+    {
+      "name": "one in a field readers do not know",
+      "kind": "decision",
+      "text": "{\"v\":1,\"id\":\"dec_1\",\"to\":[\"phone\",\"phone2\"],\"createdAt\":\"2026-10-04T10:00:00Z\",\"question\":\"Run inference on the Mac while you are away?\",\"context\":\"The bench needs the GPU for about 40 minutes. No: it waits for tonight.\",\"options\":[\"Yes\",\"No\"],\"recommended\":\"Yes\",\"source\":{\"machine\":\"dev box\",\"project\":\"localvoxtral\",\"session\":\"s_42\"},\"note\":\"\\ud800\"}",
+      "valid": false
+    },
+    {
+      "name": "one in a key",
+      "kind": "decision",
+      "text": "{\"v\":1,\"id\":\"dec_1\",\"to\":[\"phone\",\"phone2\"],\"createdAt\":\"2026-10-04T10:00:00Z\",\"question\":\"Run inference on the Mac while you are away?\",\"context\":\"The bench needs the GPU for about 40 minutes. No: it waits for tonight.\",\"options\":[\"Yes\",\"No\"],\"recommended\":\"Yes\",\"source\":{\"machine\":\"dev box\",\"project\":\"localvoxtral\",\"session\":\"s_42\"},\"extra\":{\"\\udfff\":1}}",
       "valid": false
     }
   ]

@@ -16,7 +16,6 @@ import {
   Run,
   type RunProgress,
   type SessionLink,
-  seal,
 } from "@starbridge/protocol";
 import { AgentClient, AgentError, NoAgent } from "./agent/client";
 import {
@@ -33,6 +32,7 @@ import {
 } from "./context";
 import { resolveSource } from "./decisions";
 import { killTree, resolveCommand, spawnable } from "./platform";
+import { seal } from "./seal";
 
 /** Progress is reported at most this often; a heartbeat comes every RUN_HEARTBEAT_MS. */
 export const PROGRESS_MS = 10_000;

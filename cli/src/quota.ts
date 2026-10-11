@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { alertsFor, type QuotaAlert, type QuotaSnapshot, seal } from "@starbridge/protocol";
+import { alertsFor, type QuotaAlert, type QuotaSnapshot } from "@starbridge/protocol";
 import { collect, type ProviderQuota } from "./codexbar";
 import type { LastQuota } from "./config";
 import {
@@ -11,6 +11,7 @@ import {
   session,
   signedHead,
 } from "./context";
+import { seal } from "./seal";
 
 export interface QuotaOpts {
   providers: string[];

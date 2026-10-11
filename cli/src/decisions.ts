@@ -15,7 +15,6 @@ import {
   SealedItem,
   type SessionLink,
   type Settled,
-  seal,
   verifyDirectory,
   type Waiting,
 } from "@starbridge/protocol";
@@ -43,6 +42,7 @@ import { OPENCODE_ANSWERS, OPENCODE_SESSION, OPENCODE_TITLE } from "./opencode";
 import { acceptPermissionAnswer } from "./permissions";
 import { PI_ANSWERS, piSessionTitle } from "./pi";
 import { projectName } from "./project";
+import { seal } from "./seal";
 
 export interface AskInput {
   question?: string;

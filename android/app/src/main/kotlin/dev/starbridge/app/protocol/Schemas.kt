@@ -5,7 +5,10 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 
 // The Kotlin side of packages/protocol/src/schemas.ts. Each type parses with kotlinx and then
 // checks what zod checks there; a failure is `bad-schema`. Unknown keys are ignored, as zod
@@ -67,6 +70,27 @@ fun parseJsonText(text: String): JsonElement = try {
     ProtocolJson.parseToJsonElement(text)
 } catch (e: SerializationException) {
     throw ProtocolException("bad-schema", "not JSON")
+}.also { wellFormed(it) }
+
+/**
+ * Throws `bad-schema` when a string in [json], an object key included, holds a lone surrogate.
+ * Kotlin can hold one but Swift cannot, so the iOS app would read different text than was signed (#1090).
+ */
+fun wellFormed(json: JsonElement) {
+    when (json) {
+        is JsonObject -> json.forEach { (k, v) -> wellFormed(k); wellFormed(v) }
+        is JsonArray -> json.forEach { wellFormed(it) }
+        is JsonPrimitive -> if (json.isString) wellFormed(json.content)
+    }
+}
+
+private fun wellFormed(s: String) {
+    var i = 0
+    while (i < s.length) {
+        val pair = s[i].isHighSurrogate() && i + 1 < s.length && s[i + 1].isLowSurrogate()
+        schema(pair || !s[i].isSurrogate(), "lone surrogate")
+        i += if (pair) 2 else 1
+    }
 }
 
 // --- Directory ---------------------------------------------------------------

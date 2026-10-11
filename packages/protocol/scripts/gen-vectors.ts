@@ -1683,7 +1683,7 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
     },
   ];
   const schemas = {
-    note: "Bodies that must pass or fail schema validation. `read`, when set, is part of what a client reads: a value it only displays and does not know reads as the neutral case (null: absent), and an alert of an unknown kind is left out.",
+    note: "Bodies that must pass or fail schema validation. `read`, when set, is part of what a client reads: a value it only displays and does not know reads as the neutral case (null: absent), and an alert of an unknown kind is left out. `text` holds bodies as JSON text, for what a vector file cannot hold.",
     decision: [
       { name: "valid", body: decisionBody, valid: true },
       ...withHead(decisionBody),
@@ -2283,6 +2283,21 @@ export async function buildVectors(): Promise<Record<string, unknown>> {
         valid: false,
       },
     ],
+    // Decision bodies as the JSON text a reader parses: Swift cannot read a lone surrogate, so it
+    // must not be in a vector file (#1090). The `@` in the body becomes a `\u` escape.
+    text: [
+      ["a surrogate pair", { question: "Ship it @?" }, "\\ud83d\\ude80", true],
+      ["a lone high surrogate", { question: "Ship it @?" }, "\\ud83d", false],
+      ["a lone low surrogate in an option", { options: ["Yes @", "No"] }, "\\ude80", false],
+      ["a pair in the wrong order", { question: "Ship it @?" }, "\\ude80\\ud83d", false],
+      ["one in a field readers do not know", { note: "@" }, "\\ud800", false],
+      ["one in a key", { extra: { "@": 1 } }, "\\udfff", false],
+    ].map(([name, extra, esc, valid]) => ({
+      name,
+      kind: "decision",
+      text: JSON.stringify({ ...decisionBody, ...(extra as object) }).replace("@", esc as string),
+      valid,
+    })),
   };
 
   // --- images.json ---
