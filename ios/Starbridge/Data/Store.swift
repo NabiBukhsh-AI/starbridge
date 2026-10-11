@@ -45,6 +45,8 @@ final class Store {
     var tooOld: String?
     /** Why nothing from the machines shows: the server holds back entries a machine has seen (#362). */
     var withheldWhy: String?
+    /** What a tapped notification opens over the inbox. */
+    var openRequest: Sheet?
     /** Replies typed and not sent, by decision id, while the app runs (#992). */
     var drafts: [String: String] = [:]
 
@@ -694,6 +696,7 @@ final class Store {
                 }
             } catch {}
         }
+        if let id = saved.pushId { try? await api().unsubscribe(id) }
         if secrets.session != nil { try? await api().logout() }
         wipe()
     }

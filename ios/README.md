@@ -3,7 +3,7 @@
 The native iPhone app: SwiftUI on [`StarbridgeProtocol`](StarbridgeProtocol), the Swift port of
 `packages/protocol`. So far it signs in, sets up an empty account's first device, joins an account
 that has one, recovers one with the recovery key, and shows the inbox, where it answers questions
-and permission prompts; notifications come next (the plan is
+and permission prompts, from the app or from a notification (the plan is
 in the planning repo's `research/ios-app.md`).
 
 - **Sign-in** goes through the browser with PKCE, as on Android (PROTOCOL.md, "Auth"):
@@ -22,6 +22,14 @@ in the planning repo's `research/ios-app.md`).
   the server every 10 s while it is in front.
 - **Answers** are signed, sealed and kept in an outbox before they are posted, as on Android
   (#329): one tapped offline is sent once the server can be reached.
+- **Notifications** (#1137): APNs carries each question as an alert with a placeholder, which the
+  notification service extension (`Notifications/`) rewrites from the sealed box: the question,
+  its machine and repo, up to 3 options with the agent's default first, and Reply. It reads the
+  keys and the pinned directory from the app group `group.dev.starbridge.ios`, which is also the
+  keychain item's access group, and writes nothing. A button answers through the outbox in the
+  background; a prompt's Deny answers there, its Allow opens the prompt. The simulator skips
+  service extensions for `simctl push`, so `NotificationServiceTests` drives the extension's work
+  (`Notify.rewrite`) against the shared keychain and app group instead.
 - **Design tokens** are `Starbridge/Theme/Tokens.swift`, written from DESIGN.md by
   `bun web/scripts/tokens.ts`; type is SF Pro, scaled with Dynamic Type.
 

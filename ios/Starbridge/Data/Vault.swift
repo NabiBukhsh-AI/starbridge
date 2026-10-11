@@ -33,13 +33,18 @@ struct VaultError: Error, CustomStringConvertible {
 /**
  * The secrets as one keychain item, readable after the first unlock since boot and never moved
  * to another device by a backup, so a notification can answer from the lock screen as on Android.
+ * The item lives in the app group, which doubles as a keychain access group, so the notification
+ * service extension opens the boxes with the same keys.
  */
 struct KeychainVault: Vault {
     var service = "dev.starbridge.ios"
     var account = "secrets"
+    var group: String? = APP_GROUP
 
     private var query: [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
+        var q: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: account]
+        if let group { q[kSecAttrAccessGroup as String] = group }
+        return q
     }
 
     func load() throws -> Secrets {

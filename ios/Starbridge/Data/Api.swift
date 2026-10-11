@@ -173,4 +173,16 @@ struct Api {
     func postItem(_ item: JSON) async throws { _ = try await call("POST", "/items", item) }
 
     func deleteItem(_ id: String) async throws { _ = try await call("DELETE", "/items/\(id)") }
+
+    // --- Push ------------------------------------------------------------------
+
+    /** Subscribes this iPhone's APNs token (hex) in its environment; re-subscribing a known one works. */
+    func subscribe(apnsToken: String, environment: String) async throws -> String {
+        try string(await call("POST", "/push/subscriptions", ["type": "apns", "endpoint": .string(apnsToken), "environment": .string(environment)]).1, "id")
+    }
+
+    func unsubscribe(_ id: String) async throws { _ = try await call("DELETE", "/push/subscriptions/\(id)") }
+
+    /** Whether this iPhone notifies, for every device's Devices list (#943). */
+    func notificationState(_ state: String) async throws { _ = try await call("PUT", "/notifications", ["state": .string(state)]) }
 }
