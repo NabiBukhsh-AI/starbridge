@@ -33,13 +33,14 @@ import {
   readFileSync,
   readdirSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { LiveServer } from "../../server/test-support/index.ts";
-import { claudeToken, codexKey, cursorLogin, geminiKey, tmpOutsideHome } from "./login.ts";
+import { antigravityLogin, claudeToken, codexKey, cursorLogin, tmpOutsideHome } from "./login.ts";
 import { type Scenario, scenarios } from "./scenarios.ts";
 
 const { values: opt } = parseArgs({
@@ -65,8 +66,9 @@ const model =
     codex: undefined,
     pi: "zai/glm-5.3-flash",
     opencode: "zai-coding-plan/glm-5.3-flash",
-    cursor: undefined,
-    antigravity: undefined,
+    // Cursor's free plan runs Auto only.
+    cursor: "auto",
+    antigravity: "gemini-3.8-flash-medium",
   }[agent];
 const repo = join(import.meta.dir, "..", "..");
 const out = opt.out ?? join(import.meta.dir, "results", agent);
@@ -353,11 +355,27 @@ async function turn(
       const shell = e.tool_call?.shellToolCall;
       if (e.type === "tool_call" && e.subtype === "completed" && shell) {
         commands.push(shell.args?.command ?? "");
-        delivery.push(...deliveryLines(JSON.stringify(shell.result ?? "")));
+        delivery.push(...deliveryLines(String(shell.result?.success?.interleavedOutput ?? "")));
       }
+      // `result` joins every message; the last one is the final word.
+      if (e.type === "assistant")
+        for (const b of e.message?.content ?? []) if (b.type === "text" && b.text) final = b.text;
       if (e.type === "result") {
-        final = e.result ?? "";
-        if (e.is_error) final = `(error) ${final}`;
+        if (e.is_error) final = `(error) ${e.result ?? ""}`;
+        const u = e.usage ?? {};
+        tokens = (u.inputTokens ?? 0) + (u.outputTokens ?? 0) + (u.cacheReadTokens ?? 0) + (u.cacheWriteTokens ?? 0);
+      }
+    } else if (agent === "antigravity") {
+      const step = e.step_update;
+      session ??= e.conversation_id;
+      if (step?.state === "DONE" && step.tool_name === "run_command") {
+        commands.push(step.tool_info?.parameters?.CommandLine ?? "");
+        delivery.push(...deliveryLines(String(step.tool_info?.output ?? "")));
+      }
+      if (e.event === "result") {
+        const res = e.result ?? {};
+        final = res.status === "SUCCESS" ? (res.response ?? "") : `(error) ${res.error ?? res.status}`;
+        tokens = res.usage?.total_tokens;
       }
     } else if (agent === "opencode") {
       session ??= e.sessionID;
@@ -801,7 +819,11 @@ async function one(s: Scenario, arm: string, rep: number): Promise<RunRecord> {
       }),
     );
   } else if (agent === "antigravity") {
-    login.GEMINI_API_KEY = geminiKey();
+    const agy = antigravityLogin();
+    if ("token" in agy) {
+      mkdirSync(join(home, ".gemini/antigravity-cli"), { recursive: true });
+      symlinkSync(agy.token, join(home, ".gemini/antigravity-cli/antigravity-oauth-token"));
+    } else login.GEMINI_API_KEY = agy.GEMINI_API_KEY;
     // What setup writes (cli/src/setup/harnesses.ts): the plugin, its always_on rule and the skill.
     const dir = join(home, ".gemini/config/plugins/starbridge");
     cpSync(join(armDir, "mod/antigravity"), dir, { recursive: true });
@@ -1103,8 +1125,11 @@ for (const s of scenarios.filter(
 
 let next = 0;
 let done = 0;
-// Cursor's own login refreshes in place: one run at a time reads it.
-const parallel = agent === "cursor" && "CURSOR_CONFIG_DIR" in cursorLogin() ? 1 : Number(opt.jobs);
+// A login of the eval's own refreshes in place: one run at a time uses it.
+const shared =
+  (agent === "cursor" && "XDG_CONFIG_HOME" in cursorLogin()) ||
+  (agent === "antigravity" && "token" in antigravityLogin());
+const parallel = shared ? 1 : Number(opt.jobs);
 await Promise.all(
   Array.from({ length: parallel }, async () => {
     while (next < jobs.length) {

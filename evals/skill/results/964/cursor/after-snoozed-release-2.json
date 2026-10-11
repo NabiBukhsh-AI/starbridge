@@ -1,0 +1,75 @@
+{
+  "agent": "cursor",
+  "model": "auto",
+  "arm": "after",
+  "scenario": "snoozed-release",
+  "rep": 2,
+  "turns": [
+    {
+      "commands": [
+        "git status && git log -5 --oneline && npm whoami 2>&1; ls -la",
+        "starbridge ask \\\n  --question 'Publish @acme/notes v0.4.0 to npm?' \\\n  --context 'A published version can never be taken back.\n**Publish:** runs `npm publish` from the repo root for `@acme/notes@0.4.0`.\n**Not now:** leaves npm unchanged.' \\\n  --option 'Publish' --option 'Not now' --recommended 'Publish' \\\n  --waiting",
+        "starbridge wait d_y4x-BFdrcBrQahrz --timeout 5m"
+      ],
+      "final": "Publish is on hold. You snoozed the approval card for **@acme/notes v0.4.0** until **tomorrow 09:00**, so I won’t publish before then.\n\nWhen you’re ready, `starbridge wait d_y4x-BFdrcBrQahrz` will pick up the answer.",
+      "session": "19272a57-e60d-44b5-aa77-761d391e23a1",
+      "tokens": 51338,
+      "exit": 0,
+      "seconds": 32.157,
+      "delivery": [
+        "Nothing brings the answer into this session: when only the answer is left, run `starbridge wait d_y4x-BFdrcBrQahrz --timeout 5m` (again on exit 2)."
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "v": 1,
+      "id": "d_y4x-BFdrcBrQahrz",
+      "to": [
+        "phone"
+      ],
+      "createdAt": "2026-10-11T09:31:38Z",
+      "question": "Publish @acme/notes v0.4.0 to npm?",
+      "context": "A published version can never be taken back.\n**Publish:** runs `npm publish` from the repo root for `@acme/notes@0.4.0`.\n**Not now:** leaves npm unchanged.",
+      "options": [
+        "Publish",
+        "Not now"
+      ],
+      "recommended": "Publish",
+      "agent": "cursor",
+      "source": {
+        "machine": "devbox",
+        "machineKind": "server",
+        "project": "proj",
+        "session": "19272a57-e60d-44b5-aa77-761d391e23a1"
+      },
+      "replies": true,
+      "dir": {
+        "length": 2,
+        "head": "Q1-6UIHyIcEi6_Q8qOdpJeTwf_XfhxTQdnvae7qds4Q"
+      }
+    }
+  ],
+  "laterDecisions": [],
+  "runs": [],
+  "gh": [],
+  "snoozed": "2026-10-12T07:00:00.000Z",
+  "waiting": [
+    {
+      "v": 1,
+      "id": "w_kDdCyWT4Gi5w2wdP",
+      "decisionId": "d_y4x-BFdrcBrQahrz",
+      "to": [
+        "phone"
+      ],
+      "at": "2026-10-11T09:31:38Z",
+      "state": "waiting",
+      "dir": {
+        "length": 2,
+        "head": "Q1-6UIHyIcEi6_Q8qOdpJeTwf_XfhxTQdnvae7qds4Q"
+      }
+    }
+  ],
+  "permissions": [],
+  "settled": []
+}
