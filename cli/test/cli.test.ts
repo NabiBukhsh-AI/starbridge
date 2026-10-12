@@ -1147,6 +1147,63 @@ test("through the local agent, wait says too that a revoked device answered (#51
   }
 });
 
+/** Posts a laptop's answer to decision `id` as the laptop, its routing hint `re` if given. */
+async function laptopAnswer(
+  ctx: Awaited<ReturnType<typeof paired>>,
+  laptop: Awaited<ReturnType<LiveServer["addDevice"]>>,
+  id: string,
+  re?: string,
+) {
+  const machine = ctx.store.machine()?.id as string;
+  const answer: Answer = {
+    v: 1,
+    id: `a_${crypto.randomUUID()}`,
+    decisionId: id,
+    to: machine,
+    answeredAt: `${new Date().toISOString().slice(0, 19)}Z`,
+    choice: "Merge",
+  };
+  const member = (await server.directory()).members.get(machine)?.member;
+  const sealed = seal("answer", answer, { id: laptop.id, signKey: laptop.keys.sign.privateKey }, [
+    member as NonNullable<typeof member>,
+  ]);
+  const posted = await fetch(`${server.url}/v1/items`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${laptop.token}`, "content-type": "application/json" },
+    body: JSON.stringify(re ? { ...sealed, re } : sealed),
+  });
+  expect(posted.status).toBe(201);
+}
+
+test("an answer from a device revoked before the machine fetched it closes the decision, so wait fails at once (#1301)", async () => {
+  const ctx = await paired(server);
+  const laptop = await server.addDevice("laptop");
+  await run([...ASK, "--session", "s"], ctx);
+  const id = ctx.lines.at(-1) as string;
+  await laptopAnswer(ctx, laptop, id);
+  await server.revoke("laptop");
+  expect(await run(["wait", id, "--timeout", "5s"], ctx)).toBe(1);
+  expect(ctx.errors.join("\n")).toContain("removed since");
+  expect(ctx.store.state().asked[id]).toMatchObject({ settled: true, revoked: true });
+  ctx.lines.length = 0;
+  expect(await run(["decisions", "--open"], ctx)).toBe(0);
+  expect(ctx.lines.join("")).not.toContain(id);
+});
+
+test("a revoked device's answer whose routing hint names another decision closes neither (#1301)", async () => {
+  const ctx = await paired(server);
+  const laptop = await server.addDevice("laptop");
+  await run([...ASK, "--session", "s"], ctx);
+  await run(["ask", "--question", "Name the branch?", "--session", "s"], ctx);
+  const [first, second] = ctx.lines.slice(-2) as [string, string];
+  // The hint is not signed: only the body says which decision a device answered.
+  await laptopAnswer(ctx, laptop, second, first);
+  await server.revoke("laptop");
+  expect(await run(["wait", first, "--timeout", "1s"], ctx)).toBe(2);
+  expect(ctx.store.state().asked[first]?.settled).toBeUndefined();
+  expect(ctx.store.state().asked[second]?.settled).toBeUndefined();
+});
+
 test("a poll that brings no answer drops a revoked device's undelivered one (#491)", async () => {
   const { ctx, id, cursor } = await revokedAnswer();
   await poll(ctx, session(ctx), { cursor, seconds: 0, shared: true });

@@ -9,13 +9,16 @@ import {
   type Directory,
   noteHead as keepHead,
   open,
+  openBox,
   ProtocolError,
+  parseBody,
   parseWith,
   SETTLED_REASON_MAX,
   SealedItem,
   type SessionLink,
   type Settled,
   toWellFormed,
+  verify,
   verifyDirectory,
   type Waiting,
 } from "@starbridge/protocol";
@@ -954,6 +957,7 @@ export async function poll(
             if (asked) forget(asked);
           } catch (e) {
             ctx.err(`starbridge: ignored an answer: ${(e as Error).message}`);
+            refuse(raw, e, s, dir, st);
           }
         }
       }
@@ -1025,6 +1029,37 @@ async function announce(ctx: Ctx, s: Session, dir: Directory): Promise<void> {
       if (a) delete a.announce;
     });
   }
+}
+
+/**
+ * Closes a decision as `dropRevoked` does when this machine refused an answer to it only because
+ * its device was revoked before the machine fetched it (#1301): the server holds the decision
+ * answered and takes no other answer, so `wait` would wait forever. Only when the signed body
+ * names that decision, its hint agrees and the device was one it was sealed to: the hint is
+ * unsigned, so a server could otherwise point a device's answer at any open decision.
+ */
+function refuse(raw: unknown, e: unknown, s: Session, dir: Directory, st: State): void {
+  if (!(e instanceof ProtocolError) || e.code !== "revoked-signer") return;
+  let decisionId: string;
+  let signer: string;
+  try {
+    const item = parseWith(SealedItem, raw);
+    if (item.kind !== "answer") return;
+    const env = openBox(item, { id: s.machine.id, box: s.keys.box });
+    const member = dir.members.get(env.signer)?.member;
+    if (env.signer !== item.from || member?.role !== "device") return;
+    verify(env, member.signPk);
+    decisionId = parseBody("answer", env.body).decisionId;
+    if (item.re !== decisionId) return;
+    signer = env.signer;
+  } catch {
+    return;
+  }
+  const asked = st.asked[decisionId];
+  if (!asked || asked.settled || st.answers[decisionId] || !asked.to.includes(signer)) return;
+  asked.settled = true;
+  asked.revoked = true;
+  forget(asked);
 }
 
 /** Drops a closed decision's body, so its plaintext does not stay on disk. */
