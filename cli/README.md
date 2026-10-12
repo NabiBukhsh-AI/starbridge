@@ -147,7 +147,7 @@ the command anyway. [Runs](../docs/index.md#runs) says what your devices show.
 | `starbridge config` | Prints this machine's settings. |
 | `starbridge config permissions on` | Sends permission prompts to your devices ([What each harness supports](../docs/tell-your-agents.md#what-each-harness-supports)). |
 | `starbridge config presence on` | Counts this machine as a screen you are at ([Quiet other devices while you're at a screen](../docs/notifications.md#quiet-other-devices-while-you-re-at-a-screen)). |
-| `starbridge quota push --provider claude` | Uploads a quota snapshot without the background service. |
+| `starbridge quota push --provider claude --once` | Uploads one quota snapshot without the background service. Without `--once`, it uploads one every 5 minutes until stopped. |
 | `starbridge agent` | The background service. Its flags override `agent.json` in the config directory. |
 
 The background service uploads a quota snapshot every 5 minutes, and the other commands go

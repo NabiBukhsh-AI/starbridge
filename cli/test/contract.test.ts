@@ -169,6 +169,26 @@ test("decisions --open lists the open questions as JSON lines, until answered or
   expect(ctx.lines).toEqual([]);
 });
 
+// What CONTRACT.md's settle row says it prints, in each case (#1340).
+test("settle --session prints the lines CONTRACT.md documents", async () => {
+  const row = readFileSync(join(import.meta.dir, "../CONTRACT.md"), "utf8")
+    .split("\n")
+    .find((l) => l.startsWith("| `settle --session <id>`")) as string;
+  const ctx = await paired(server);
+  const settled = async () => {
+    ctx.lines.length = 0;
+    expect(await run(["settle", "--session", "s", "--outcome", "elsewhere"], ctx)).toBe(0);
+    return ctx.lines.at(-1) as string;
+  };
+  expect(row).toContain(`\`${(await settled()).replace(" s ", " <id> ")}\``);
+  for (const n of [1, 2]) {
+    for (let i = 0; i < n; i++)
+      expect(await run(["ask", "--question", "Ship?", "--session", "s"], ctx)).toBe(0);
+    const line = await settled();
+    expect(row).toContain(`\`${n === 1 ? line : line.replace("2", "<n>")}\``);
+  }
+});
+
 // Codex goes to its own path (`--race`), which the dispatch picks before `hookQuestion` (#1291).
 test("CONTRACT.md's hook question lists the agents it takes", async () => {
   const doc = readFileSync(join(import.meta.dir, "../CONTRACT.md"), "utf8");
