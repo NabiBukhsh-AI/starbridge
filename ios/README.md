@@ -33,7 +33,8 @@ in the planning repo's `research/ios-app.md`).
 - **Devices** (Settings → Devices and machines) follows Android: each device's notifications and
   app, a machine's check code while `starbridge pair` asks, Update available, and Revoke. Add a
   device looks up a typed, scanned or linked code before Approve, and proves a machine's check
-  key from its QR (#795), or shows a QR code for a new phone.
+  key from its QR (#795), or shows a QR code for a new phone. Replace, under the recovery key,
+  takes the current key and posts the new one once the owner says it is stored (#348).
 - **Design tokens** are `Starbridge/Theme/Tokens.swift`, written from DESIGN.md by
   `bun web/scripts/tokens.ts`; type is SF Pro, scaled with Dynamic Type.
 
