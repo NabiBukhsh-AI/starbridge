@@ -1,4 +1,5 @@
 import Foundation
+import UserNotifications
 import StarbridgeProtocol
 
 /** Where a window is headed by its reset, as the uploader computed it. */
@@ -91,6 +92,8 @@ struct QuotaSettings: Codable, Equatable {
     /** Windows that will run out or ran out lead, else `order` holds for every window. */
     var runningOutFirst = true
     var hidden: [String] = []
+    /** Which alerts notify, per window (#914). */
+    var alerts = QuotaAlerts()
 
     static let week = 10080
 
@@ -105,6 +108,7 @@ struct QuotaSettings: Codable, Equatable {
         order = try c.decodeIfPresent([String].self, forKey: .order) ?? []
         runningOutFirst = try c.decodeIfPresent(Bool.self, forKey: .runningOutFirst) ?? true
         hidden = try c.decodeIfPresent([String].self, forKey: .hidden) ?? []
+        alerts = try c.decodeIfPresent(QuotaAlerts.self, forKey: .alerts) ?? QuotaAlerts()
     }
 
     /** Every provider the windows name, in this order. */
@@ -204,6 +208,107 @@ struct QuotaSettings: Codable, Equatable {
     }
 }
 
+/**
+ * Which quota alerts this iPhone notifies about, per window (#914), as Android's QuotaAlerts and
+ * the web's: stored here, and checked through StarbridgeProtocol's QuotaAlertSettings, which
+ * passes quota-alerts.json. The uploader raises every alert at fixed levels; each device filters.
+ */
+struct QuotaAlerts: Codable, Equatable {
+    /** Windows of a day or less. */
+    var short: [String] = []
+    /** Longer windows, and those of unknown length. */
+    var long = ["runs-out"]
+    /**
+     * A window's own choices, by `provider/window`, where an empty list is off. A key with no
+     * window covers every window of its provider that has no key of its own.
+     */
+    var windows: [String: [String]] = [:]
+
+    /** The columns of Settings → Quotas → Alerts, in order. */
+    static let choices: [(String, String)] = [("runs-out", "Runs out"), ("low-50", "50% left"), ("low-20", "20% left"), ("unused-headroom", "Unused")]
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        short = try c.decodeIfPresent([String].self, forKey: .short) ?? []
+        long = try c.decodeIfPresent([String].self, forKey: .long) ?? ["runs-out"]
+        windows = try c.decodeIfPresent([String: [String]].self, forKey: .windows) ?? [:]
+    }
+
+    private var settings: QuotaAlertSettings { QuotaAlertSettings(short: short, long: long, windows: windows) }
+
+    /** What a window notifies about: its own choices, else its provider's, else its length's. */
+    func choices(provider: String, window: String, minutes: Int?) -> [String] {
+        settings.choices(provider: provider, window: window, minutes: minutes)
+    }
+
+    func wants(provider: String, window: String, kind: String, threshold: Int?, minutes: Int?) -> Bool {
+        settings.wants(provider: provider, window: window, kind: kind, threshold: threshold, minutes: minutes)
+    }
+
+    /**
+     * A window's own choices. A provider's key first becomes a key per window of `all`, so the
+     * provider's other windows keep it.
+     */
+    func with(provider: String, window: String, all: [(String, String)], picked: [String]) -> QuotaAlerts {
+        var next = self
+        if let shared = next.windows.removeValue(forKey: provider) {
+            for (p, w) in all where p == provider {
+                let key = QuotaAlertSettings.windowKey(provider: p, window: w)
+                if next.windows[key] == nil { next.windows[key] = shared }
+            }
+        }
+        next.windows[QuotaAlertSettings.windowKey(provider: provider, window: window)] = picked
+        return next
+    }
+}
+
+/** A quota alert the uploader newly raised, for a notification. */
+struct QuotaNotice: Equatable {
+    /** The snapshot and alert, so each shows once. */
+    let key: String
+    let provider: String
+    let window: String
+    let kind: String
+    let title: String
+    let text: String
+    /** A `low` alert's level, percent left. */
+    let threshold: Int?
+    /** The window's length, which picks its default alerts. */
+    let minutes: Int?
+
+    /** The alerts in a snapshot the uploader marked to notify, in Android's words. */
+    static func of(_ q: SavedQuota, now: Date = Date()) -> [QuotaNotice] {
+        var labels: [String: String] = [:]
+        var minutes: [String: Int] = [:]
+        for p in q.body.providers {
+            for w in p.windows {
+                labels["\(p.provider)/\(w.id)"] = w.label.isEmpty ? w.id : w.label
+                minutes["\(p.provider)/\(w.id)"] = w.windowMinutes
+            }
+        }
+        return q.body.alerts.filter { $0.notify == true }.map { a in
+            let key = "\(a.provider)/\(a.window)"
+            let name = "\(a.provider) \(labels[key] ?? a.window)"
+            let resets = Dates.parse(a.resetsAt).map { "in \(Times.span(now, $0))" } ?? "soon"
+            let (title, text): (String, String)
+            var threshold: Int?
+            switch a.kind {
+            case let .low(t):
+                threshold = t
+                (title, text) = ("\(name): \(t)% left", "Resets \(resets).")
+            case let .runsOut(at):
+                (title, text) = ("\(name) will run out", Dates.parse(at).map { "Runs out in \(Times.span(now, $0)) at this pace; resets \(resets)." } ?? "Resets \(resets).")
+            case let .unusedHeadroom(unused):
+                (title, text) = ("\(name) resets with headroom unused", "Resets \(resets) with \(Int(unused.rounded()))% unused.")
+            }
+            return QuotaNotice(key: "\(q.body.id)/\(key)/\(a.kind.name)", provider: a.provider, window: a.window, kind: a.kind.name,
+                               title: title, text: text, threshold: threshold, minutes: minutes[key])
+        }
+    }
+}
+
 /** How long a pull on Quotas waits for the machines' fresh snapshots. */
 private let quotaAskSeconds = 25
 
@@ -285,6 +390,13 @@ extension Store {
         var s = saved
         s.quotas = quotas
         persist(s)
+        let alerts = quotaSettings.alerts
+        let wanted = quotas.flatMap { QuotaNotice.of($0) }.filter {
+            alerts.wants(provider: $0.provider, window: $0.window, kind: $0.kind, threshold: $0.threshold, minutes: $0.minutes)
+        }
+        // Blocked, nothing counts as shown: the owner may turn notifications on before the reset.
+        guard !wanted.isEmpty, await Notify.quotaAllowed() else { return }
+        for n in wanted where QuotaShown.first(n.key) { await Notify.quota(n) }
     }
 
     /** Asks the machines for fresh snapshots, waits for them, then syncs. */
@@ -294,5 +406,39 @@ extension Store {
         // Asked too often, a server without asks, or offline: the sync shows what it holds.
         if phase == .ready { try? await api().askQuota(wait: quotaAskSeconds) }
         await refresh()
+    }
+}
+
+/** The quota notices this iPhone showed, by key, so each shows once. */
+enum QuotaShown {
+    static let key = "quotaShown"
+
+    /** True the first time, and remembers it; the latest 200 are kept. */
+    static func first(_ notice: String, _ defaults: UserDefaults = .standard) -> Bool {
+        var shown = defaults.stringArray(forKey: key) ?? []
+        if shown.contains(notice) { return false }
+        shown.append(notice)
+        defaults.set(Array(shown.suffix(200)), forKey: key)
+        return true
+    }
+}
+
+extension Notify {
+    /** Quiet, as Android's low-importance channel: one per window and kind, replaced by the next. */
+    static func quota(_ n: QuotaNotice) async {
+        let content = UNMutableNotificationContent()
+        content.title = n.title
+        content.body = n.text
+        content.sound = nil
+        content.interruptionLevel = .passive
+        content.threadIdentifier = "quotas"
+        try? await UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: quotaPrefix + "\(n.provider)/\(n.window)/\(n.kind)", content: content, trigger: nil))
+    }
+
+    static let quotaPrefix = "q:"
+
+    static func quotaAllowed() async -> Bool {
+        let status = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+        return status == .authorized || status == .provisional
     }
 }

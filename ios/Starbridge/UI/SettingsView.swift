@@ -113,8 +113,8 @@ struct SettingsView: View {
 }
 
 /**
- * Settings → Quotas, as Android's (#930): how bars read, then Order, a page with Running out
- * first and the providers, each with its handle and eye.
+ * Settings → Quotas, as Android's (#930): how bars read, Alerts, then Order, a page with
+ * Running out first and the providers, each with its handle and eye.
  */
 private struct QuotaSections: View {
     @Bindable var store: Store
@@ -135,6 +135,7 @@ private struct QuotaSections: View {
                 Text("5").tag(Int?.some(5))
                 Text("7 days").tag(Int?.some(7))
             }
+            NavigationLink("Alerts") { QuotaAlertsView(store: store) }
             NavigationLink("Order") { QuotaOrderView(store: store) }
         }
         .listRowBackground(Tokens.Colors.surface.color)
@@ -190,4 +191,71 @@ struct QuotaOrderView: View {
 
 private struct PairLink: Identifiable {
     let id: String
+}
+
+/**
+ * Settings → Quotas → Alerts (#930): one card, the column names once on top, then a row per
+ * window of the providers shown, a checkbox per alert. A window with no box ticked is off.
+ */
+struct QuotaAlertsView: View {
+    @Bindable var store: Store
+    @ScaledMetric(relativeTo: .caption) private var column: CGFloat = 56
+
+    var body: some View {
+        let windows = store.quotaWindows
+        let settings = store.quotaSettings
+        var seen = Set<String>()
+        let all = windows.filter { seen.insert("\($0.provider)/\($0.windowId)").inserted }
+        let shown = settings.providers(windows).filter { !settings.hidden.contains($0) }
+        List {
+            Section {
+                HStack(alignment: .bottom, spacing: 0) {
+                    Spacer(minLength: 0)
+                    ForEach(QuotaAlerts.choices, id: \.0) { _, label in
+                        Text(label)
+                            .type(Tokens.Typography.caption)
+                            .foregroundStyle(Tokens.Colors.fg2.color)
+                            .multilineTextAlignment(.center)
+                            .frame(width: column)
+                    }
+                }
+                .accessibilityHidden(true)
+                if shown.isEmpty {
+                    Text("No quota windows shown").foregroundStyle(Tokens.Colors.fg2.color)
+                }
+                ForEach(shown, id: \.self) { p in
+                    ForEach(all.filter { $0.provider == p }, id: \.windowId) { w in
+                        row(w, all: all.map { ($0.provider, $0.windowId) }, settings: settings)
+                    }
+                }
+            }
+            .listRowBackground(Tokens.Colors.surface.color)
+        }
+        .scrollContentBackground(.hidden)
+        .background(Tokens.Colors.bg.color.ignoresSafeArea())
+        .navigationTitle("Alerts")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func row(_ w: QuotaRow, all: [(String, String)], settings: QuotaSettings) -> some View {
+        let picked = settings.alerts.choices(provider: w.provider, window: w.windowId, minutes: w.windowMinutes)
+        return HStack(spacing: 0) {
+            Text("\(w.provider) \(w.window)").frame(maxWidth: .infinity, alignment: .leading)
+            ForEach(QuotaAlerts.choices, id: \.0) { kind, label in
+                let on = picked.contains(kind)
+                Button {
+                    let next = QuotaAlerts.choices.map(\.0).filter { ($0 == kind && !on) || ($0 != kind && picked.contains($0)) }
+                    store.quotaSettings.alerts = settings.alerts.with(provider: w.provider, window: w.windowId, all: all, picked: next)
+                } label: {
+                    Image(systemName: on ? "checkmark.square.fill" : "square")
+                        .font(.title3)
+                        .foregroundStyle(on ? Tokens.Colors.fg.color : Tokens.Colors.fg3.color)
+                        .frame(width: column, height: 44)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("\(w.provider) \(w.window): \(label)")
+                .accessibilityAddTraits(on ? .isSelected : [])
+            }
+        }
+    }
 }
