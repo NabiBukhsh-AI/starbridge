@@ -57,6 +57,8 @@ struct SettingsView: View {
     let store: Store
     /** Answer buttons on cards: Always, When the agent waits, or Never (#138). */
     @AppStorage("answerButtons") private var answerButtons = AnswerButtons.always
+    /** What a swipe right on a question does (#692). */
+    @AppStorage("swipeSnooze") private var swipe = SwipeSnooze.hour
     @State private var signingOut = false
     @State private var deleting = false
 
@@ -68,6 +70,16 @@ struct SettingsView: View {
                 Section("Answer buttons on cards") {
                     Picker("Answer buttons on cards", selection: $answerButtons) {
                         ForEach(AnswerButtons.allCases, id: \.self) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
+                }
+                .listRowBackground(Tokens.Colors.surface.color)
+
+                // A swipe right on a question (#692): at once for a set time, or the times to pick from.
+                Section("Swipe right on a question") {
+                    Picker("Swipe right on a question", selection: $swipe) {
+                        ForEach(SwipeSnooze.allCases, id: \.self) { Text($0.label).tag($0) }
                     }
                     .pickerStyle(.inline)
                     .labelsHidden()
