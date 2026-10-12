@@ -309,6 +309,21 @@ struct Api {
 
     func unsubscribe(_ id: String) async throws { _ = try await call("DELETE", "/push/subscriptions/\(id)") }
 
+    /** Whether the owner sits at this iPhone ("Held pushes", #848). */
+    func presence(_ present: Bool) async throws { _ = try await call("PUT", "/presence", ["present": .bool(present)]) }
+
+    /** The account's hold time in seconds (#848). */
+    func pushHold() async throws -> Int {
+        guard let n = try await call("GET", "/settings").1?["pushHold"]?.number else { throw ProtocolError(.badSchema, "settings without pushHold") }
+        return Int(n)
+    }
+
+    /** Sets the hold time; returns it as the server reads it back. */
+    func setPushHold(_ seconds: Int) async throws -> Int {
+        guard let n = try await call("PUT", "/settings", ["pushHold": .number(Double(seconds))]).1?["pushHold"]?.number else { throw ProtocolError(.badSchema, "settings without pushHold") }
+        return Int(n)
+    }
+
     /** Whether this iPhone notifies, for every device's Devices list (#943). */
     func notificationState(_ state: String) async throws { _ = try await call("PUT", "/notifications", ["state": .string(state)]) }
 

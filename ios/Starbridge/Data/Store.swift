@@ -49,6 +49,8 @@ final class Store {
     var openRequest: Sheet?
     /** Replies typed and not sent, by decision id, while the app runs (#992). */
     var drafts: [String: String] = [:]
+    /** The account's hold time in seconds (#848); nil on a server without it, which shows no row. */
+    var pushHold: Int?
     /** The server listed quota snapshots on the last read, even ones this iPhone cannot open yet. */
     var quotasListed = false
     /** Asking the machines for fresh quotas, for the Quotas tab's pull and first look (#661). */
@@ -73,6 +75,9 @@ final class Store {
     @ObservationIgnored var lost: Set<String> = []
     @ObservationIgnored var queue: Task<Void, Never>?
     @ObservationIgnored var pollTask: Task<Void, Never>?
+    @ObservationIgnored var presenceTask: Task<Void, Never>?
+    @ObservationIgnored var inFront = false
+    @ObservationIgnored private(set) var beacon: Beacon!
 
     @ObservationIgnored private let vault: Vault
     @ObservationIgnored private let disk: Disk
@@ -124,6 +129,7 @@ final class Store {
         }
         // Nothing is written this run, so the file and the keys stay for a launch that can read them.
         if let locked { notice = locked }
+        beacon = Beacon { [weak self] present in try await self?.api().presence(present) }
         if saved.joining != nil { waitForApproval() }
         if saved.digitJoin != nil { waitForDigitJoin() }
     }
@@ -723,6 +729,9 @@ final class Store {
         joinTask = nil
         pollTask?.cancel()
         pollTask = nil
+        presenceTask?.cancel()
+        presenceTask = nil
+        pushHold = nil
         directory = nil
         tapped = [:]
         notSent = [:]
