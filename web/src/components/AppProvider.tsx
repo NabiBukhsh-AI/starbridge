@@ -49,6 +49,26 @@ const DESKTOP_TICK_MS = 15_000;
  * A poller's read that skips its turn while the last one is still running, so requests that hang
  * rather than fail (a captive portal, a dead route) don't pile up before the backoff starts.
  */
+/** Closes notifications the inbox shows no longer need the owner (#1363). */
+function closeStaleNotifications(inbox: Inbox): void {
+  (async () => {
+    const reg = await navigator.serviceWorker?.getRegistration("/").catch(() => undefined);
+    const { closeStale } = await import("@/lib/pushFallback");
+    await closeStale(reg, inbox.items, inbox.snoozes, document.visibilityState === "visible");
+  })().catch(() => {});
+}
+
+/** Closes the notifications of these permission prompts (#1363). */
+function closePromptNotifications(ids: string[]): void {
+  if (ids.length === 0) return;
+  (async () => {
+    const reg = await navigator.serviceWorker?.getRegistration("/").catch(() => undefined);
+    const tags = new Set(ids.map((id) => `p:${id}`));
+    for (const n of (await reg?.getNotifications().catch(() => [])) ?? [])
+      if (tags.has(n.tag)) n.close();
+  })().catch(() => {});
+}
+
 function single(read: () => Promise<unknown>): () => void {
   let running = false;
   return () => {
@@ -280,6 +300,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (loaded && landed()) {
             inboxRef.current = withImages(loaded, shownImages.current);
             setInbox(inboxRef.current);
+            closeStaleNotifications(inboxRef.current);
           }
         });
         setInboxLoaded(true);
@@ -384,6 +405,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // The next read starts before React renders this one.
       inboxRef.current = withImages(loaded, shownImages.current);
       setInbox(inboxRef.current);
+      closeStaleNotifications(inboxRef.current);
     });
     inboxNext.current = next;
     return next;
@@ -406,6 +428,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     for (const [k, v] of notices.settled) byKey.set(k, v);
     settledRef.current.cursor = notices.cursor;
     const at = Date.now();
+    // Prompts that left the open list, or that a settled notice closed: Safari gets no push that
+    // closes their notifications (#1363).
+    const openNow = new Set(open.map((p) => p.permission.id));
+    closePromptNotifications([
+      ...promptsRef.current.map((p) => p.permission.id).filter((id) => !openNow.has(id)),
+      ...[...notices.settled.values()].map((s) => s.itemId),
+    ]);
     setPrompts((was) => {
       const openIds = new Set(open.map((p) => p.permission.id));
       const closed = was
