@@ -402,6 +402,25 @@ test("relay mode: a server without credentials forwards FCM and Web Push through
   }
 });
 
+test("a server on the relay asks it for its VAPID key once, not on every page load", async () => {
+  const { openDb } = await import("../src/db");
+  const { Push } = await import("../src/push");
+  let asked = 0;
+  const push = new Push(
+    testConfig({ relayUrl: "https://relay.example" }),
+    openDb(":memory:"),
+    (async (url: string) => {
+      asked++;
+      expect(url).toBe("https://relay.example/v1/push/vapid");
+      await Bun.sleep(5);
+      return Response.json({ publicKey: "relay-key" });
+    }) as unknown as typeof fetch,
+  );
+  const keys = await Promise.all([push.vapidPublicKey(), push.vapidPublicKey()]);
+  expect([...keys, await push.vapidPublicKey()]).toEqual(["relay-key", "relay-key", "relay-key"]);
+  expect(asked).toBe(1);
+});
+
 test("a relay never allows private push endpoints: it pushes for anyone who asks", () => {
   expect(() => configFromEnv({ RELAY_MODE: "1", ALLOW_PRIVATE_PUSH_ENDPOINTS: "1" })).toThrow(
     "RELAY_MODE is refused with ALLOW_PRIVATE_PUSH_ENDPOINTS",
