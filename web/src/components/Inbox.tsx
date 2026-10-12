@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { drafts } from "@/lib/drafts";
 import {
@@ -941,16 +942,22 @@ function ViewMenu({
   );
 }
 
-/** The empty inbox of an account with no machine: what to install, where. */
+/** The empty inbox of an account with no machine: what to install, where, and Add a device. */
 function NoMachine() {
   return (
     <div className={s.noMachine}>
       <h2 className="t-heading">Add a machine</h2>
       <p className={`t-small ${s.noMachineText}`}>
-        Install Starbridge on each machine that runs your agents. Its setup shows a code to approve
-        here; then its agents' questions arrive in this inbox.
+        Install Starbridge on each machine that runs your agents, then enter the pairing code from
+        your terminal.
       </p>
       <InstallBox />
+      {/* Where the pairing code goes, one tap away (#1367). */}
+      <div>
+        <Link href="/settings/devices/add" className={`t-meta ${ui.btn} ${ui.sm}`}>
+          Add a device
+        </Link>
+      </div>
       <p className={`t-small ${s.noMachineText}`}>
         What setup does: <a href="/docs">the docs</a>
       </p>
