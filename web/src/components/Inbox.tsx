@@ -8,6 +8,7 @@ import {
   closedToday,
   type Entry,
   history,
+  isRecent,
   needsYou,
   type Past,
   promptOpen,
@@ -30,6 +31,7 @@ import {
   HistoryHead,
   machineIcon,
   NeedRow,
+  OlderHead,
   PastRow,
   RunRow,
   RunsHead,
@@ -136,6 +138,10 @@ export function Inbox() {
       !finding || matches(find, [p.entry.machine, p.entry.repo, ...text(p.entry), p.outcome, p.by]),
   );
   const showPast = historyOpen || finding;
+  // Find searches every row; the list shows the last 7 days until the owner asks for more.
+  const [showOlder, setShowOlder] = useState(false);
+  const older = finding || showOlder ? 0 : past.filter((p) => !isRecent(p, now)).length;
+  const listed = older > 0 ? past.filter((p) => isRecent(p, now)) : past;
   const view = finding ? "none" : grouping;
 
   // A question another device answered first stays selected, saying what won (#330).
@@ -143,7 +149,7 @@ export function Inbox() {
   const ids = [
     ...needs,
     ...(showSnoozed ? snoozed : []),
-    ...past.filter((p) => showPast || lost.current.has(p.entry.id)).map((p) => p.entry),
+    ...listed.filter((p) => showPast || lost.current.has(p.entry.id)).map((p) => p.entry),
   ].map((e) => e.id);
   const [picked, setPicked] = useState<string>();
   // Phones and narrow windows show the detail in place of the list once a row is tapped.
@@ -409,7 +415,7 @@ export function Inbox() {
           className={historyToggled ? "m-appear" : undefined}
           onAnimationEnd={() => setHistoryToggled(false)}
         >
-          {past.map((p) => (
+          {listed.map((p) => (
             <PastRow
               key={p.entry.id}
               past={p}
@@ -418,6 +424,7 @@ export function Inbox() {
               onSelect={() => (wide ? setPicked(p.entry.id) : openItem(p.entry.id))}
             />
           ))}
+          {older > 0 && <OlderHead count={older} comfy={comfy} onShow={() => setShowOlder(true)} />}
         </div>
       )}
     </>
