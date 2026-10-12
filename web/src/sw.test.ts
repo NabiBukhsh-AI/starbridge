@@ -21,6 +21,8 @@ type Listener = (e: { data?: { text(): string }; waitUntil(p: Promise<unknown>):
 const listeners = new Map<string, Listener>();
 /** The notifications up, as the browser keeps them: one per tag. */
 let notes: Note[] = [];
+/** How many times the worker showed a notification. */
+let shows = 0;
 const errors: string[] = [];
 function note(title: string, tag: string): Note {
   const n: Note = {
@@ -37,6 +39,7 @@ Object.assign(globalThis, {
     addEventListener: (type: string, f: Listener) => listeners.set(type, f),
     registration: {
       showNotification: async (title: string, o: { tag?: string } = {}) => {
+        shows++;
         notes = [...notes.filter((n) => n.tag !== o.tag), note(title, o.tag ?? "")];
       },
       getNotifications: async (o: { tag?: string } = {}) =>
@@ -128,13 +131,14 @@ async function push(payload: object): Promise<void> {
 }
 
 /** A sealed item's push to this browser, its box inline. */
-const payload = (item: SealedItem) => ({
+const payload = (item: SealedItem, extra: object = {}) => ({
+  ...extra,
   v: 1,
   kind: item.kind,
   id: item.id,
   from: item.from,
   ...(item.re ? { re: item.re } : {}),
-  box: item.boxes[0]?.box,
+  box: item.boxes.find((b) => b.to === ctx.device.id)?.box,
 });
 
 /** Seals a body from the machine to this browser. */
@@ -201,4 +205,67 @@ test("a withheld push closes the question and prompt notifications only (#1281)"
   );
   expect(errors.at(-1)).toContain("holding back changes to your devices");
   expect(notes.map((n) => n.tag)).toEqual(["r:c", "q:claude/5h/low", "j:e"]);
+  // The head it kept would hold back every later push.
+  await store.del("heads", ctx.account);
+});
+
+test("a snooze's first push that comes late never notifies; its return does (#1290)", async () => {
+  const d = decision("d_late");
+  live.inject(d);
+  notes = [];
+  const before = shows;
+  // Five minutes from posting, its first push four minutes late: within the clock's 2-minute skew.
+  const now = Date.now();
+  const { id, boxPk } = ctx.device;
+  const z = seal(
+    "snooze",
+    {
+      v: 1,
+      id: "z_late",
+      decisionId: "d_late",
+      to: ["m_devbox", id],
+      until: new Date(now + 60_000).toISOString(),
+      at: new Date(now - 4 * 60_000).toISOString(),
+    },
+    { id: "phone", signKey: live.owner.device.keys.sign.privateKey },
+    [
+      { id: "m_devbox", boxPk: publicKeys(mKeys).boxPk },
+      { id, boxPk },
+    ],
+  );
+  const item = { ...z, re: "d_late", wakeAt: new Date(now + 60_000).toISOString() };
+  await push(payload(item, { wakeAt: item.wakeAt, due: false }));
+  expect(shows).toBe(before);
+  await push(payload(item, { wakeAt: item.wakeAt, due: true }));
+  expect(shows).toBe(before + 1);
+  expect(notes.map((n) => n.tag)).toEqual(["d:d_late"]);
+});
+
+test("a snooze's first push that comes after its return leaves the question up, by a clock behind too (#1290)", async () => {
+  const d = decision("d_order");
+  live.inject(d);
+  // Its return already showed the question; push services keep no order.
+  notes = [note("Question d_order", "d:d_order")];
+  const now = Date.now();
+  const { id, boxPk } = ctx.device;
+  // Its time a minute ahead: the server's clock may run ahead of this browser's.
+  const until = new Date(now + 60_000).toISOString();
+  const z = seal(
+    "snooze",
+    {
+      v: 1,
+      id: "z_order",
+      decisionId: "d_order",
+      to: ["m_devbox", id],
+      until,
+      at: new Date(now - 6 * 60_000).toISOString(),
+    },
+    { id: "phone", signKey: live.owner.device.keys.sign.privateKey },
+    [
+      { id: "m_devbox", boxPk: publicKeys(mKeys).boxPk },
+      { id, boxPk },
+    ],
+  );
+  await push(payload({ ...z, re: "d_order", wakeAt: until }, { wakeAt: until, due: false }));
+  expect(notes.map((n) => n.tag)).toEqual(["d:d_order"]);
 });
