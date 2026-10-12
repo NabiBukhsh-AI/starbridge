@@ -18,7 +18,7 @@ opens an issue for each client the row says should follow.
 | Find | yes (rail box) | yes (Material 3 search view) | yes | yes (#1131: the system search field) |
 | Permission prompts, answer from the device (Allow / Deny) | yes | yes | yes | yes (#1122: Allow, Deny with a note, offered scopes) |
 | Runs (section, progress, dismiss) | yes | yes | yes | yes (#1122; the section #1170) |
-| Quotas tab | yes | yes | yes | not yet |
+| Quotas tab | yes | yes | yes | yes (#1234: read with the inbox every 10 s while the app is open, since APNs carries no snapshots; Order is a page under Settings → Quotas) |
 | Quota alerts per window (settings) | yes | yes | yes | not yet |
 | Widgets | n/a | yes (#894: Needs you, Quotas) | yes (#1031: Needs you only; no Quotas widget by owner's choice) | not yet |
 | Notification: questions | yes (Web Push) | yes | yes | yes (#1137: a service extension opens the sealed box in place of the server's placeholder; delivery on a device waits for TestFlight) |

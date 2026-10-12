@@ -49,6 +49,14 @@ final class Store {
     var openRequest: Sheet?
     /** Replies typed and not sent, by decision id, while the app runs (#992). */
     var drafts: [String: String] = [:]
+    /** The server listed quota snapshots on the last read, even ones this iPhone cannot open yet. */
+    var quotasListed = false
+    /** Asking the machines for fresh quotas, for the Quotas tab's pull and first look (#661). */
+    var quotasAsking = false
+    /** How Quotas reads, on this iPhone only. */
+    var quotaSettings = QuotaSettings.load() {
+        didSet { quotaSettings.store() }
+    }
     /** What Devices shows beside the chain, read when it opens. */
     var deviceInfo = DeviceInfo()
     /** Where adding a machine or device stands. */
@@ -734,6 +742,7 @@ final class Store {
         joinAsks = []
         comparison = .idle
         withheldWhy = nil
+        quotasListed = false
         persist(Saved(server: saved.server), Secrets())
         try? FileManager.default.removeItem(at: SavedImage.directory)
     }

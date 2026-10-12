@@ -52,6 +52,8 @@ struct Saved: Codable, Equatable {
     var decisions: [SavedDecision] = []
     var prompts: [SavedPrompt] = []
     var runs: [SavedRun] = []
+    /** The latest quota snapshot from each machine. */
+    var quotas: [SavedQuota] = []
     /** Runs dismissed here, with the update they hid, until a newer one comes. */
     var dismissedRuns: [String: String] = [:]
     var outbox: [QueuedAnswer] = []
@@ -91,6 +93,7 @@ struct Saved: Codable, Equatable {
         decisions = (try c.decodeIfPresent([Lossy<SavedDecision>].self, forKey: .decisions) ?? []).compactMap(\.value)
         prompts = (try c.decodeIfPresent([Lossy<SavedPrompt>].self, forKey: .prompts) ?? []).compactMap(\.value)
         runs = (try c.decodeIfPresent([Lossy<SavedRun>].self, forKey: .runs) ?? []).compactMap(\.value)
+        quotas = (try c.decodeIfPresent([Lossy<SavedQuota>].self, forKey: .quotas) ?? []).compactMap(\.value)
         dismissedRuns = try c.decodeIfPresent([String: String].self, forKey: .dismissedRuns) ?? [:]
         outbox = (try c.decodeIfPresent([Lossy<QueuedAnswer>].self, forKey: .outbox) ?? []).compactMap(\.value)
         heads = try c.decodeIfPresent([SavedHead].self, forKey: .heads) ?? []
